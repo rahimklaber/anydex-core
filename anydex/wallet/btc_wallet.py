@@ -1,29 +1,64 @@
 import os
 import time
+
 from asyncio import Future
-# Important import, do not remove
 from binascii import hexlify
+from configparser import ConfigParser
 
 from ipv8.util import fail, succeed
-
-from anydex.wallet import bitcoinlib_main as bitcoinlib_main
 from anydex.wallet.wallet import InsufficientFunds, Wallet
+
+
+def cfg_init(wallet_dir):
+
+    config = ConfigParser()
+
+    config['locations'] = {}
+    locations = config['locations']
+    locations['data_dir'] = wallet_dir
+    # locations['database_dir'] = 'database'
+    # locations['default_databasefile'] = 'bitcoinlib.sqlite'
+    # locations['default_databasefile_cache'] = 'bitcoinlib_cache.sqlite'
+
+    config['common'] = {}
+    common = config['common']
+    # common['allow_database_threads'] = 'True'
+    # common['timeout_requests'] = '5'
+    # common['default_language'] = 'english'
+    common['default_network'] = 'bitcoin'
+    # common['default_witness_type'] = ''
+    # common['service_caching_enabled'] = 'True'
+
+    config['logs'] = {}
+    logs = config['logs']
+    # logs['enable_bitcoinlib_logging'] = 'True'
+    logs['log_file'] = 'bitcoin_config.log'
+    # logs['loglevel'] = 'WARNING'
+
+    return config
+
+
+def lib_init(wallet_dir):
+
+    cfg_name = 'bitcoin_config.ini'
+
+    config = cfg_init(wallet_dir)
+    with open(cfg_name, 'w+') as configfile:
+        config.write(configfile)
+
+    os.environ['BCL_CONFIG_FILE'] = os.path.abspath(cfg_name)
 
 
 class BitcoinWallet(Wallet):
     """
-    This class is responsible for handling your wallet of bitcoins.
-
-    NOTE: all imports of bitcoinlib should be local. The reason for this is that we are patching the bitcoinlib_main
-          method in the __init__ method of the class (since we need access to the Tribler state directory) and
-          we can only import bitcoinlib *after* patching the bitcoinlib main file.
+    This class is responsible for handling your bitcoin wallet.
     """
     TESTNET = False
 
     def __init__(self, wallet_dir):
         super(BitcoinWallet, self).__init__()
 
-        bitcoinlib_main.initialize_lib(wallet_dir)
+        lib_init(wallet_dir)
         from bitcoinlib.wallets import wallet_exists, HDWallet
 
         self.network = 'testnet' if self.TESTNET else 'bitcoin'
@@ -34,8 +69,8 @@ class BitcoinWallet(Wallet):
         self.db_path = os.path.join(wallet_dir, 'wallets.sqlite')
         self.wallet_name = 'tribler_testnet' if self.TESTNET else 'tribler'
 
-        if wallet_exists(self.wallet_name, databasefile=self.db_path):
-            self.wallet = HDWallet(self.wallet_name, databasefile=self.db_path)
+        if wallet_exists(self.wallet_name, db_uri=self.db_path):
+            self.wallet = HDWallet(self.wallet_name, db_uri=self.db_path)
             self.created = True
 
     def get_name(self):
@@ -50,12 +85,12 @@ class BitcoinWallet(Wallet):
         """
         from bitcoinlib.wallets import wallet_exists, HDWallet, WalletError
 
-        if wallet_exists(self.wallet_name, databasefile=self.db_path):
+        if wallet_exists(self.wallet_name, db_uri=self.db_path):
             return fail(RuntimeError(f"Bitcoin wallet with name {self.wallet_name} already exists."))
 
         self._logger.info("Creating wallet in %s", self.wallet_dir)
         try:
-            self.wallet = HDWallet.create(self.wallet_name, network=self.network, databasefile=self.db_path)
+            self.wallet = HDWallet.create(self.wallet_name, network=self.network, db_uri=self.db_path)
             self.wallet.new_key('tribler_payments')
             self.wallet.new_key('tribler_change', change=1)
             self.created = True
@@ -123,8 +158,8 @@ class BitcoinWallet(Wallet):
         self.wallet.transactions_update(network=self.network)
 
         txs = self.wallet._session.query(DbTransaction.raw, DbTransaction.confirmations,
-                                         DbTransaction.date, DbTransaction.fee)\
-            .filter(DbTransaction.wallet_id == self.wallet.wallet_id)\
+                                         DbTransaction.date, DbTransaction.fee) \
+            .filter(DbTransaction.wallet_id == self.wallet.wallet_id) \
             .all()
         transactions = []
 
@@ -169,7 +204,7 @@ class BitcoinWallet(Wallet):
                 'fee_amount': transaction.fee,
                 'currency': 'BTC',
                 'timestamp': time.mktime(transaction.date.timetuple()),
-                'description': f'Confirmations: {transaction.confirmations}' 
+                'description': f'Confirmations: {transaction.confirmations}'
             })
 
         return succeed(transactions_list)

@@ -21,10 +21,13 @@ DEFAULT_DOCDIR = None
 DEFAULT_DATABASEDIR = None
 DEFAULT_LOGDIR = None
 DEFAULT_SETTINGSDIR = None
+DEFAULT_DATABASE = None
+
 CURRENT_INSTALLDIR = None
 CURRENT_INSTALLDIR_DATA = None
+
 DEFAULT_DATABASEFILE = 'bitcoinlib.sqlite'
-DEFAULT_DATABASE = None
+
 TIMEOUT_REQUESTS = 5
 
 
@@ -33,13 +36,15 @@ def initialize_lib(wallet_dir):
         CURRENT_INSTALLDIR, CURRENT_INSTALLDIR_DATA
     try:
         bitcoinlib_path = imp.find_module('bitcoinlib')[1]
-        CURRENT_INSTALLDIR = bitcoinlib_path
-        CURRENT_INSTALLDIR_DATA = os.path.join(bitcoinlib_path, 'data')
+
         DEFAULT_DOCDIR = wallet_dir
         DEFAULT_DATABASEDIR = os.path.join(DEFAULT_DOCDIR, 'database/')
         DEFAULT_LOGDIR = os.path.join(DEFAULT_DOCDIR, 'log/')
         DEFAULT_SETTINGSDIR = os.path.join(DEFAULT_DOCDIR, 'config/')
         DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
+
+        CURRENT_INSTALLDIR = bitcoinlib_path
+        CURRENT_INSTALLDIR_DATA = os.path.join(bitcoinlib_path, 'data')
 
         if not os.path.exists(DEFAULT_DOCDIR):
             os.makedirs(DEFAULT_DOCDIR)
