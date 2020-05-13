@@ -19,7 +19,7 @@ class BitcoinlibWallet(Wallet):
         'bitcoin': ['Bitcoin', 'BTC'],
         'litecoin': ['Litecoin', 'LTC'],
         'dash': ['Dash', 'DASH'],
-        'testnet': ['Testnet', 'TESTNET']
+        'testnet': ['Testnet', 'BTC']
     }
 
     def __init__(self, wallet_dir, network, testnet):
