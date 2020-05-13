@@ -18,7 +18,8 @@ class BitcoinlibWallet(Wallet):
     NETWORK_INFO = {
         'bitcoin': ['Bitcoin', 'BTC'],
         'litecoin': ['Litecoin', 'LTC'],
-        'Dash': ['Dash', 'DASH']
+        'dash': ['Dash', 'DASH'],
+        'testnet': ['Testnet', 'TESTNET']
     }
 
     def __init__(self, wallet_dir, network, testnet):
@@ -38,13 +39,13 @@ class BitcoinlibWallet(Wallet):
 
         self.lib_init()
 
-    def cfg_init(self, wallet_dir):
+    def cfg_init(self):
 
         config = ConfigParser()
 
         config['locations'] = {}
         locations = config['locations']
-        locations['data_dir'] = self.wallet_dir
+        locations['data_dir'] = self.wallet_dir.__str__()
         # locations['database_dir'] = 'database'
         # locations['default_databasefile'] = 'bitcoinlib.sqlite'
         # locations['default_databasefile_cache'] = 'bitcoinlib_cache.sqlite'
@@ -70,7 +71,7 @@ class BitcoinlibWallet(Wallet):
 
         cfg_name = 'bitcoin_config.ini'
 
-        config = self.cfg_init(self)
+        config = self.cfg_init()
         with open(cfg_name, 'w+') as configfile:
             config.write(configfile)
 
