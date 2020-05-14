@@ -1,5 +1,5 @@
 import abc
-from wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException
+from wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
 import requests
 from web3 import Web3
 
@@ -72,29 +72,40 @@ class Web3Provider(EthereumProvider):
     Used for directly connecting to nodes.
     #TODO: check for failed requests.
     """
+    def check_connection(self):
+        """
+        Check the connection to the node
+        """
+        if not self.w3.isConnected():
+            raise ConnectionException(f"We were not able to establish a connection with the node")
 
     def __init__(self, url):
         self.w3 = Web3(Web3.HTTPProvider(url))
-        if not self.w3.isConnected():
-            raise InvalidNode(f"invalid node url: {url}, the node may be down")
+        self.check_connection()
 
     def get_transaction_count(self, address):
+        self.check_connection()
         return self.w3.eth.getTransactionCount(address)
 
     def estimate_gas(self, tx):
+        self.check_connection()
         return self.w3.eth.estimateGas(tx)
 
     def get_gas_price(self):
+        self.check_connection()
         return self.w3.eth.gasPrice
 
     def submit_transaction(self, raw_tx):
+        self.check_connection()
         return self.w3.eth.sendRawTransaction(raw_tx)
 
     def get_balance(self, address):
+        self.check_connection()
         return self.w3.eth.getBalance(address)
 
     def get_transactions(self, address, start_block, stop_block):
         # use ethereum-etl ?
+        self.check_connection()
         transactions = []
         for block_nr in range(start_block, stop_block + 1):
             current_block = self.w3.eth.getBlock(block_nr, True)
@@ -105,6 +116,7 @@ class Web3Provider(EthereumProvider):
 
     def get_transactions_received(self, address, start_block, stop_block):
         # use ethereum-etl ?
+        self.check_connection()
         transactions = []
         for block_nr in range(start_block, stop_block + 1):
             current_block = self.w3.eth.getBlock(block_nr, True)

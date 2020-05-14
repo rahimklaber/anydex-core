@@ -45,6 +45,10 @@ class RequestException(Exception):
     """
     pass
 
+class ConnectionException(RequestException):
+    """
+    Used for throwing exceptions relating to connections.
+    """
 
 class RateExceeded(RequestException):
     """
