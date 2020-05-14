@@ -1,12 +1,3 @@
-import os
-import time
-
-from asyncio import Future
-from binascii import hexlify
-from configparser import ConfigParser
-
-from ipv8.util import fail, succeed
-from anydex.wallet.wallet import InsufficientFunds, Wallet
 from anydex.wallet.bitcoinlib_wallet import BitcoinlibWallet
 
 
@@ -24,7 +15,7 @@ class BitcoinWallet(BitcoinlibWallet):
         return 100000  # The minimum amount of BTC we can transfer in this market is 1 mBTC (100000 Satoshi)
 
     def precision(self):
-        return 8
+        return 8       # One BTC is defined as 10^8 Satoshi
 
 
 class BitcoinTestnetWallet(BitcoinWallet):
@@ -38,3 +29,56 @@ class BitcoinTestnetWallet(BitcoinWallet):
 
     def get_identifier(self):
         return 'TBTC'
+
+
+class LitecoinWallet(BitcoinlibWallet):
+    TESTNET = False
+
+    def __init__(self, wallet_dir):
+        super(LitecoinWallet, self).__init__(wallet_dir, network='litecoin', testnet=self.TESTNET)
+
+    def min_unit(self):
+        return 100000
+
+    def precision(self):
+        return 8        # Similar to BTC, one LTC is made up of 10^8 phtotons
+
+class LitecoinTestnetWallet(LitecoinWallet):
+    """
+    This wallet represents testnet Dash.
+    """
+    TESTNET = True
+
+    def get_name(self):
+        return 'Testnet LTC'
+
+    def get_identifier(self):
+        return 'TLTC'
+
+
+class DashWallet(BitcoinlibWallet):
+
+    TESTNET = False
+
+    def __init__(self, wallet_dir):
+        super(DashWallet, self).__init__(wallet_dir, network='dash', testnet=self.TESTNET)
+
+    def min_unit(self):
+        return 100000
+
+    def precision(self):
+        return 8
+
+
+class DashTestnetWallet(DashWallet):
+
+    """
+    This wallet represents testnet Litecoin.
+    """
+    TESTNET = True
+
+    def get_name(self):
+        return 'Testnet DASH'
+
+    def get_identifier(self):
+        return 'TDASH'
