@@ -41,7 +41,8 @@ class LitecoinWallet(BitcoinlibWallet):
         return 100000
 
     def precision(self):
-        return 8        # Similar to BTC, one LTC is made up of 10^8 phtotons
+        return 8    # The precision of LTC is the same as that of BTC, 10^(-8)
+
 
 class LitecoinTestnetWallet(LitecoinWallet):
     """
@@ -67,7 +68,7 @@ class DashWallet(BitcoinlibWallet):
         return 100000
 
     def precision(self):
-        return 8
+        return 8    # The precision of DASH is the same as that of BTC and ETC, 10^(-8)
 
 
 class DashTestnetWallet(DashWallet):
