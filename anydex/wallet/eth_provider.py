@@ -72,6 +72,7 @@ class Web3Provider(EthereumProvider):
     Used for directly connecting to nodes.
     #TODO: check for failed requests.
     """
+
     def check_connection(self):
         """
         Check the connection to the node
@@ -161,39 +162,32 @@ class EthereumBlockchairProvider(EthereumProvider):
 
     def get_balance(self, address):
         response = self.send_request(f"/dashboards/address/{address}")
-        # response = requests.get(self.base_url + self.network + f"/dashboards/address/{address}")
         return response.json()["data"][address.lower()]["address"]["balance"]
 
     def get_transaction_count(self, address):
         response = self.send_request(f"/dashboards/address/{address}")
-        # response = requests.get(self.base_url + self.network + f"/dashboards/address/{address}")
         return response.json()["data"][address.lower()]["address"]["transaction_count"]
 
     def estimate_gas(self, tx):
+        # Todo estimate the gas better
         response = self.send_request("/stats")
-        # response = requests.get(self.base_url + self.network + "/stats")
         return response.json()["data"]["median_simple_transaction_fee_24h"]
 
     def get_gas_price(self):
         response = self.send_request("/stats")
-        # response = requests.get(self.base_url + self.network + "/stats")
         return response.json()["data"]["mempool_median_gas_price"]
 
     def submit_transaction(self, raw_tx):
         response = self.send_request("/push/transactions", data={"data": raw_tx}, method="post")
-        # response = requests.post(self.base_url + self.network + "/push/transaction", {"data": raw_tx})
         return response.json()["data"]["transaction_hash"]
 
     def get_transactions_received(self, address):
         received = self.send_request("/transactions", data={"q": f"recipient({address})"})
-        # received = requests.get(self.base_url + self.network + f"/transactions", {"q": f"recipient({address})"})
         return received.json()["data"]
 
     def get_transactions(self, address):
         received = self.send_request("/transactions", data={"q": f"recipient({address})"})
-        # received = requests.get(self.base_url + self.network + f"/transactions", {"q": f"recipient({address})"})
         sent = self.send_request("/transactions", data={"q": f"sender({address})"})
-        # sent = requests.get(self.base_url + self.network + f"/transactions", {"q": f"sender({address})"})
         received_data = received.json()["data"]
         sent_data = sent.json()["data"]
         received_data.append(sent_data)
