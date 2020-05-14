@@ -76,7 +76,7 @@ class TestWallet(AbstractServer):
         """
         balance = await self.wallet.get_balance()
         self.assertTrue(balance ==
-                             {'available': 0, 'pending': 0, 'currency': self.NETWORK_INFO[self.network_name][1],
+                             {'available': 0, 'pending': 0, 'currency': self.network_currency,
                               'precision': self.WALLET_INFO[self.network_name]['precision']})
 
     async def runTests(self):
