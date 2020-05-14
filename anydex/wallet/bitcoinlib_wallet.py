@@ -49,6 +49,7 @@ class BitcoinlibWallet(Wallet):
         # locations['database_dir'] = 'database'
         # locations['default_databasefile'] = 'bitcoinlib.sqlite'
         # locations['default_databasefile_cache'] = 'bitcoinlib_cache.sqlite'
+        locations['log_file'] = 'bitcoin_config.log'
 
         config['common'] = {}
         common = config['common']

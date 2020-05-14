@@ -10,7 +10,6 @@ from anydex.wallet.btc_wallet import BitcoinTestnetWallet, BitcoinWallet
 
 
 class TestBtcWallet(AbstractServer):
-
     async def tearDown(self):
         # Close all bitcoinlib Wallet DB sessions
         db_session.close_all_sessions()
@@ -42,41 +41,14 @@ class TestBtcWallet(AbstractServer):
         wallet.get_transactions = lambda: succeed([{"id": "abc"}])
         await wallet.monitor_transaction("abc")
 
-    def test_btc_wallet_name(self):
+    # Import is inside the function because if it is at the top, error arises that no tests are detected
+    async def test_runCommon(self):
         """
-        Test the name of a Bitcoin wallet
-        """
-        wallet = BitcoinTestnetWallet(self.session_base_dir)
-        self.assertEqual(wallet.get_name(), 'Testnet BTC')
-
-    def test_btc_wallet_identfier(self):
-        """
-        Test the identifier of a Bitcoin wallet
+        Test that basic wallet functionality works
         """
         wallet = BitcoinTestnetWallet(self.session_base_dir)
-        self.assertEqual(wallet.get_identifier(), 'TBTC')
-
-    def test_btc_wallet_address(self):
-        """
-        Test the address of a Bitcoin wallet
-        """
-        wallet = BitcoinTestnetWallet(self.session_base_dir)
-        self.assertEqual(wallet.get_address(), '')
-
-    def test_btc_wallet_unit(self):
-        """
-        Test the mininum unit of a Bitcoin wallet
-        """
-        wallet = BitcoinTestnetWallet(self.session_base_dir)
-        self.assertEqual(wallet.min_unit(), 100000)
-
-    async def test_btc_balance_no_wallet(self):
-        """
-        Test the retrieval of the balance of a BTC wallet that is not created yet
-        """
-        wallet = BitcoinTestnetWallet(self.session_base_dir)
-        balance = await wallet.get_balance()
-        self.assertDictEqual(balance, {'available': 0, 'pending': 0, 'currency': 'BTC', 'precision': 8})
+        from anydex.test.wallet.bcl_wallet import TestWallet
+        await TestWallet('bitcoin', wallet).runTests()
 
     @timeout(10)
     async def test_btc_wallet_transfer(self):
