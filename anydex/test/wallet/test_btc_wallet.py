@@ -43,7 +43,7 @@ class TestBtcWallet(AbstractServer):
 
     def test_runCommon(self):
         wallet = BitcoinTestnetWallet(self.session_base_dir)
-        from anydex.test.wallet.test_bcl_wallet import TestWallet
+        from anydex.test.wallet.bcl_wallet import TestWallet
         TestWallet.set_wallet_and_network(self.session_base_dir, 'bitcoin', wallet).runTests()
 
     @timeout(10)

@@ -13,6 +13,7 @@ import os
 import struct  # DO NOT REMOVE AS UNUSED; It is magically used by bitcoinlib
 import sys
 from logging.handlers import RotatingFileHandler
+from shutil import copyfile
 
 sys.modules["bitcoinlib.main"] = sys.modules[__name__]
 
@@ -35,35 +36,50 @@ def initialize_lib(wallet_dir):
     global DEFAULT_DOCDIR, DEFAULT_DATABASEDIR, DEFAULT_LOGDIR, DEFAULT_SETTINGSDIR, DEFAULT_DATABASE,\
         CURRENT_INSTALLDIR, CURRENT_INSTALLDIR_DATA
     try:
+        # get path to bitcoinlib
         bitcoinlib_path = imp.find_module('bitcoinlib')[1]
 
+        # set default document directory to 'wallet_dir'
         DEFAULT_DOCDIR = wallet_dir
+        # set default database directory to 'wallet_dir'/database
         DEFAULT_DATABASEDIR = os.path.join(DEFAULT_DOCDIR, 'database/')
+        # set default log directory to 'wallet_dir'/log
         DEFAULT_LOGDIR = os.path.join(DEFAULT_DOCDIR, 'log/')
+        # set default settings directory to 'wallet_dir'/config
         DEFAULT_SETTINGSDIR = os.path.join(DEFAULT_DOCDIR, 'config/')
+        # set default database to 'wallet_dir'/database/bitcoinlib.sqlite
         DEFAULT_DATABASE = DEFAULT_DATABASEDIR + DEFAULT_DATABASEFILE
 
+        # set current install directory to 'bitcoinlib_path'
         CURRENT_INSTALLDIR = bitcoinlib_path
+        # set current install data directory to 'bitcoinlib_path'/data
         CURRENT_INSTALLDIR_DATA = os.path.join(bitcoinlib_path, 'data')
 
+        # ensure default document directory exists
         if not os.path.exists(DEFAULT_DOCDIR):
             os.makedirs(DEFAULT_DOCDIR)
+        # ensure default log directory exists
         if not os.path.exists(DEFAULT_LOGDIR):
             os.makedirs(DEFAULT_LOGDIR)
+        # ensure default settings directory exists
         if not os.path.exists(DEFAULT_SETTINGSDIR):
             os.makedirs(DEFAULT_SETTINGSDIR)
 
         # Copy data and settings file
-        from shutil import copyfile
 
+        # list all files from current install data directory
         src_files = os.listdir(CURRENT_INSTALLDIR_DATA)
+        # iterate over files in current install data directory
         for file_name in src_files:
+            # get full path to the file
             full_file_name = os.path.join(CURRENT_INSTALLDIR_DATA, file_name)
+            # if file is indeed a file (and probably not a dir), copy it to default settings directory
             if os.path.isfile(full_file_name):
                 copyfile(full_file_name, os.path.join(DEFAULT_SETTINGSDIR, file_name))
 
         # Extract all variable assignments from the original file and make sure these variables are initialized.
         excluded_assignments = ['logfile', 'handler', 'logger', 'formatter']
+        # open 'bitcoinlib_path'/main.py as source_file
         with open(os.path.join(CURRENT_INSTALLDIR, 'main.py'), 'rb') as source_file:
             file_contents = source_file.read()
             ast_module_node = ast.parse(file_contents)

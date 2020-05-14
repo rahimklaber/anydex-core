@@ -49,6 +49,7 @@ class BitcoinlibWallet(Wallet):
         # locations['database_dir'] = 'database'
         # locations['default_databasefile'] = 'bitcoinlib.sqlite'
         # locations['default_databasefile_cache'] = 'bitcoinlib_cache.sqlite'
+        locations['log_file'] = 'bitcoin_config.log'
 
         config['common'] = {}
         common = config['common']
@@ -69,7 +70,7 @@ class BitcoinlibWallet(Wallet):
 
     def lib_init(self):
 
-        cfg_name = 'bitcoin_config.ini'
+        cfg_name = os.path.join(self.wallet_dir.__str__(), 'bitcoin_config.ini')
 
         config = self.cfg_init()
         with open(cfg_name, 'w+') as configfile:
