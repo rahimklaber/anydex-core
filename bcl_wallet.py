@@ -7,8 +7,12 @@ from sqlalchemy.orm import session as db_session
 from anydex.test.base import AbstractServer
 from anydex.wallet.btc_wallet import BitcoinTestnetWallet
 
-class TestWallet(AbstractServer):
 
+class TestWallet(AbstractServer):
+    '''
+    This class is named as bcl_wallet and not as test_btc_wallet so that it is not detected as a test class itself.
+    It should only be called through other test classes by passing the appropriate parameters.
+    '''
     NETWORK_INFO = {
         'bitcoin': ['Bitcoin', 'BTC'],
         'litecoin': ['Litecoin', 'LTC'],
@@ -36,23 +40,26 @@ class TestWallet(AbstractServer):
             'precision': 123
         }
     }
+    name = None
+    currency = None
+    wallet = None
 
     def __init__(self, network, wallet):
-        self.network_name = self.NETWORK_INFO[network][0]
-        self.network_currency = self.NETWORK_INFO[network][1]
+        self.name = self.NETWORK_INFO[network][0]
+        self.currency = self.NETWORK_INFO[network][1]
         self.wallet = wallet
 
     def test_wallet_name(self):
         """
         Test the name of a wallet
         """
-        self.assertTrue(self.wallet.get_name() == self.WALLET_INFO[self.network_name]['name'])
+        self.assertTrue(self.wallet.get_name() == self.WALLET_INFO[self.name]['name'])
 
     def test_wallet_identfier(self):
         """
         Test the identifier of a wallet
         """
-        self.assertTrue(self.wallet.get_identifier() == self.WALLET_INFO[self.network_name]['identifier'])
+        self.assertTrue(self.wallet.get_identifier() == self.WALLET_INFO[self.name]['identifier'])
 
     def test_wallet_address(self):
         """
@@ -64,7 +71,7 @@ class TestWallet(AbstractServer):
         """
         Test the mininum unit of a wallet
         """
-        self.assertTrue(self.wallet.min_unit() == self.WALLET_INFO[self.network_name]['min_unit'])
+        self.assertTrue(self.wallet.min_unit() == self.WALLET_INFO[self.name]['min_unit'])
 
     async def test_balance_no_wallet(self):
         """
@@ -72,12 +79,12 @@ class TestWallet(AbstractServer):
         """
         balance = await self.wallet.get_balance()
         self.assertTrue(balance ==
-                             {'available': 0, 'pending': 0, 'currency': self.network_currency,
-                              'precision': self.WALLET_INFO[self.network_name]['precision']})
+                             {'available': 0, 'pending': 0, 'currency': self.NETWORK_INFO[self.name][1],
+                              'precision': self.WALLET_INFO[self.name]['precision']})
 
-    async def runTests(self):
+    def runTests(self):
         self.test_wallet_name()
         self.test_wallet_identfier()
         self.test_wallet_address()
         self.test_wallet_unit()
-        await self.test_balance_no_wallet()
+        self.test_balance_no_wallet()
