@@ -41,15 +41,14 @@ class TestBtcWallet(AbstractServer):
         wallet.get_transactions = lambda: succeed([{"id": "abc"}])
         await wallet.monitor_transaction("abc")
 
-
-    #Import is inside the function because if it is at the top, error arises that no tests are detected
-    def test_runCommon(self):
+    # Import is inside the function because if it is at the top, error arises that no tests are detected
+    async def test_runCommon(self):
         """
         Test that basic wallet functionality works
         """
         wallet = BitcoinTestnetWallet(self.session_base_dir)
         from anydex.test.wallet.bcl_wallet import TestWallet
-        TestWallet('bitcoin', wallet).runTests()
+        await TestWallet('bitcoin', wallet).runTests()
 
     @timeout(10)
     async def test_btc_wallet_transfer(self):

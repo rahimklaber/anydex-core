@@ -79,9 +79,9 @@ class TestWallet(AbstractServer):
                              {'available': 0, 'pending': 0, 'currency': self.NETWORK_INFO[self.network_name][1],
                               'precision': self.WALLET_INFO[self.network_name]['precision']})
 
-    def runTests(self):
+    async def runTests(self):
         self.test_wallet_name()
         self.test_wallet_identfier()
         self.test_wallet_address()
         self.test_wallet_unit()
-        self.test_balance_no_wallet()
+        await self.test_balance_no_wallet()

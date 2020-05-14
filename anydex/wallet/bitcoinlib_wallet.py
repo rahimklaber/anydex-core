@@ -70,7 +70,7 @@ class BitcoinlibWallet(Wallet):
 
     def lib_init(self):
 
-        cfg_name = os.path.join(self.wallet_dir.__str__(), 'bitcoin_config.ini')
+        cfg_name = 'bitcoin_config.ini'
 
         config = self.cfg_init()
         with open(cfg_name, 'w+') as configfile:
