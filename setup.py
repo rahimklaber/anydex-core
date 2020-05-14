@@ -22,6 +22,7 @@ setup(
         "netifaces",
         "aiohttp",
         "pyOpenSSL",
+        "requests",
         "web3"
     ],
     classifiers=[
