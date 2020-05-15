@@ -190,7 +190,7 @@ class EthereumBlockchairProvider(EthereumProvider):
 
     def get_transactions_received(self, address):
         received = self.send_request("/transactions", data={"q": f"recipient({address})"})
-        return received.json()["data"]
+        return self._normalize_transactions(received.json()["data"])
 
     def get_transactions(self, address):
         received = self.send_request("/transactions", data={"q": f"recipient({address})"})
@@ -198,7 +198,7 @@ class EthereumBlockchairProvider(EthereumProvider):
         received_data = received.json()["data"]
         sent_data = sent.json()["data"]
         txs = received_data + sent_data
-        return txs
+        return self._normalize_transaction(txs)
 
     def __check_response(self, response):
         """
