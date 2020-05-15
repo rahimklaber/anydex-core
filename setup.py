@@ -23,7 +23,8 @@ setup(
         "aiohttp",
         "pyOpenSSL",
         "requests",
-        "web3"
+        "web3",
+        "sqlalchemy"
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",

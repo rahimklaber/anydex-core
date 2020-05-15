@@ -52,9 +52,11 @@ class EthereumProvider(Provider, metaclass=abc.ABCMeta):
         returns the transactions where you are the recipient.
 
         In most cases this method will be enough since we should persist transactions when we sent them.
+        Note: depending on the implementation start_block and end_block might not be needed.
         :param start_block: block to start searching
         :param end_block: block where to stop searching
         :param address: The address of which to retrieve the transactions
+        :return: A list of all transactions retrieved
         """
         return
 
@@ -68,9 +70,10 @@ class InvalidNode(Exception):
 
 class Web3Provider(EthereumProvider):
     """
-    Wrapper around Web3.
-    Used for directly connecting to nodes.
-    #TODO: check for failed requests.
+    Wrapper around Web3. Used for directly connecting to nodes.
+    TODO: check for failed requests.
+    TODO: use filters
+    (this is not suported by all nodes) to get transactions https://web3py.readthedocs.io/en/stable/filters.html
     """
 
     def check_connection(self):
@@ -105,6 +108,7 @@ class Web3Provider(EthereumProvider):
         return self.w3.eth.getBalance(address)
 
     def get_transactions(self, address, start_block, stop_block):
+        # TODO figure out a faster and more efficiant way to do this.
         # use ethereum-etl ?
         self.check_connection()
         transactions = []
@@ -116,6 +120,7 @@ class Web3Provider(EthereumProvider):
         return transactions
 
     def get_transactions_received(self, address, start_block, stop_block):
+        # TODO figure out a faster and more efficiant way to do this. filters? Could we use web apis for this?
         # use ethereum-etl ?
         self.check_connection()
         transactions = []
@@ -157,7 +162,7 @@ class EthereumBlockchairProvider(EthereumProvider):
             response = requests.post(f"{self.base_url}{path}", data)
         else:
             raise RequestException(f"Unsupported method: {method} ")
-        self.check_response(response)
+        self.__check_response(response)
         return response
 
     def get_balance(self, address):
@@ -193,7 +198,7 @@ class EthereumBlockchairProvider(EthereumProvider):
         received_data.append(sent_data)
         return received_data
 
-    def check_response(self, response):
+    def __check_response(self, response):
         """
         Checks the response for errors, such as exceeding request limits.
         :param response: the response object
