@@ -2,8 +2,10 @@ import abc
 from wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
 import requests
 from web3 import Web3
-
+from wallet.eth_db import Transaction
+from datetime import datetime
 from wallet.provider import Provider
+from hexbytes import HexBytes
 
 
 class EthereumProvider(Provider, metaclass=abc.ABCMeta):
@@ -195,8 +197,8 @@ class EthereumBlockchairProvider(EthereumProvider):
         sent = self.send_request("/transactions", data={"q": f"sender({address})"})
         received_data = received.json()["data"]
         sent_data = sent.json()["data"]
-        received_data.append(sent_data)
-        return received_data
+        txs = received_data + sent_data
+        return txs
 
     def __check_response(self, response):
         """
@@ -218,3 +220,36 @@ class EthereumBlockchairProvider(EthereumProvider):
             raise RateExceeded("You are sending requests too fast")
         elif response.status_code != 200:
             raise RequestException(f"something went wrong, status code: {response.status_code}")
+
+    def _normalize_transactions(self, txs):
+        """
+        Turns a list of txs from blockchair into the tx format of the wallet.
+        :param txs: Txs from blockchair
+        :return: list of Transaction objects
+        """
+        normalized_txs = []
+        for tx in txs:
+            normalized_txs.append(self._normalize_transaction(tx))
+        return normalized_txs
+
+    def _normalize_transaction(self, tx) -> Transaction:
+        """
+        Turns the tx from blockchair into the tx format of the wallet.
+        :param tx: Tx from blockchair
+        :return: Transaction object
+        """
+
+        return Transaction(
+            blockNumber=tx["block_id"],
+            hash=tx["hash"],
+            date_time=datetime.fromisoformat(tx["time"]),
+            to=tx["recipient"],
+            from_=tx["sender"],
+            value=tx["value"],
+            gas_price=tx["gas_price"],
+            gas=tx["gas_used"],
+            nonce=tx["nonce"],
+            v=tx["v"],
+            r=HexBytes(tx["r"]),
+            s=HexBytes(tx["s"])
+        )

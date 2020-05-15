@@ -1,6 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, LargeBinary, create_engine, Sequence
+from sqlalchemy import Column, Integer, String, LargeBinary, create_engine, Sequence, DateTime
 from sqlalchemy.orm import sessionmaker
+from datetime import datetime
 
 Base = declarative_base()
 
@@ -37,9 +38,11 @@ class Transaction(Base):
     to = Column(String(42))
     v = Column(Integer)
     value = Column(Integer)
+    date_time = Column(DateTime, default=datetime.utcnow())
+    transaction_index = Column(Integer)
 
 
-engine = create_engine("sqlite:///sqlite/eth.db", echo=True)
+engine = create_engine("sqlite:///eth.db", echo=True)
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 session = Session()
