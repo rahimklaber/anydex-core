@@ -177,7 +177,7 @@ class TestWallet(AbstractServer):
         wallet.wallet.wallet_id = 3
 
         mock_key = MockObject()
-        mock_key.address = 'n3Uogo82Tyy76ZNuxmFfhJiFqAUbJ5BPho'
+        mock_key.address = '1NxrPk33exXrKSuJFCHHsPVvyAstSg4S7s'
         wallet.wallet.keys = lambda **_: [mock_key]
         wallet.created = True
 
@@ -205,10 +205,3 @@ class TestLitecoinTestnetWallet(TestWallet):
 
 class TestDashTestnetWallet(TestWallet):
     WALLET_UNDER_TEST = DashTestnetWallet
-
-
-
-
-    """
-    Reworked wallet inheritance hierarchy
-    """
