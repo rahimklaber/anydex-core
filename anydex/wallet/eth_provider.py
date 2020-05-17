@@ -172,11 +172,12 @@ class EthereumBlockchairProvider(EthereumProvider):
         return response.json()["data"][address.lower()]["address"]["balance"]
 
     def get_transaction_count(self, address):
+        # Todo: return also unconfirmed txs
         response = self.send_request(f"/dashboards/address/{address}")
         return response.json()["data"][address.lower()]["address"]["transaction_count"]
 
     def estimate_gas(self, tx):
-        # Todo estimate the gas better
+        # Todo estimate the gas better or just set to the max for smiple transactions (21000)
         response = self.send_request("/stats")
         return response.json()["data"]["median_simple_transaction_fee_24h"]
 
@@ -253,3 +254,61 @@ class EthereumBlockchairProvider(EthereumProvider):
             r=HexBytes(tx["r"]),
             s=HexBytes(tx["s"])
         )
+
+
+class EthereumBlockcypherProvider(EthereumProvider):
+    def __init__(self, api_url="https://api.blockcypher.com/", network="ethereum"):
+        if network == "ethereum":
+            self.base_url = f"{api_url}1/eth/main/"
+        elif network == "testnet":
+            self.base_url = f"{api_url}1/beth/test/"
+        else:
+            # raise invalidargumentexception
+            pass
+
+    def send_request(self, path, data={}, method="get"):
+        """
+        Makes a request to the specified path.
+
+        This method was created to have one place where all calls to the requests library are made
+        , to reduce the possibility of errors.
+
+        :param path: the path after the base url
+        :param data: Data that is send with the request. It is sent as url params if the method is get
+        and in the body if the method is post
+        :param method: The type of the request (get, post...)
+        :return: the response object
+        """
+        response = None
+        if method == "get":
+            response = requests.get(f"{self.base_url}{path}", data)
+        elif method == "post":
+            response = requests.post(f"{self.base_url}{path}", data)
+        else:
+            raise RequestException(f"Unsupported method: {method} ")
+        # self.__check_response(response)
+        return response
+
+    def get_transaction_count(self, address):
+        response = self.send_request(f"addrs/{address}/balance")
+        return response.json()["final_n_tx"]
+
+    def estimate_gas(self, tx):
+        pass
+
+    def get_gas_price(self):
+        response = self.send_request("")
+        return response["medium_gas_price"]
+
+    def get_balance(self, address):
+        response = self.send_request(f"addrs/{address}/balance")
+        return response.json()["balance"]
+
+    def get_transactions(self, address, start_block=None, end_block=None):
+        pass
+
+    def get_transactions_received(self, address, start_block=None, end_block=None):
+        pass
+
+    def submit_transaction(self, tx):
+        pass
