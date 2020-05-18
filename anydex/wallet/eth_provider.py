@@ -163,7 +163,7 @@ class EthereumBlockchairProvider(EthereumProvider):
             response = requests.post(f"{self.base_url}{path}", data)
         else:
             raise RequestException(f"Unsupported method: {method} ")
-        self.__check_response(response)
+        self._check_response(response)
         return response
 
     def get_balance(self, address):
@@ -200,7 +200,7 @@ class EthereumBlockchairProvider(EthereumProvider):
         txs = received_data + sent_data
         return self._normalize_transaction(txs)
 
-    def __check_response(self, response):
+    def _check_response(self, response):
         """
         Checks the response for errors, such as exceeding request limits.
         :param response: the response object
@@ -285,7 +285,7 @@ class EthereumBlockcypherProvider(EthereumProvider):
             response = requests.post(f"{self.base_url}{path}", data)
         else:
             raise RequestException(f"Unsupported method: {method} ")
-        # self.__check_response(response)
+        self._check_response(response)
         return response
 
     def get_transaction_count(self, address):
@@ -311,3 +311,15 @@ class EthereumBlockcypherProvider(EthereumProvider):
 
     def submit_transaction(self, tx):
         pass
+
+    def _check_response(self, response):
+        """
+        Checks the response for errors, such as exceeding request limits.
+        :param response: the response object
+        """
+        # 429 request limit : 3/sec 200/h
+        if response.status_code == 429:
+            raise RateExceeded(
+                "The server indicated the rate limit has been reached")
+        elif response.status_code != 200:
+            raise RequestException("something went wrong")
