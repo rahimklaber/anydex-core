@@ -198,7 +198,7 @@ class EthereumBlockchairProvider(EthereumProvider):
         received_data = received.json()["data"]
         sent_data = sent.json()["data"]
         txs = received_data + sent_data
-        return self._normalize_transaction(txs)
+        return self._normalize_transactions(txs)
 
     def _check_response(self, response):
         """
