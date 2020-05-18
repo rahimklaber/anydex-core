@@ -25,24 +25,26 @@ class Transaction(Base):
     __tablename__ = "transactions"
     # need to include a relation to the key table.
     id = Column(Integer, primary_key=True)
-    blockHash = Column(String)
-    blockNumber = Column(Integer)
-    chainId = Column(Integer)
+    # blockHash = Column(String)
+    block_number = Column(Integer)
+    # chainId = Column(Integer)
     from_ = Column(String(42))
     gas = Column(Integer)
     gas_price = Column(Integer)
     hash = Column(String)
     nonce = Column(Integer)
-    r = Column(LargeBinary)
-    s = Column(LargeBinary)
+    # r = Column(LargeBinary)
+    # s = Column(LargeBinary)
     to = Column(String(42))
-    v = Column(Integer)
+    # v = Column(Integer)
     value = Column(Integer)
     date_time = Column(DateTime, default=datetime.utcnow())
-    transaction_index = Column(Integer)
+    # transaction_index = Column(Integer)
 
 
-engine = create_engine("sqlite:///eth.db", echo=True)
-Base.metadata.create_all(engine)
-Session = sessionmaker(bind=engine)
-session = Session()
+def initialize_db(db_path):
+    engine = create_engine(f"sqlite:///{db_path}", echo=False)
+    Base.metadata.create_all(engine)
+    session_maker = sessionmaker(bind=engine)
+    session = session_maker()
+    return session

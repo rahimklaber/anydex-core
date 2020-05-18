@@ -240,7 +240,7 @@ class EthereumBlockchairProvider(EthereumProvider):
         """
 
         return Transaction(
-            blockNumber=tx["block_id"],
+            block_number=tx["block_id"],
             hash=tx["hash"],
             date_time=datetime.fromisoformat(tx["time"]),
             to=tx["recipient"],
@@ -248,14 +248,15 @@ class EthereumBlockchairProvider(EthereumProvider):
             value=tx["value"],
             gas_price=tx["gas_price"],
             gas=tx["gas_used"],
-            nonce=tx["nonce"],
-            v=tx["v"],
-            r=HexBytes(tx["r"]),
-            s=HexBytes(tx["s"])
+            nonce=tx["nonce"]
         )
 
 
 class EthereumBlockcypherProvider(EthereumProvider):
+    """
+    Wrapper around blockcypher
+    """
+
     def __init__(self, api_url="https://api.blockcypher.com/", network="ethereum"):
         if network == "ethereum":
             self.base_url = f"{api_url}1/eth/main/"
