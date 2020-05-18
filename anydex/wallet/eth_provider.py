@@ -18,14 +18,13 @@ class EthereumProvider(Provider, metaclass=abc.ABCMeta):
         """
         return
 
-    @abc.abstractmethod
     def estimate_gas(self, tx):
         """
         Estimate the amount of gas needed for this transaction.
         :param tx: the transaction for which to estimate the gas
         :return: the estimated gas
         """
-        return
+        return 21000  # just return the gas limit for simple transactions
 
     @abc.abstractmethod
     def get_gas_price(self):
@@ -93,9 +92,9 @@ class Web3Provider(EthereumProvider):
         self.check_connection()
         return self.w3.eth.getTransactionCount(address)
 
-    def estimate_gas(self, tx):
-        self.check_connection()
-        return self.w3.eth.estimateGas(tx)
+    # def estimate_gas(self, tx):
+    #     self.check_connection()
+    #     return self.w3.eth.estimateGas(tx)
 
     def get_gas_price(self):
         self.check_connection()
@@ -176,10 +175,10 @@ class EthereumBlockchairProvider(EthereumProvider):
         response = self.send_request(f"/dashboards/address/{address}")
         return response.json()["data"][address.lower()]["address"]["transaction_count"]
 
-    def estimate_gas(self, tx):
-        # Todo estimate the gas better or just set to the max for smiple transactions (21000)
-        response = self.send_request("/stats")
-        return response.json()["data"]["median_simple_transaction_fee_24h"]
+    # def estimate_gas(self, tx):
+    #     # Todo estimate the gas better or just set to the max for smiple transactions (21000)
+    #     response = self.send_request("/stats")
+    #     return response.json()["data"]["median_simple_transaction_fee_24h"]
 
     def get_gas_price(self):
         response = self.send_request("/stats")
@@ -293,8 +292,8 @@ class EthereumBlockcypherProvider(EthereumProvider):
         response = self.send_request(f"addrs/{address}/balance")
         return response.json()["final_n_tx"]
 
-    def estimate_gas(self, tx):
-        pass
+    # def estimate_gas(self, tx):
+    #     pass
 
     def get_gas_price(self):
         response = self.send_request("")
