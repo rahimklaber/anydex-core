@@ -72,7 +72,7 @@ class TestWallet(AbstractServer):
 
     def test_wallet_unit(self):
         """
-        Test the mininum unit of a wallet
+        Test the minimum unit of a wallet
         """
         self.assertEquals(self.wallet.min_unit(), self.min_unit)
 
@@ -150,7 +150,6 @@ class TestWallet(AbstractServer):
         wallet.wallet.utxos_update = lambda **_: None  # We don't want to do an actual HTTP request here
         with self.assertRaises(Exception):
             await wallet.transfer(3000, '2N8hwP1WmJrFF5QWABn38y63uYLhnJYJYTF')
-
 
     @timeout(10)
     async def test_get_transactions(self):

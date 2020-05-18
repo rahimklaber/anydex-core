@@ -55,28 +55,27 @@ class BitcoinlibWallet(Wallet):
         # locations['database_dir'] = 'database'
         # locations['default_databasefile'] = 'bitcoinlib.sqlite'
         # locations['default_databasefile_cache'] = 'bitcoinlib_cache.sqlite'
-        locations['log_file'] = 'bitcoin_config.log'
+        locations['log_file'] = self.network + '_log.log'
 
         config['common'] = {}
         common = config['common']
         # common['allow_database_threads'] = 'True'
         # common['timeout_requests'] = '5'
         # common['default_language'] = 'english'
-        common['default_network'] = 'bitcoin'
+        common['default_network'] = self.network
         # common['default_witness_type'] = ''
         # common['service_caching_enabled'] = 'True'
 
         config['logs'] = {}
-        logs = config['logs']
+        # logs = config['logs']
         # logs['enable_bitcoinlib_logging'] = 'True'
-        logs['log_file'] = 'bitcoin_config.log'
         # logs['loglevel'] = 'WARNING'
 
         return config
 
     def lib_init(self):
 
-        cfg_name = 'bitcoin_config.ini'
+        cfg_name = 'bcl_config.ini'
 
         config = self.cfg_init()
         with open(cfg_name, 'w+') as configfile:
