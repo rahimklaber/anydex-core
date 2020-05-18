@@ -198,7 +198,7 @@ class EthereumBlockchairProvider(EthereumProvider):
         sent = self.send_request("/transactions", data={"q": f"sender({address})"})
         sent_data = sent.json()["data"]
         sent_mempool = self.send_request("/mempool/transactions", data={"q": f"sender({address})"})
-        sent_mempool_data = sent.json()["data"]
+        sent_mempool_data = sent_mempool.json()["data"]
         txs = sent_data + sent_mempool_data
         return self._normalize_transactions(txs) + self.get_transactions_received(address)
 
