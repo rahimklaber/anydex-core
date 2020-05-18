@@ -1,7 +1,8 @@
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, LargeBinary, create_engine, Sequence, DateTime
-from sqlalchemy.orm import sessionmaker
 from datetime import datetime
+
+from sqlalchemy import Column, Integer, String, LargeBinary, create_engine, DateTime, Boolean
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
 
@@ -39,6 +40,7 @@ class Transaction(Base):
     # v = Column(Integer)
     value = Column(Integer)
     date_time = Column(DateTime, default=datetime.utcnow())
+    is_pending = Column(Boolean, default=False)
     # transaction_index = Column(Integer)
 
 
@@ -47,4 +49,5 @@ def initialize_db(db_path):
     Base.metadata.create_all(engine)
     session_maker = sessionmaker(bind=engine)
     session = session_maker()
+    session.query(Key)
     return session
