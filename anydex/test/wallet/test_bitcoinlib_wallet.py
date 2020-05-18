@@ -8,7 +8,7 @@ from anydex.test.base import AbstractServer
 from anydex.test.util import timeout, MockObject
 from anydex.wallet.abstract_bitcoinlib_wallet import BitcoinlibWallet
 from anydex.wallet.bitcoinlib_wallet import BitcoinTestnetWallet, BitcoinWallet, LitecoinWallet, LitecoinTestnetWallet, \
-    DashTestnetWallet, create_bitcoinlib_wallet, DashWallet
+    DashTestnetWallet, DashWallet
 
 
 def get_info(wallet: BitcoinlibWallet):
@@ -50,7 +50,7 @@ class TestWallet(AbstractServer):
         await super(TestWallet, self).tearDown()
 
     def new_wallet(self):
-        return self.wallet.__class__(self.session_base_dir)
+        return self.WALLET_UNDER_TEST(self.session_base_dir)
 
     def test_wallet_name(self):
         """
@@ -163,7 +163,7 @@ class TestWallet(AbstractServer):
                  '14f3feffffff029c4e7020000000001976a914d0115029aa5b2d2db7afb54a6c773ad536d0916c88ac90f4f70000000000' \
                  '1976a914f0eabff37e597b930647a3ec5e9df2e0fed0ae9888ac108b1500'
 
-        wallet = BitcoinTestnetWallet(self.session_base_dir)
+        wallet = self.new_wallet()
         mock_wallet = MockObject()
         mock_wallet.transactions_update = lambda **_: None
         mock_wallet._session = MockObject()
