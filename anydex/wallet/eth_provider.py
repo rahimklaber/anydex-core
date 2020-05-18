@@ -1,11 +1,13 @@
 import abc
-from wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
-import requests
-from web3 import Web3
-from wallet.eth_db import Transaction
 from datetime import datetime
-from wallet.provider import Provider
+
+import requests
 from hexbytes import HexBytes
+from web3 import Web3
+
+from wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
+from wallet.eth_db import Transaction
+from wallet.provider import Provider
 
 
 class EthereumProvider(Provider, metaclass=abc.ABCMeta):
@@ -65,6 +67,13 @@ class EthereumProvider(Provider, metaclass=abc.ABCMeta):
 class InvalidNode(Exception):
     """
     Used for throwing exceptions when the given node is invalid ( you can't connect to it).
+    """
+    pass
+
+
+class NotSupportedOperationException(Exception):
+    """
+    Exception raised whenever a provider operation is not supported by the specific concrete provider.
     """
     pass
 
