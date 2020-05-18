@@ -189,16 +189,18 @@ class EthereumBlockchairProvider(EthereumProvider):
         return response.json()["data"]["transaction_hash"]
 
     def get_transactions_received(self, address):
-        received = self.send_request("/transactions", data={"q": f"recipient({address})"})
-        return self._normalize_transactions(received.json()["data"])
+        response = self.send_request("/transactions", data={"q": f"recipient({address})"})
+        response_mempool = self.send_request("/mempool/transactions", data={"q": f"recipient({address})"})
+        txs = response.json()["data"] + response_mempool["data"]
+        return self._normalize_transactions(txs)
 
     def get_transactions(self, address):
-        received = self.send_request("/transactions", data={"q": f"recipient({address})"})
         sent = self.send_request("/transactions", data={"q": f"sender({address})"})
-        received_data = received.json()["data"]
         sent_data = sent.json()["data"]
-        txs = received_data + sent_data
-        return self._normalize_transactions(txs)
+        sent_mempool = self.send_request("/mempool/transactions", data={"q": f"sender({address})"})
+        sent_mempool_data = sent.json()["data"]
+        txs = sent_data + sent_mempool_data
+        return self._normalize_transactions(txs) + self.get_transactions_received(address)
 
     def _check_response(self, response):
         """
