@@ -2,8 +2,8 @@ from anydex.wallet.wallet import Wallet
 
 from web3 import Web3
 
-from anydex.wallet.eth_db import initialize_db, Key
-from anydex.wallet.eth_provider import NotSupportedOperationException, EthereumProvider
+from anydex.wallet.eth_db import initialize_db, Key, Transaction
+from anydex.wallet.eth_provider import NotSupportedOperationException
 
 
 class EthereumWallet(Wallet):
@@ -38,20 +38,35 @@ class EthereumWallet(Wallet):
         return self.provider.get_balance(address)
 
     async def transfer(self, amount, address):
-        required = {
-            'from': '',
-            'to': '',
-            'value': '',
-            'gas': '',
-            'nonce': '',
-            'gasPrice': ''
+        transaction = {
+            'to': address,
+            'value': amount,
+            'gas': self.provider.estimate_gas(),
+            'nonce': 1,
+            'gasPrice': self.provider.get_gas_price(),
+            'chainId': 1
         }
 
-        gas = self.provider.estimate_gas()
-        sender = self.get_address()
+        # submit to blockchain
+        signed = self.account.sign_transaction(transaction)
+        self.provider.submit_transaction(signed, signed['rawTransaction'])
 
-        self.session.query()
-        # add to transaction
+        # add transaction to database
+        self.session.add(
+            Transaction(
+                from_=transaction['from'],
+                to=transaction['to'],
+                value=transaction['value'],
+                gas=transaction['gas'],
+                nonce=transaction['nonce'],
+                gas_price=transaction['gasPrice'],
+                hash=transaction['hash'],
+                is_pending=True
+            )
+        )
+        self.session.commit()
+
+        return signed
 
     def get_address(self):
         if self.account:

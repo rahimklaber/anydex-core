@@ -5,9 +5,9 @@ import requests
 from hexbytes import HexBytes
 from web3 import Web3
 
-from wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
 from wallet.eth_db import Transaction
 from wallet.provider import Provider
+from wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
 
 
 class EthereumProvider(Provider, metaclass=abc.ABCMeta):
@@ -259,7 +259,8 @@ class EthereumBlockchairProvider(EthereumProvider):
             value=tx["value"],
             gas_price=tx["gas_price"],
             gas=tx["gas_used"],
-            nonce=tx["nonce"]
+            nonce=tx["nonce"],
+            is_pending=tx["block_id"] is None
         )
 
 
