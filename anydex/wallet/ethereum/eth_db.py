@@ -41,7 +41,13 @@ class Transaction(Base):
     value = Column(Integer)
     date_time = Column(DateTime, default=datetime.utcnow())
     is_pending = Column(Boolean, default=False)
+
     # transaction_index = Column(Integer)
+
+    def __eq__(self, other):
+        if other is not Transaction:
+            raise NotImplementedError(f"cannot compare equality between{self} and {other}")
+        return self.hash == other.hash
 
 
 def initialize_db(db_path):
