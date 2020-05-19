@@ -2,7 +2,6 @@ import abc
 from datetime import datetime
 
 import requests
-from hexbytes import HexBytes
 from web3 import Web3
 
 from wallet.eth_db import Transaction
@@ -118,28 +117,10 @@ class Web3Provider(EthereumProvider):
         return self.w3.eth.getBalance(address)
 
     def get_transactions(self, address, start_block, stop_block):
-        # TODO figure out a faster and more efficiant way to do this.
-        # use ethereum-etl ?
-        self.check_connection()
-        transactions = []
-        for block_nr in range(start_block, stop_block + 1):
-            current_block = self.w3.eth.getBlock(block_nr, True)
-            for tx in current_block["transactions"]:
-                if tx["from"] == address or tx["to"] == address:
-                    transactions.append(tx)
-        return transactions
+        raise NotSupportedOperationException()
 
     def get_transactions_received(self, address, start_block, stop_block):
-        # TODO figure out a faster and more efficiant way to do this. filters? Could we use web apis for this?
-        # use ethereum-etl ?
-        self.check_connection()
-        transactions = []
-        for block_nr in range(start_block, stop_block + 1):
-            current_block = self.w3.eth.getBlock(block_nr, True)
-            for tx in current_block["transactions"]:
-                if tx["to"] == address:
-                    transactions.append(tx)
-        return transactions
+        raise NotSupportedOperationException()
 
 
 class EthereumBlockchairProvider(EthereumProvider):
@@ -317,13 +298,13 @@ class EthereumBlockcypherProvider(EthereumProvider):
         return response.json()["balance"]
 
     def get_transactions(self, address, start_block=None, end_block=None):
-        pass
+        raise NotSupportedOperationException()
 
     def get_transactions_received(self, address, start_block=None, end_block=None):
-        pass
+        raise NotSupportedOperationException()
 
     def submit_transaction(self, tx):
-        pass
+        raise NotSupportedOperationException()
 
     def _check_response(self, response):
         """
