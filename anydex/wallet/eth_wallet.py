@@ -7,6 +7,9 @@ from anydex.wallet.eth_provider import NotSupportedOperationException
 
 
 class EthereumWallet(Wallet):
+    """
+    This class is responsible for handling your Ethereum wallet.
+    """
     TESTNET = False
 
     def __init__(self, provider, db_path):
@@ -87,3 +90,17 @@ class EthereumWallet(Wallet):
 
     def get_identifier(self):
         return 'ETH'
+
+
+class EthereumTestnetWallet(EthereumWallet):
+    """
+    This wallet represents testnet Ethereum.
+    """
+    TESTNET = True
+
+    def get_name(self):
+        return 'Testnet ETH'
+
+    def get_identifier(self):
+        return 'TETH'
+
