@@ -22,7 +22,11 @@ class UnsupportedNetwork(Exception):
 
 
 class BitcoinlibWallet(Wallet):
-    SUPPORTED_NETWORKS = ['bitcoin', 'litecoin', 'dash']
+    """
+    Superclass used for the implementation of bitcoinlib wallets.
+    """
+
+    SUPPORTED_NETWORKS = ['bitcoin', 'litecoin', 'dash', 'litecoin_testnet', 'dash_testnet', 'testnet']
 
     def __init__(self, wallet_dir, testnet, network, name, currency):
         if network not in self.SUPPORTED_NETWORKS:
@@ -46,7 +50,9 @@ class BitcoinlibWallet(Wallet):
         self.lib_init()
 
     def cfg_init(self):
-
+        """
+        Adjusts the bitcoinlib configuration for the creation of a wallet
+        """
         config = ConfigParser()
 
         config['locations'] = {}
@@ -74,7 +80,9 @@ class BitcoinlibWallet(Wallet):
         return config
 
     def lib_init(self):
-
+        """Initializes bitcoinlib by creating a configuration file and
+        Setting the environmental variable.
+        """
         cfg_name = 'bcl_config.ini'
 
         config = self.cfg_init()
@@ -215,7 +223,7 @@ class BitcoinlibWallet(Wallet):
         return 100000  # For LTC, BTC and DASH, the minimmum trade should be 100.000 basic units (Satoshi, duffs)
 
     def precision(self):
-        return 8       # The precision for LTC, BTC and DASH is the same.\
+        return 8       # The precision for LTC, BTC and DASH is the same.
 
     @abc.abstractmethod
     def is_testnet(self):
@@ -223,11 +231,13 @@ class BitcoinlibWallet(Wallet):
 
 
 class ConcreteBitcoinlibWallet(BitcoinlibWallet):
-
+    """
+    Superclass for all concrete wallets, from which real assets can be traded.
+    """
     NETWORK_INFO = {
         'bitcoin': ['Bitcoin', 'BTC'],
-        'litecoin': ['Litecoin', 'LTC'],
-        'dash': ['Dash', 'DASH']
+        'litecoin': ['Litecoin Network', 'LTC'],
+        'dash': ['Dash Network', 'DASH']
     }
 
     def is_testnet(self):
@@ -239,11 +249,15 @@ class ConcreteBitcoinlibWallet(BitcoinlibWallet):
 
 
 class TestnetBitcoinlibWallet(BitcoinlibWallet, metaclass=ABCMeta):
+    """
+    Superclass for all testnet wallets, from which testnet assets can be traded.
+    """
 
+    # Names of the networks and identifiers are mirroring those of bitcoinlib
     NETWORK_INFO = {
-        'bitcoin': ['Testnet', 'TBTC'],
-        'litecoin': ['Testnet', 'TLTC'],
-        'dash': ['Testnet', 'TDASH']
+        'testnet': ['Bitcoin Test Network 3', 'TBTC'],
+        'litecoin_testnet': ['Litecoin Test Network', 'XLT'],
+        'dash_testnet': ['Dash Testnet Network', 'tDASH']
     }
 
     def is_testnet(self):
