@@ -158,7 +158,7 @@ class EthereumBlockchairProvider(EthereumProvider):
 
     def get_balance(self, address):
         response = self.send_request(f"/dashboards/address/{address}")
-        return response.json()["data"][address.lower()]["address"]["balance"]
+        return int(response.json()["data"][address.lower()]["address"]["balance"])
 
     def get_transaction_count(self, address):
         # Todo: return also unconfirmed txs

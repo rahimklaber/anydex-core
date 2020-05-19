@@ -45,7 +45,7 @@ class Transaction(Base):
     # transaction_index = Column(Integer)
 
     def __eq__(self, other):
-        if other is not Transaction:
+        if not isinstance(other, Transaction):
             raise NotImplementedError(f"cannot compare equality between{self} and {other}")
         return self.hash == other.hash
 
