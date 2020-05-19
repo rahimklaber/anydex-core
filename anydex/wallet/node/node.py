@@ -6,6 +6,7 @@ from ipaddress import ip_address, IPv4Address
 from time import time
 
 from anydex.config import get_anydex_configuration
+from anydex.wallet.cryptocurrency import Cryptocurrency
 
 _logger = logging.getLogger(__name__)
 
@@ -18,21 +19,6 @@ class Source(Enum):
 
     DEFAULT = auto()
     USER = auto()
-
-
-class Cryptocurrency(Enum):
-    """
-    Enum representing curerntly implemented cryptocurrencies.
-    """
-
-    BITCOIN = 'bitcoin'
-    BANDWIDTH_TOKEN = 'bandwidth_token'
-    ETHEREUM = 'ethereum'
-    RIPPLE = 'ripple'
-    LITECOIN = 'litecoin'
-    IOTA = 'iota'
-    MONERO = 'monero'
-    ZCASH = 'zcash'
 
 
 class Node:
@@ -130,6 +116,12 @@ def read_default_hosts():
 
 
 def select_best_host(hosts) -> tuple:
+    """
+    Returns the host with the lowest latency of all hosts.
+
+    :param hosts: list of host names including ports
+    :return: tuple of host and latency
+    """
     results = dict()
 
     for host in hosts:
