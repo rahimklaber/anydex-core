@@ -190,7 +190,7 @@ class BitcoinlibWallet(Wallet):
                         hexlify(tx_input.prev_hash) == DbTransactionInput.prev_hash,
                         tx_input.output_n_int == DbTransactionInput.output_n).all()
                     if db_res:
-                        value -= db_res[0][0]
+                        value -= db_res[0][0]  # TODO: db_res[0][0] not an int, but hash string (value/fee expected?)
 
             for tx_output in transaction.outputs:
                 output_addresses.append(tx_output.address)
