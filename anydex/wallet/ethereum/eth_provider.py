@@ -2,12 +2,11 @@ import abc
 from datetime import datetime
 
 import requests
-from hexbytes import HexBytes
 from web3 import Web3
 
-from wallet.eth_db import Transaction
-from wallet.provider import Provider
-from wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
+from anydex.wallet.ethereum.eth_db import Transaction
+from anydex.wallet.provider import Provider
+from anydex.wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
 
 
 class EthereumProvider(Provider, metaclass=abc.ABCMeta):

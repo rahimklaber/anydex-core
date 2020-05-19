@@ -7,6 +7,7 @@ from binascii import hexlify
 from ipv8.util import fail, succeed
 
 from anydex.wallet import bitcoinlib_main as bitcoinlib_main
+from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.wallet import InsufficientFunds, Wallet
 
 
@@ -26,7 +27,7 @@ class BitcoinWallet(Wallet):
         bitcoinlib_main.initialize_lib(wallet_dir)
         from bitcoinlib.wallets import wallet_exists, HDWallet
 
-        self.network = 'testnet' if self.TESTNET else 'bitcoin'
+        self.network = 'testnet' if self.TESTNET else Cryptocurrency.BITCOIN.value
         self.wallet_dir = wallet_dir
         self.min_confirmations = 0
         self.wallet = None
@@ -39,7 +40,7 @@ class BitcoinWallet(Wallet):
             self.created = True
 
     def get_name(self):
-        return 'Bitcoin'
+        return Cryptocurrency.BITCOIN.value
 
     def get_identifier(self):
         return 'BTC'
