@@ -1,11 +1,14 @@
-from web3 import Web3
-from ipv8.util import fail, succeed
+import os
 
-from anydex.wallet.cryptocurrency import Cryptocurrency
-from anydex.wallet.ethereum.eth_db import initialize_db, Key, Transaction
-from anydex.wallet.ethereum.eth_provider import EthereumBlockchairProvider
+from ipv8.util import fail, succeed
+from sqlalchemy import func
+from web3 import Web3
+
+from wallet.cryptocurrency import Cryptocurrency
+from wallet.ethereum.eth_db import initialize_db, Key, Transaction
+from wallet.ethereum.eth_provider import EthereumBlockchairProvider
 from wallet.provider import NotSupportedOperationException
-from anydex.wallet.wallet import Wallet, InsufficientFunds
+from wallet.wallet import Wallet, InsufficientFunds
 
 
 class EthereumWallet(Wallet):
@@ -22,12 +25,12 @@ class EthereumWallet(Wallet):
         self.network = 'testnet' if self.TESTNET else Cryptocurrency.ETHEREUM.value
         self.min_confirmations = 0
         self.unlocked = True
-        self.session = initialize_db(db_path)
+        self.session = initialize_db(os.path.join(db_path, "eth.db"))
         self.wallet_name = 'tribler_testnet' if self.TESTNET else 'tribler'
 
         row = self.session.query(Key).filter(Key.name == self.wallet_name).first()
         if row:
-            self.account = Web3.eth.account.from_key(row)
+            self.account = Web3().eth.account.from_key(row)
             self.created = True
         else:
             self.account = None
@@ -44,8 +47,10 @@ class EthereumWallet(Wallet):
 
         self._logger.info(f'Creating Ethereum wallet with name {self.wallet_name}')
         if not self.account:
-            self.account = Web3.eth.account.create()
+            self.account = Web3().eth.account.create()
             self.created = True
+            self.session.add(Key(name=self.wallet_name, private_key=self.account.key, address=self.account.address))
+            self.session.commit()
 
         return succeed(None)
 
@@ -59,7 +64,31 @@ class EthereumWallet(Wallet):
             })
         address = self.get_address()
         # TODO verify .get_balance() maintains same format as above dictionary
-        return succeed(self.provider.get_balance(address))
+        self.update_database(self.get_transactions())
+        pending_outgoing = self.get_outgoing_amount()
+        balance = {
+            'available': self.provider.get_balance(address) - pending_outgoing,
+            'pending': self.get_incoming_amount(),
+            'currency': 'ETH',
+            'precision': self.precision()
+        }
+        return succeed(balance)
+
+    def get_outgoing_amount(self):
+        """
+        Get the current amount of ethereum that we are sending, but is still unconfirmed.
+        :return: pending outgoing amount
+        """
+        return self.session.query(func.sum(Transaction.value)).filter(Transaction.is_pending.is_(True)).filter(
+            func.lower(Transaction.from_) == self.account.address.lower()).first()
+
+    def get_incoming_amount(self):
+        """
+        Get the current amount of ethereum that is being sent to us, but is still unconfirmed.
+        :return: pending incoming amount
+        """
+        return self.session.query(func.sum(Transaction.value)).filter(Transaction.is_pending.is_(True)).filter(
+            func.lower(Transaction.to) == self.account.address.lower()).first()
 
     async def transfer(self, amount, address) -> str:
         """
@@ -142,22 +171,25 @@ class EthereumWallet(Wallet):
 
     def update_database(self, transactions):
         """
-        Update pending transactions in the database.
-        Set is_pending field to False if they can be retrieved by a provider.
-        Set block_number to value retrieved by provider.
+        Update transactions in the database.
+        Pending transactions that have been confirmed will be updated to have a block number and will no longer be pending.
+        Other transactions that are not in the database will be added.
 
         :param transactions: list of transactions retrieved by self.provider
         """
-        pending_transactions = self.session.query(Transaction).filter(Transaction.is_pending)
-        self._logger.debug('Update `is_pending` and `block_number` fields for transactions')
-        for pending_transaction in pending_transactions:
-            if pending_transaction in transactions:
-                candidate = transactions[transactions.index(pending_transaction)]
+        pending_transactions = self.session.query(Transaction).filter(Transaction.is_pending.is_(True)).all()
+        confirmed_transactions = self.session.query(Transaction).filter(Transaction.is_pending.is_(False)).all()
+        self._logger.debug('Updating ethereum database')
+        for transaction in transactions:
+            if transaction in pending_transactions:
                 # update transaction set is_pending = false where hash = ''
-                self.session.query(Transaction).filter(Transaction.hash == candidate.hash).update({
+                self.session.query(Transaction).filter(Transaction.hash == transaction.hash).update({
                     Transaction.is_pending: False,
-                    Transaction.block_number: candidate.block_number
+                    Transaction.block_number: transaction.block_number
                 })
+            elif transaction not in confirmed_transactions:
+                self.session.add(transaction)
+        self.session.commit()
 
 
 class EthereumTestnetWallet(EthereumWallet):
@@ -165,6 +197,7 @@ class EthereumTestnetWallet(EthereumWallet):
     This wallet represents testnet Ethereum.
     """
     TESTNET = True
+    default_provider = None
 
     def get_name(self):
         return 'Testnet ETH'

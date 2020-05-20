@@ -32,7 +32,7 @@ class Transaction(Base):
     from_ = Column(String(42))
     gas = Column(Integer)
     gas_price = Column(Integer)
-    hash = Column(String)
+    hash = Column(String, unique=True)
     nonce = Column(Integer)
     # r = Column(LargeBinary)
     # s = Column(LargeBinary)
@@ -55,5 +55,4 @@ def initialize_db(db_path):
     Base.metadata.create_all(engine)
     session_maker = sessionmaker(bind=engine)
     session = session_maker()
-    session.query(Key)
     return session
