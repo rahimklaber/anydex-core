@@ -266,6 +266,11 @@ class TestEthereumBlockChairProvider(TestCase):
         mock_response.status_code = 200
         self.assertIsNone(self.bcp._check_response(mock_response))
 
+    def test_check_response_unexpected_error(self):
+        mock_response = MockObject()
+        mock_response.status_code = 404
+        self.assertRaises(RequestException, self.bcp._check_response, mock_response)
+
 
 class TestEthereumBlockcypherProvider(TestCase):
     sample_balance_response = {
