@@ -1,9 +1,12 @@
+import time
+from datetime import datetime
+
 from sqlalchemy.orm import session as db_session
 
 from test.base import AbstractServer
 from test.util import MockObject
 from wallet.ethereum.eth_db import Key, Transaction
-from wallet.ethereum.eth_wallet import EthereumWallet
+from wallet.ethereum.eth_wallet import EthereumWallet, EthereumTestnetWallet
 
 
 class TestEthereumWallet(AbstractServer):
@@ -99,14 +102,14 @@ class TestEthereumWallet(AbstractServer):
             Transaction(is_pending=True, value=200, to=wallet.account.address, hash=wallet.generate_txid()))
         self.assertEqual(300, wallet.get_incoming_amount())
 
-    async def test_get_address_not_created(self):
+    def test_get_address_not_created(self):
         """
         Test for getting the address of the wallet when it's not yet created
         """
         wallet = EthereumWallet(None, self.session_base_dir)
         self.assertEqual("", wallet.get_address())
 
-    async def test_get_address(self):
+    def test_get_address(self):
         """
         Test for getting the address of the wallet when it's created
         """
@@ -114,17 +117,74 @@ class TestEthereumWallet(AbstractServer):
         wallet.create_wallet()
         self.assertEqual(wallet.account.address, wallet.get_address())
 
-    async def test_precision(self):
+    def test_precision(self):
         """
         Test for the precision function
         """
         wallet = EthereumWallet(None, self.session_base_dir)
         self.assertEqual(18, wallet.precision())
 
-    async def test_get_idetifier(self):
+    def test_get_identifier(self):
+        """
+        Test for get identifier
+        """
+
         wallet = EthereumWallet(None, self.session_base_dir)
         self.assertEqual("ETH", wallet.get_identifier())
 
+    async def test_get_transactions(self):
+        """
+        Test for get transactions
+        """
+
+        wallet = EthereumWallet(None, self.session_base_dir)
+        wallet.create_wallet()
+        tx = Transaction(hash="0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060",
+                         date_time=datetime(2015, 8, 7, 3, 30, 33),
+                         from_=wallet.get_address(),
+                         to="0x5df9b87991262f6ba471f09758cde1c0fc1de734",
+                         gas=5,
+                         gas_price=5,
+                         nonce=0,
+                         is_pending=False,
+                         value=31337,
+                         block_number=46147)
+        mock_provider = MockObject()
+        mock_provider.get_latest_blocknr = lambda *_: 46147
+        mock_provider.get_transactions = lambda *_, **x: [tx]
+        wallet.provider = mock_provider
+
+        transactions = await wallet.get_transactions()
+        tx_dict = {
+            'id': tx.hash,
+            'outgoing': True,
+            'from': wallet.get_address(),
+            'to': "0x5df9b87991262f6ba471f09758cde1c0fc1de734",
+            'amount': 31337,
+            'fee_amount': 25,
+            'currency': 'ETH',
+            'timestamp': time.mktime(datetime(2015, 8, 7, 3, 30, 33).timetuple()),
+            'description': f'Confirmations: {1}'
+        }
+        self.assertEqual([tx_dict], transactions)
+
 
 class TestTestnetEthereumWallet(AbstractServer):
-    pass
+
+    async def tearDown(self):
+        db_session.close_all_sessions()
+        await super().tearDown()
+
+    def test_get_idetifier(self):
+        """
+        Test for get identifier
+        """
+        wallet = EthereumTestnetWallet(None, self.session_base_dir)
+        self.assertEqual("TETH", wallet.get_identifier())
+
+    def test_get_name(self):
+        """
+        Test for get_name
+        """
+        wallet = EthereumTestnetWallet(None, self.session_base_dir)
+        self.assertEqual("Testnet ETH", wallet.get_name())

@@ -1,4 +1,5 @@
 import os
+import time
 
 from ipv8.util import fail, succeed
 from sqlalchemy import func, or_
@@ -159,13 +160,13 @@ class EthereumWallet(Wallet):
         self._update_database(transactions)
         # in the future we might use the provider to only retrieve transactions past a certain date/block
 
-        transactions_db  = self._session.query(Transaction).filter(
+        transactions_db = self._session.query(Transaction).filter(
             or_(func.lower(Transaction.from_) == self.get_address().lower(),
                 func.lower(Transaction.to) == self.get_address().lower()
                 )).all()
 
         transactions_to_return = []
-
+        latest_block_height = self.provider.get_latest_blocknr()
         for tx in transactions_db:
             transactions_to_return.append({
                 'id': tx.hash,
@@ -174,12 +175,12 @@ class EthereumWallet(Wallet):
                 'to': tx.to,
                 'amount': tx.value,
                 'fee_amount': tx.gas * tx.gas_price,
-                'currency': 'ETH',
-                'timestamp': tx.date_time,
-                'description': f'Confirmations: '
+                'currency': self.get_identifier(),
+                'timestamp': time.mktime(tx.date_time.timetuple()),
+                'description': f'Confirmations: {latest_block_height - tx.block_number + 1}'
             })
 
-        return succeed(transactions)
+        return succeed(transactions_to_return)
 
     def min_unit(self):
         # TODO determine minimal transfer unit

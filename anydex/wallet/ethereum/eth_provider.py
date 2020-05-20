@@ -5,9 +5,9 @@ import requests
 from web3 import Web3
 
 from anydex.wallet.ethereum.eth_db import Transaction
+from anydex.wallet.provider import NotSupportedOperationException
 from anydex.wallet.provider import Provider
 from anydex.wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
-from anydex.wallet.provider import NotSupportedOperationException
 
 
 class EthereumProvider(Provider, metaclass=abc.ABCMeta):
@@ -63,6 +63,13 @@ class EthereumProvider(Provider, metaclass=abc.ABCMeta):
         """
         return
 
+    @abc.abstractmethod
+    def get_latest_blocknr(self):
+        """
+        Retrieve the latest block's number
+        :return: latest block number
+        """
+
 
 class Web3Provider(EthereumProvider):
     """
@@ -102,6 +109,10 @@ class Web3Provider(EthereumProvider):
     def get_balance(self, address):
         self._check_connection()
         return self.w3.eth.getBalance(address)
+
+    def get_latest_blocknr(self):
+        self._check_connection()
+        return self.w3.eth.blockNumber
 
     def get_transactions(self, address, start_block, stop_block):
         raise NotSupportedOperationException()
@@ -146,6 +157,10 @@ class EthereumBlockchairProvider(EthereumProvider):
     def get_balance(self, address):
         response = self.send_request(f"/dashboards/address/{address}")
         return int(response.json()["data"][address.lower()]["address"]["balance"])
+
+    def get_latest_blocknr(self):
+        response = self.send_request("/stats")
+        return response.json()["data"]["best_block_height"]
 
     def get_transaction_count(self, address):
         # Todo: return also unconfirmed txs
@@ -268,6 +283,10 @@ class EthereumBlockcypherProvider(EthereumProvider):
             raise RequestException(f"Unsupported method: {method} ")
         self._check_response(response)
         return response
+
+    def get_latest_blocknr(self):
+        response = self.send_request("")
+        return response.json()["height"]
 
     def get_transaction_count(self, address):
         response = self.send_request(f"addrs/{address}/balance")
