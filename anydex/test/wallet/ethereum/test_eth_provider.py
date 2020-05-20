@@ -4,6 +4,7 @@ from unittest import TestCase
 from anydex.test.util import MockObject
 from anydex.wallet.ethereum.eth_db import Transaction
 from anydex.wallet.ethereum.eth_provider import EthereumBlockchairProvider
+from anydex.wallet.provider import *
 
 
 class TestEthereumBlockChairProvider(TestCase):
@@ -218,3 +219,39 @@ class TestEthereumBlockChairProvider(TestCase):
         self.bcp.send_request = lambda *_, **x: mock_response
         self.assertEqual(txs,
                          self.bcp.get_transactions("0xa1e4380a3b1f749673e270229993ee55f35663b4"))
+
+    # see EthereumBlockchairProvider for the manning of the codes
+    def test_check_response_402(self):
+        mock_response = MockObject()
+        mock_response.status_code = 402
+        self.assertRaises(RequestLimit, self.bcp._check_response, mock_response)
+
+    def test_check_response_429(self):
+        mock_response = MockObject()
+        mock_response.status_code = 429
+        self.assertRaises(RequestLimit, self.bcp._check_response, mock_response)
+
+    def test_check_response_430(self):
+        mock_response = MockObject()
+        mock_response.status_code = 430
+        self.assertRaises(Blocked, self.bcp._check_response, mock_response)
+
+    def test_check_response_434(self):
+        mock_response = MockObject()
+        mock_response.status_code = 434
+        self.assertRaises(Blocked, self.bcp._check_response, mock_response)
+
+    def test_check_response_503(self):
+        mock_response = MockObject()
+        mock_response.status_code = 503
+        self.assertRaises(Blocked, self.bcp._check_response, mock_response)
+
+    def test_check_response_435(self):
+        mock_response = MockObject()
+        mock_response.status_code = 435
+        self.assertRaises(RateExceeded, self.bcp._check_response, mock_response)
+
+    def test_check_response_200(self):
+        mock_response = MockObject()
+        mock_response.status_code = 200
+        self.assertIsNone(self.bcp._check_response(mock_response))

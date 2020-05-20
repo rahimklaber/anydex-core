@@ -59,7 +59,7 @@ class RateExceeded(RequestException):
     pass
 
 
-class Blocked(RateExceeded):
+class Blocked(RequestException):
     """
     Used for throwing exceptions when you are blocked by a server.
     """
