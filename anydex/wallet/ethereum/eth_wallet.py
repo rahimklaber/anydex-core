@@ -1,7 +1,7 @@
 import os
 
 from ipv8.util import fail, succeed
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from web3 import Web3
 
 from wallet.cryptocurrency import Cryptocurrency
@@ -25,10 +25,10 @@ class EthereumWallet(Wallet):
         self.network = 'testnet' if self.TESTNET else Cryptocurrency.ETHEREUM.value
         self.min_confirmations = 0
         self.unlocked = True
-        self.session = initialize_db(os.path.join(db_path, "eth.db"))
+        self._session = initialize_db(os.path.join(db_path, "eth.db"))
         self.wallet_name = 'tribler_testnet' if self.TESTNET else 'tribler'
 
-        row = self.session.query(Key).filter(Key.name == self.wallet_name).first()
+        row = self._session.query(Key).filter(Key.name == self.wallet_name).first()
         if row:
             self.account = Web3().eth.account.from_key(row)
             self.created = True
@@ -49,8 +49,8 @@ class EthereumWallet(Wallet):
         if not self.account:
             self.account = Web3().eth.account.create()
             self.created = True
-            self.session.add(Key(name=self.wallet_name, private_key=self.account.key, address=self.account.address))
-            self.session.commit()
+            self._session.add(Key(name=self.wallet_name, private_key=self.account.key, address=self.account.address))
+            self._session.commit()
 
         return succeed(None)
 
@@ -64,7 +64,7 @@ class EthereumWallet(Wallet):
             })
         address = self.get_address()
         # TODO verify .get_balance() maintains same format as above dictionary
-        self.update_database(self.get_transactions())
+        self._update_database(self.get_transactions())
         pending_outgoing = self.get_outgoing_amount()
         balance = {
             'available': self.provider.get_balance(address) - pending_outgoing,
@@ -79,16 +79,16 @@ class EthereumWallet(Wallet):
         Get the current amount of ethereum that we are sending, but is still unconfirmed.
         :return: pending outgoing amount
         """
-        return self.session.query(func.sum(Transaction.value)).filter(Transaction.is_pending.is_(True)).filter(
-            func.lower(Transaction.from_) == self.account.address.lower()).first()
+        return self._session.query(func.sum(Transaction.value)).filter(Transaction.is_pending.is_(True)).filter(
+            func.lower(Transaction.from_) == self.account.address.lower()).first()[0]
 
     def get_incoming_amount(self):
         """
         Get the current amount of ethereum that is being sent to us, but is still unconfirmed.
         :return: pending incoming amount
         """
-        return self.session.query(func.sum(Transaction.value)).filter(Transaction.is_pending.is_(True)).filter(
-            func.lower(Transaction.to) == self.account.address.lower()).first()
+        return self._session.query(func.sum(Transaction.value)).filter(Transaction.is_pending.is_(True)).filter(
+            func.lower(Transaction.to) == self.account.address.lower()).first()[0]
 
     async def transfer(self, amount, address) -> str:
         """
@@ -120,7 +120,7 @@ class EthereumWallet(Wallet):
         self.provider.submit_transaction(signed, signed['rawTransaction'])
 
         # add transaction to database
-        self.session.add(
+        self._session.add(
             Transaction(
                 from_=transaction['from'],
                 to=transaction['to'],
@@ -132,7 +132,7 @@ class EthereumWallet(Wallet):
                 is_pending=True
             )
         )
-        self.session.commit()
+        self._session.commit()
         return signed['hash']
 
     def get_address(self):
@@ -156,7 +156,29 @@ class EthereumWallet(Wallet):
             # here: BlockChairEthereumProvider
             transactions = self.default_provider.get_transactions(self.get_address())
 
-        self.update_database(transactions)
+        self._update_database(transactions)
+        # in the future we might use the provider to only retrieve transactions past a certain date/block
+
+        transactions_db  = self._session.query(Transaction).filter(
+            or_(func.lower(Transaction.from_) == self.get_address().lower(),
+                func.lower(Transaction.to) == self.get_address().lower()
+                )).all()
+
+        transactions_to_return = []
+
+        for tx in transactions_db:
+            transactions_to_return.append({
+                'id': tx.hash,
+                'outgoing': tx.from_.lower() == self.get_address().lower(),
+                'from': tx.from_,
+                'to': tx.to,
+                'amount': tx.value,
+                'fee_amount': tx.gas * tx.gas_price,
+                'currency': 'ETH',
+                'timestamp': tx.date_time
+                'description': f'Confirmations: {}'
+            })
+
         return succeed(transactions)
 
     def min_unit(self):
@@ -169,7 +191,7 @@ class EthereumWallet(Wallet):
     def get_identifier(self):
         return 'ETH'
 
-    def update_database(self, transactions):
+    def _update_database(self, transactions):
         """
         Update transactions in the database.
         Pending transactions that have been confirmed will be updated to have a block number and will no longer be pending.
@@ -177,19 +199,19 @@ class EthereumWallet(Wallet):
 
         :param transactions: list of transactions retrieved by self.provider
         """
-        pending_transactions = self.session.query(Transaction).filter(Transaction.is_pending.is_(True)).all()
-        confirmed_transactions = self.session.query(Transaction).filter(Transaction.is_pending.is_(False)).all()
+        pending_transactions = self._session.query(Transaction).filter(Transaction.is_pending.is_(True)).all()
+        confirmed_transactions = self._session.query(Transaction).filter(Transaction.is_pending.is_(False)).all()
         self._logger.debug('Updating ethereum database')
         for transaction in transactions:
             if transaction in pending_transactions:
                 # update transaction set is_pending = false where hash = ''
-                self.session.query(Transaction).filter(Transaction.hash == transaction.hash).update({
+                self._session.query(Transaction).filter(Transaction.hash == transaction.hash).update({
                     Transaction.is_pending: False,
                     Transaction.block_number: transaction.block_number
                 })
             elif transaction not in confirmed_transactions:
-                self.session.add(transaction)
-        self.session.commit()
+                self._session.add(transaction)
+        self._session.commit()
 
 
 class EthereumTestnetWallet(EthereumWallet):
