@@ -7,6 +7,7 @@ from web3 import Web3
 from anydex.wallet.ethereum.eth_db import Transaction
 from anydex.wallet.provider import Provider
 from anydex.wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
+from anydex.wallet.provider import NotSupportedOperationException
 
 
 class EthereumProvider(Provider, metaclass=abc.ABCMeta):
@@ -63,20 +64,6 @@ class EthereumProvider(Provider, metaclass=abc.ABCMeta):
         return
 
 
-class InvalidNode(Exception):
-    """
-    Used for throwing exceptions when the given node is invalid ( you can't connect to it).
-    """
-    pass
-
-
-class NotSupportedOperationException(Exception):
-    """
-    Exception raised whenever a provider operation is not supported by the specific concrete provider.
-    """
-    pass
-
-
 class Web3Provider(EthereumProvider):
     """
     Wrapper around Web3. Used for directly connecting to nodes.
@@ -85,7 +72,7 @@ class Web3Provider(EthereumProvider):
     (this is not suported by all nodes) to get transactions https://web3py.readthedocs.io/en/stable/filters.html
     """
 
-    def check_connection(self):
+    def _check_connection(self):
         """
         Check the connection to the node
         """
@@ -94,10 +81,10 @@ class Web3Provider(EthereumProvider):
 
     def __init__(self, url):
         self.w3 = Web3(Web3.HTTPProvider(url))
-        self.check_connection()
+        self._check_connection()
 
     def get_transaction_count(self, address):
-        self.check_connection()
+        self._check_connection()
         return self.w3.eth.getTransactionCount(address)
 
     # def estimate_gas(self, tx):
@@ -105,15 +92,15 @@ class Web3Provider(EthereumProvider):
     #     return self.w3.eth.estimateGas(tx)
 
     def get_gas_price(self):
-        self.check_connection()
+        self._check_connection()
         return self.w3.eth.gasPrice
 
     def submit_transaction(self, raw_tx):
-        self.check_connection()
+        self._check_connection()
         return self.w3.eth.sendRawTransaction(raw_tx)
 
     def get_balance(self, address):
-        self.check_connection()
+        self._check_connection()
         return self.w3.eth.getBalance(address)
 
     def get_transactions(self, address, start_block, stop_block):
@@ -291,7 +278,7 @@ class EthereumBlockcypherProvider(EthereumProvider):
 
     def get_gas_price(self):
         response = self.send_request("")
-        return response["medium_gas_price"]
+        return response.json()["medium_gas_price"]
 
     def get_balance(self, address):
         response = self.send_request(f"addrs/{address}/balance")

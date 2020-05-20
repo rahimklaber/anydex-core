@@ -24,7 +24,9 @@ setup(
         "pyOpenSSL",
         "requests",
         "web3",
-        "sqlalchemy"
+        "sqlalchemy",
+        "responses"
+
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",

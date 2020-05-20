@@ -71,3 +71,17 @@ class RequestLimit(Blocked):
     Used for throwing exceptions when the request limit has been exceeded
     """
     pass
+
+
+class InvalidNode(Exception):
+    """
+    Used for throwing exceptions when the given node is invalid ( you can't connect to it).
+    """
+    pass
+
+
+class NotSupportedOperationException(Exception):
+    """
+    Exception raised whenever a provider operation is not supported by the specific concrete provider.
+    """
+    pass

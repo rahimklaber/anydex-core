@@ -1,9 +1,11 @@
 from datetime import datetime
 from unittest import TestCase
 
+import responses
+
 from anydex.test.util import MockObject
 from anydex.wallet.ethereum.eth_db import Transaction
-from anydex.wallet.ethereum.eth_provider import EthereumBlockchairProvider
+from anydex.wallet.ethereum.eth_provider import EthereumBlockchairProvider, EthereumBlockcypherProvider
 from anydex.wallet.provider import *
 
 
@@ -250,6 +252,83 @@ class TestEthereumBlockChairProvider(TestCase):
         mock_response = MockObject()
         mock_response.status_code = 435
         self.assertRaises(RateExceeded, self.bcp._check_response, mock_response)
+
+    def test_check_response_200(self):
+        mock_response = MockObject()
+        mock_response.status_code = 200
+        self.assertIsNone(self.bcp._check_response(mock_response))
+
+
+class TestEthereumBlockcypherProvider(TestCase):
+    sample_balance_response = {
+        "address": "738d145faabb1e00cf5a017588a9c0f998318012",
+        "total_received": 9762206505909057760,
+        "total_sent": 6916970312523512365,
+        "balance": 2845236193385545395,
+        "unconfirmed_balance": 0,
+        "final_balance": 2845236193385545395,
+        "n_tx": 702,
+        "unconfirmed_n_tx": 0,
+        "final_n_tx": 702
+    }
+    sample_chain_response = {
+        "name": "ETH.main",
+        "height": 1663350,
+        "hash": "2dc3d6b080fbc78e576c8a0a7ccb52ca2af25b60c0df30ff82279fa41454729c",
+        "time": "2016-06-08T00:46:10.101109766Z",
+        "latest_url": "https://api.blockcypher.com/v1/eth/main/blocks"
+                      "/2dc3d6b080fbc78e576c8a0a7ccb52ca2af25b60c0df30ff82279fa41454729c",
+        "previous_hash": "00709ed44e1ee2f2e5416c1e48bfd1a820e30aa14348b97d802d463f4ec940a6",
+        "previous_url": "https://api.blockcypher.com/v1/eth/main/blocks/00709ed44e1ee2f2e5416c1e48bfd1a820e30aa14348b97d802d463f4ec940a6",
+        "peer_count": 55,
+        "unconfirmed_count": 11924,
+        "high_gas_price": 40000000000,
+        "medium_gas_price": 20000000000,
+        "low_gas_price": 5000000000,
+        "last_fork_height": 1661588,
+        "last_fork_hash": "79075d95aacc6ac50dbdf58da044af396ca97e09cbb31527809579cc96f1c8a7"
+    }
+
+    def setUp(self):
+        self.bcp = EthereumBlockcypherProvider()
+
+    @responses.activate
+    def test_get_transaction_count(self):
+        responses.add(responses.GET, f"{self.bcp.base_url}addrs/testaddr/balance",
+                      json=self.sample_balance_response)
+        self.assertEqual(702, self.bcp.get_transaction_count("testaddr"))
+
+    @responses.activate
+    def test_get_gas_price(self):
+        responses.add(responses.GET, f"{self.bcp.base_url}",
+                      json=self.sample_chain_response)
+        self.assertEqual(20000000000, self.bcp.get_gas_price())
+
+    @responses.activate
+    def test_get_balance(self):
+        responses.add(responses.GET, f"{self.bcp.base_url}addrs/testaddr/balance",
+                      json=self.sample_balance_response)
+        self.assertEqual(2845236193385545395, self.bcp.get_balance("testaddr"))
+
+    def test_get_transactions(self):
+        self.assertRaises(NotSupportedOperationException, self.bcp.get_transactions, "")
+
+    def test_get_transactions_received(self):
+        self.assertRaises(NotSupportedOperationException, self.bcp.get_transactions_received, "")
+
+    def test_get_transactions_received(self):
+        self.assertRaises(NotSupportedOperationException, self.bcp.submit_transaction, "")
+
+    # check EthereumBlockcypherProvider for the status codes
+    def test_check_response_429(self):
+        mock_response = MockObject()
+        mock_response.status_code = 429
+        self.assertRaises(RateExceeded, self.bcp._check_response, mock_response)
+
+    def test_check_response_unexpected_error(self):
+        mock_response = MockObject()
+        mock_response.status_code = 404
+        self.assertRaises(RequestException, self.bcp._check_response, mock_response)
 
     def test_check_response_200(self):
         mock_response = MockObject()

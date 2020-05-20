@@ -3,7 +3,8 @@ from ipv8.util import fail, succeed
 
 from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.ethereum.eth_db import initialize_db, Key, Transaction
-from anydex.wallet.ethereum.eth_provider import NotSupportedOperationException, EthereumBlockchairProvider
+from anydex.wallet.ethereum.eth_provider import EthereumBlockchairProvider
+from wallet.provider import NotSupportedOperationException
 from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 
