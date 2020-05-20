@@ -175,8 +175,8 @@ class EthereumWallet(Wallet):
                 'amount': tx.value,
                 'fee_amount': tx.gas * tx.gas_price,
                 'currency': 'ETH',
-                'timestamp': tx.date_time
-                'description': f'Confirmations: {}'
+                'timestamp': tx.date_time,
+                'description': f'Confirmations: '
             })
 
         return succeed(transactions)
