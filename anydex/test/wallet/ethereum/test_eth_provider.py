@@ -152,26 +152,30 @@ class TestEthereumBlockChairProvider(TestCase):
     def setUp(self):
         self.bcp = EthereumBlockchairProvider()
 
+    @responses.activate
     def test_get_balance(self):
-        mock_response = MockObject()
-        mock_response.json = lambda: self.sample_address_response
-        self.bcp.send_request = lambda *_, **x: mock_response
+        responses.add(responses.GET,
+                      f"{self.bcp.base_url}/dashboards/address/0x3282791d6fd713f1e94f4bfd565eaa78b3a0599d",
+                      json=self.sample_address_response)
         self.assertEqual(1337000000000000001337, self.bcp.get_balance("0x3282791d6fd713f1e94f4bfd565eaa78b3a0599d"))
 
+    @responses.activate
     def test_get_transaction_count(self):
-        mock_response = MockObject()
-        mock_response.json = lambda: self.sample_address_response
-        self.bcp.send_request = lambda *_, **x: mock_response
+        responses.add(responses.GET,
+                      f"{self.bcp.base_url}/dashboards/address/0x3282791d6fd713f1e94f4bfd565eaa78b3a0599d",
+                      json=self.sample_address_response)
         self.assertEqual(2,
                          self.bcp.get_transaction_count("0x3282791d6fd713f1e94f4bfd565eaa78b3a0599d"))
 
+    @responses.activate
     def test_get_gas_price(self):
-        mock_response = MockObject()
-        mock_response.json = lambda: self.sample_stats_response
-        self.bcp.send_request = lambda *_, **x: mock_response
+        responses.add(responses.GET,
+                      f"{self.bcp.base_url}/stats",
+                      json=self.sample_stats_response)
         self.assertEqual(100000000,
                          self.bcp.get_gas_price())
 
+    @responses.activate
     def test_get_transactions(self):
         # 4 txs because get_transactions calls get_transactions_received and they both request confirmed transactions
         # and unconfirmed transactions
@@ -216,9 +220,13 @@ class TestEthereumBlockChairProvider(TestCase):
                            value=31337,
                            block_number=46147)
                ]
-        mock_response = MockObject()
-        mock_response.json = lambda: self.sample_transactions_repsonse
-        self.bcp.send_request = lambda *_, **x: mock_response
+        responses.add(responses.GET,
+                      f"{self.bcp.base_url}/transactions",
+                      json=self.sample_transactions_repsonse)
+        responses.add(responses.GET,
+                      f"{self.bcp.base_url}/mempool/transactions",
+                      json=self.sample_transactions_repsonse)
+
         self.assertEqual(txs,
                          self.bcp.get_transactions("0xa1e4380a3b1f749673e270229993ee55f35663b4"))
 
