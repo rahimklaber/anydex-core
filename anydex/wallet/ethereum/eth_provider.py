@@ -255,13 +255,7 @@ class EthereumBlockcypherProvider(EthereumProvider):
     """
 
     def __init__(self, api_url="https://api.blockcypher.com/", network="ethereum"):
-        if network == "ethereum":
-            self.base_url = f"{api_url}v1/eth/main/"
-        elif network == "testnet":
-            self.base_url = f"{api_url}v1/beth/test/"
-        else:
-            # raise invalidargumentexception
-            pass
+        self.base_url = f"{api_url}v1/eth/main/"
 
     def send_request(self, path, data={}, method="get"):
         """
@@ -405,14 +399,14 @@ class AutoTestnetEthereumProvider(AutoEthereumProvider):
         #     web3 = None
 
         # blockchair = EthereumBlockchairProvider()
-        blockcypher = EthereumBlockcypherProvider(network="testnet")
+        # blockcypher = EthereumBlockcypherProvider(network="testnet")
 
         self.providers = {
-            'get_transaction_count': [blockcypher],
-            'get_gas_price': [blockcypher],
+            'get_transaction_count': [],
+            'get_gas_price': [],
             'get_transactions': [],
             'get_transactions_received': [],
-            'get_latest_blocknr': [blockcypher],
+            'get_latest_blocknr': [],
             'submit_transaction': [],
-            'get_balance': [blockcypher]
+            'get_balance': []
         }
