@@ -321,6 +321,60 @@ class EthereumBlockcypherProvider(EthereumProvider):
             raise RequestException("something went wrong")
 
 
+class EtherscanProvider(EthereumProvider):
+    """
+    Wrapper around the etherscan api.
+    The testnet available through etherscan is the ropsten testnet.
+    """
+
+    def __init__(self, network="ethereum"):
+        if network == "testnet":
+            self.base_url = "https://api-ropsten.etherscan.io/api"
+        elif network == "ethereum":
+            self.base_url = "https://api.etherscan.io/api"
+        else:
+            raise ValueError(f"expected ethereum or testnet but got : {network}")
+        self.network = network
+
+    def _send_request(self, data={}, method="get"):
+        response = None
+        if method == "get":
+            response = requests.get(self.base_url, data=data)
+        elif method == "post":
+            response = requests.post(self.base_url, data=data)
+        else:
+            raise ValueError(f"expected get or post but got: {method}")
+        self._check_response(response)
+        return response
+
+    def get_transaction_count(self, address):
+        pass
+
+    def get_gas_price(self):
+        pass
+
+    def get_transactions(self, address, start_block=None, end_block=None):
+        pass
+
+    def get_transactions_received(self, address, start_block=None, end_block=None):
+        pass
+
+    def get_latest_blocknr(self):
+        pass
+
+    def submit_transaction(self, tx):
+        pass
+
+    def get_balance(self, address):
+        data = {
+            "module": "account",
+            "action": "balance",
+            "address": address,
+            "tag": "latest"
+        }
+        response = self._send_request(data=data)
+
+
 class AutoEthereumProvider(EthereumProvider):
     """
     This class chooses the provider to use to make the request.
