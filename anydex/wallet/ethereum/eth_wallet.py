@@ -7,8 +7,7 @@ from web3 import Web3
 
 from wallet.cryptocurrency import Cryptocurrency
 from wallet.ethereum.eth_db import initialize_db, Key, Transaction
-from wallet.ethereum.eth_provider import EthereumBlockchairProvider
-from wallet.provider import NotSupportedOperationException
+from wallet.ethereum.eth_provider import AutoEthereumProvider, AutoTestnetEthereumProvider
 from wallet.wallet import Wallet, InsufficientFunds
 
 
@@ -17,11 +16,13 @@ class EthereumWallet(Wallet):
     This class is responsible for handling your Ethereum wallet.
     """
     TESTNET = False
-    default_provider = EthereumBlockchairProvider()
 
-    def __init__(self, provider, db_path):
+    def __init__(self, db_path, provider=None):
         super().__init__()
-        self.provider = provider
+        if provider:
+            self.provider = provider
+        else:
+            self.provider = AutoTestnetEthereumProvider() if self.TESTNET else AutoEthereumProvider()
 
         self.network = 'testnet' if self.TESTNET else Cryptocurrency.ETHEREUM.value
         self.min_confirmations = 0
@@ -64,7 +65,6 @@ class EthereumWallet(Wallet):
                 'precision': self.precision()
             })
         address = self.get_address()
-        # TODO verify .get_balance() maintains same format as above dictionary
         self._update_database(self.get_transactions())
         pending_outgoing = self.get_outgoing_amount()
         balance = {
@@ -144,18 +144,13 @@ class EthereumWallet(Wallet):
     def get_transactions(self):
         """
         Retrieve list of transactions from provider.
-        If the operation is not supported by the provider, use a default provider.
 
         :return: list of transactions
         """
         if not self.account:
             return succeed([])
-        try:
-            transactions = self.provider.get_transactions()
-        except NotSupportedOperationException:
-            # use `default` provider to perform operation
-            # here: BlockChairEthereumProvider
-            transactions = self.default_provider.get_transactions(self.get_address())
+
+        transactions = self.provider.get_transactions()
 
         self._update_database(transactions)
         # in the future we might use the provider to only retrieve transactions past a certain date/block
@@ -220,7 +215,6 @@ class EthereumTestnetWallet(EthereumWallet):
     This wallet represents testnet Ethereum.
     """
     TESTNET = True
-    default_provider = None
 
     def get_name(self):
         return 'Testnet ETH'
