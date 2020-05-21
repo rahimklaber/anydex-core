@@ -394,3 +394,25 @@ class AutoEthereumProvider(EthereumProvider):
     def get_balance(self, address):
         return self._make_request("get_balance", address)
 
+
+class AutoTestnetEthereumProvider(AutoEthereumProvider):
+    def __init__(self):
+        # try:
+        #     node = create_node(Cryptocurrency.ETHEREUM) TODO testnet
+        #     address = f"{node.host}:{node.port}" if node.port else node.host
+        #     web3 = Web3Provider(address)
+        # except (ConnectionException, CannotCreateNodeException):
+        #     web3 = None
+
+        # blockchair = EthereumBlockchairProvider()
+        blockcypher = EthereumBlockcypherProvider(network="testnet")
+
+        self.providers = {
+            'get_transaction_count': [blockcypher],
+            'get_gas_price': [blockcypher],
+            'get_transactions': [],
+            'get_transactions_received': [],
+            'get_latest_blocknr': [blockcypher],
+            'submit_transaction': [],
+            'get_balance': [blockcypher]
+        }
