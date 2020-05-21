@@ -5,9 +5,11 @@ import requests
 from web3 import Web3
 
 from anydex.wallet.ethereum.eth_db import Transaction
+from anydex.wallet.node.node import create_node, CannotCreateNodeException
 from anydex.wallet.provider import NotSupportedOperationException
 from anydex.wallet.provider import Provider
 from anydex.wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
+from wallet.cryptocurrency import Cryptocurrency
 
 
 class EthereumProvider(Provider, metaclass=abc.ABCMeta):
@@ -180,13 +182,13 @@ class EthereumBlockchairProvider(EthereumProvider):
         response = self.send_request("/push/transactions", data={"data": raw_tx}, method="post")
         return response.json()["data"]["transaction_hash"]
 
-    def get_transactions_received(self, address):
+    def get_transactions_received(self, address, start_block=None, end_block=None):
         response = self.send_request("/transactions", data={"q": f"recipient({address})"})
         response_mempool = self.send_request("/mempool/transactions", data={"q": f"recipient({address})"})
         txs = response.json()["data"] + response_mempool.json()["data"]
         return self._normalize_transactions(txs)
 
-    def get_transactions(self, address):
+    def get_transactions(self, address, start_block=None, end_block=None):
         sent = self.send_request("/transactions", data={"q": f"sender({address})"})
         sent_data = sent.json()["data"]
         sent_mempool = self.send_request("/mempool/transactions", data={"q": f"sender({address})"})
@@ -254,9 +256,9 @@ class EthereumBlockcypherProvider(EthereumProvider):
 
     def __init__(self, api_url="https://api.blockcypher.com/", network="ethereum"):
         if network == "ethereum":
-            self.base_url = f"{api_url}1/eth/main/"
+            self.base_url = f"{api_url}v1/eth/main/"
         elif network == "testnet":
-            self.base_url = f"{api_url}1/beth/test/"
+            self.base_url = f"{api_url}v1/beth/test/"
         else:
             # raise invalidargumentexception
             pass
@@ -300,7 +302,7 @@ class EthereumBlockcypherProvider(EthereumProvider):
         return response.json()["medium_gas_price"]
 
     def get_balance(self, address):
-        response = self.send_request(f"addrs/{address}/balance")
+        response = self.send_request(f"addrs/{address[2:]}/balance")  # they expect the addres without 0x
         return response.json()["balance"]
 
     def get_transactions(self, address, start_block=None, end_block=None):
@@ -323,3 +325,70 @@ class EthereumBlockcypherProvider(EthereumProvider):
                 "The server indicated the rate limit has been reached")
         elif response.status_code != 200:
             raise RequestException("something went wrong")
+
+
+class AutoEthereumProvider(EthereumProvider):
+    """
+    This class chooses the provider to use to make the request.
+    If one provider does not work, then it tries another one.
+    """
+
+    def __init__(self):
+        try:
+            node = create_node(Cryptocurrency.ETHEREUM)
+            address = f"{node.host}:{node.port}" if node.port else node.host
+            web3 = Web3Provider(address)
+        except (ConnectionException, CannotCreateNodeException):
+            web3 = None
+
+        blockchair = EthereumBlockchairProvider()
+        blockcypher = EthereumBlockcypherProvider()
+
+        self.providers = {
+            'get_transaction_count': [web3, blockcypher, blockchair],
+            'get_gas_price': [web3, blockcypher, blockchair],
+            'get_transactions': [blockchair],
+            'get_transactions_received': [blockchair],
+            'get_latest_blocknr': [web3, blockcypher, blockchair],
+            'submit_transaction': [web3, blockchair],
+            'get_balance': [web3, blockcypher, blockchair]
+        }
+
+    def _make_request(self, fun, *args):
+        """
+        Try to use one of the provider to make the request.
+        :param fun: request to make
+        :param args: request params
+        :return: the request response
+        """
+        providers = self.providers[fun]
+        if not providers:
+            raise NotSupportedOperationException(f"this operation is not supported: {fun}")
+        for provider in providers:
+            if provider:
+                try:
+                    return provider.__getattribute__(fun)(*args)
+                except (RequestException, NotSupportedOperationException):
+                    pass
+        raise RequestException(f"something went wrong, request : {fun}")
+
+    def get_transaction_count(self, address):
+        return self._make_request("get_transaction_count", address)
+
+    def get_gas_price(self):
+        return self._make_request("get_gas_price")
+
+    def get_transactions(self, address, start_block=None, end_block=None):
+        return self._make_request("get_transactions", address, start_block, end_block)
+
+    def get_transactions_received(self, address, start_block=None, end_block=None):
+        return self._make_request("get_transactions_received", address, start_block, end_block)
+
+    def get_latest_blocknr(self):
+        return self._make_request("get_latest_blocknr")
+
+    def submit_transaction(self, tx):
+        return self._make_request("submit_transaction", tx)
+
+    def get_balance(self, address):
+        return self._make_request("get_balance", address)
