@@ -32,7 +32,7 @@ class EthereumWallet(Wallet):
 
         row = self._session.query(Key).filter(Key.name == self.wallet_name).first()
         if row:
-            self.account = Web3().eth.account.from_key(row)
+            self.account = Web3().eth.account.from_key(row.private_key)
             self.created = True
         else:
             self.account = None
@@ -80,16 +80,18 @@ class EthereumWallet(Wallet):
         Get the current amount of ethereum that we are sending, but is still unconfirmed.
         :return: pending outgoing amount
         """
-        return self._session.query(func.sum(Transaction.value)).filter(Transaction.is_pending.is_(True)).filter(
+        outgoing = self._session.query(func.sum(Transaction.value)).filter(Transaction.is_pending.is_(True)).filter(
             func.lower(Transaction.from_) == self.account.address.lower()).first()[0]
+        return outgoing if outgoing else 0
 
     def get_incoming_amount(self):
         """
         Get the current amount of ethereum that is being sent to us, but is still unconfirmed.
         :return: pending incoming amount
         """
-        return self._session.query(func.sum(Transaction.value)).filter(Transaction.is_pending.is_(True)).filter(
+        incoming = self._session.query(func.sum(Transaction.value)).filter(Transaction.is_pending.is_(True)).filter(
             func.lower(Transaction.to) == self.account.address.lower()).first()[0]
+        return incoming if incoming else 0
 
     async def transfer(self, amount, address) -> str:
         """
@@ -150,7 +152,7 @@ class EthereumWallet(Wallet):
         if not self.account:
             return succeed([])
 
-        transactions = self.provider.get_transactions()
+        transactions = self.provider.get_transactions(self.get_address())
 
         self._update_database(transactions)
         # in the future we might use the provider to only retrieve transactions past a certain date/block
