@@ -321,7 +321,7 @@ class TestEthereumBlockcypherProvider(TestCase):
     def test_get_balance(self):
         responses.add(responses.GET, f"{self.bcp.base_url}addrs/testaddr/balance",
                       json=self.sample_balance_response)
-        self.assertEqual(2845236193385545395, self.bcp.get_balance("testaddr"))
+        self.assertEqual(2845236193385545395, self.bcp.get_balance("Oxtestaddr"))
 
     def test_get_transactions(self):
         self.assertRaises(NotSupportedOperationException, self.bcp.get_transactions, "")
