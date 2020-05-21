@@ -86,7 +86,7 @@ class BitcoinlibWallet(Wallet):
         cfg_name = 'bcl_config.ini'
 
         config = self.cfg_init()
-        with open(cfg_name, 'w+') as configfile:
+        with open(cfg_name, 'w') as configfile:
             config.write(configfile)
 
         os.environ['BCL_CONFIG_FILE'] = os.path.abspath(cfg_name)
