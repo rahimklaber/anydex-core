@@ -16,7 +16,7 @@ setup(
     py_modules=[],
     install_requires=[
         "autobahn",
-        "bitcoinlib>=0.4.14",
+        "bitcoinlib==0.4.14",
         "cryptography",
         "libnacl",
         "netifaces",
