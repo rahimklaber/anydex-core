@@ -360,6 +360,7 @@ class AutoEthereumProvider(EthereumProvider):
         :param fun: request to make
         :param args: request params
         :return: the request response
+        Todo: implement mechanism to ignore certain providers when we have been blocked by them
         """
         providers = self.providers[fun]
         if not providers:
@@ -392,3 +393,4 @@ class AutoEthereumProvider(EthereumProvider):
 
     def get_balance(self, address):
         return self._make_request("get_balance", address)
+

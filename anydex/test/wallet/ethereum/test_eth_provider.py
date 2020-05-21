@@ -5,7 +5,8 @@ import responses
 
 from anydex.test.util import MockObject
 from anydex.wallet.ethereum.eth_db import Transaction
-from anydex.wallet.ethereum.eth_provider import EthereumBlockchairProvider, EthereumBlockcypherProvider
+from anydex.wallet.ethereum.eth_provider import EthereumBlockchairProvider, EthereumBlockcypherProvider, \
+    AutoEthereumProvider
 from anydex.wallet.provider import *
 
 
@@ -347,3 +348,71 @@ class TestEthereumBlockcypherProvider(TestCase):
         mock_response = MockObject()
         mock_response.status_code = 200
         self.assertIsNone(self.bcp._check_response(mock_response))
+
+
+class TestAutoEthereumProvider(TestCase):
+    def setUp(self):
+        AutoEthereumProvider.__init__ = lambda *_: None
+        self.aep = AutoEthereumProvider()
+
+    def test_get_transaction_count(self):
+        """
+        checks if the correct request is made and that the params are passed correctly
+        """
+        self.aep._make_request = lambda f, *x: (f, x)
+        request, params = self.aep.get_transaction_count("xxx")
+        self.assertEqual("get_transaction_count", request)
+        self.assertEqual("xxx",
+                         params[0])
+
+    def test_get_gas_price(self):
+        """
+        checks if the correct request is made and that the params are passed correctly
+        """
+        self.aep._make_request = lambda f: f
+        request = self.aep.get_gas_price()
+        self.assertEqual("get_gas_price", request)
+
+    def test_get_transactions(self):
+        """
+        checks if the correct request is made and that the params are passed correctly
+        """
+        self.aep._make_request = lambda f, *x: (f, x)
+        request, params = self.aep.get_transactions("xxx", 0, 1)
+        self.assertEqual("get_transactions", request)
+        self.assertEqual(params, ("xxx", 0, 1))
+
+    def test_get_transactions_received(self):
+        """
+        checks if the correct request is made and that the params are passed correctly
+        """
+        self.aep._make_request = lambda f, *x: (f, x)
+        request, params = self.aep.get_transactions_received("xxx", 0, 1)
+        self.assertEqual("get_transactions_received", request)
+        self.assertEqual(params, ("xxx", 0, 1))
+
+    def test_get_latest_blocknr(self):
+        """
+        checks if the correct request is made and that the params are passed correctly
+        """
+        self.aep._make_request = lambda f: f
+        request = self.aep.get_latest_blocknr()
+        self.assertEqual("get_latest_blocknr", request)
+
+    def test_submit_transaction(self):
+        """
+        checks if the correct request is made and that the params are passed correctly
+        """
+        self.aep._make_request = lambda f, *x: (f, x)
+        request, params = self.aep.submit_transaction("rawtx")
+        self.assertEqual("submit_transaction", request)
+        self.assertEqual(params, ("rawtx",))
+
+    def test_get_balance(self):
+        """
+        checks if the correct request is made and that the params are passed correctly
+        """
+        self.aep._make_request = lambda f, *x: (f, x)
+        request, params = self.aep.get_balance("addr")
+        self.assertEqual("get_balance", request)
+        self.assertEqual(("addr",), params)
