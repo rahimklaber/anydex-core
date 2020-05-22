@@ -24,25 +24,22 @@ class Transaction(Base):
     Database definition for transactions
     """
     __tablename__ = "transactions"
-    # need to include a relation to the key table.
+
     id = Column(Integer, primary_key=True)
-    # blockHash = Column(String)
+
     block_number = Column(Integer)
-    # chainId = Column(Integer)
+
     from_ = Column(String(42))
     gas = Column(Integer)
     gas_price = Column(Integer)
     hash = Column(String, unique=True)
     nonce = Column(Integer)
-    # r = Column(LargeBinary)
-    # s = Column(LargeBinary)
+
     to = Column(String(42))
-    # v = Column(Integer)
+
     value = Column(Integer)
     date_time = Column(DateTime, default=datetime.utcnow())
     is_pending = Column(Boolean, default=False)
-
-    # transaction_index = Column(Integer)
 
     def __eq__(self, other):
         if not isinstance(other, Transaction):

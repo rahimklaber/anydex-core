@@ -19,7 +19,7 @@ class TestEthereumWallet(AbstractServer):
         """
         Test the creation of the wallet
         """
-        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         wallet.create_wallet()
         addr = wallet._session.query(Key.address).first()[0]
         self.assertEqual(addr, wallet.account.address)
@@ -30,7 +30,7 @@ class TestEthereumWallet(AbstractServer):
         """
         Test the creation of the wallet when the wallet is already created
         """
-        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         wallet.create_wallet()
         self.assertIsNotNone(wallet.account)
         self.assertTrue(wallet.created)
@@ -41,14 +41,14 @@ class TestEthereumWallet(AbstractServer):
         """
         Test for get_name
         """
-        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         self.assertEqual("ethereum", wallet.get_name())
 
     async def test_get_balance_not_created(self):
         """
         Test for getting a balance of a wallet that has not been created
         """
-        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         balance = {
             'available': 0,
             'pending': 0,
@@ -61,7 +61,7 @@ class TestEthereumWallet(AbstractServer):
         """
         Test for getting the balance of a created wallet.
         """
-        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         wallet.create_wallet()
         mock_obj = MockObject()
         mock_obj.get_balance = lambda *_: 992
@@ -82,7 +82,7 @@ class TestEthereumWallet(AbstractServer):
         """
         Test for the get_outgoing_amount function.
         """
-        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         wallet.create_wallet()
         wallet._session.add(
             Transaction(is_pending=True, value=100, from_=wallet.account.address, hash=wallet.generate_txid()))
@@ -94,7 +94,7 @@ class TestEthereumWallet(AbstractServer):
         """
         Test for the get_incoming_amount function
         """
-        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         wallet.create_wallet()
         wallet._session.add(
             Transaction(is_pending=True, value=100, to=wallet.account.address, hash=wallet.generate_txid()))
@@ -106,14 +106,14 @@ class TestEthereumWallet(AbstractServer):
         """
         Test for getting the address of the wallet when it's not yet created
         """
-        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         self.assertEqual("", wallet.get_address())
 
     def test_get_address(self):
         """
         Test for getting the address of the wallet when it's created
         """
-        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         wallet.create_wallet()
         self.assertEqual(wallet.account.address, wallet.get_address())
 
@@ -121,7 +121,7 @@ class TestEthereumWallet(AbstractServer):
         """
         Test for the precision function
         """
-        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         self.assertEqual(18, wallet.precision())
 
     def test_get_identifier(self):
@@ -129,7 +129,7 @@ class TestEthereumWallet(AbstractServer):
         Test for get identifier
         """
 
-        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         self.assertEqual("ETH", wallet.get_identifier())
 
     async def test_get_transactions(self):
@@ -137,7 +137,7 @@ class TestEthereumWallet(AbstractServer):
         Test for get transactions
         """
 
-        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         wallet.create_wallet()
         tx = Transaction(hash="0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060",
                          date_time=datetime(2015, 8, 7, 3, 30, 33),
@@ -179,12 +179,12 @@ class TestTestnetEthereumWallet(AbstractServer):
         """
         Test for get identifier
         """
-        wallet = EthereumTestnetWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumTestnetWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         self.assertEqual("TETH", wallet.get_identifier())
 
     def test_get_name(self):
         """
         Test for get_name
         """
-        wallet = EthereumTestnetWallet(self.session_base_dir, True)  # Trick the wallet
+        wallet = EthereumTestnetWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         self.assertEqual("Testnet ETH", wallet.get_name())
