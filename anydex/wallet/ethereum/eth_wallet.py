@@ -107,20 +107,21 @@ class EthereumWallet(Wallet):
         if balance['available'] < int(amount):
             raise InsufficientFunds('Insufficient funds')
 
-        self._logger(f'Creating Ethereum payment with amount {amount} to address {address}')
+        self._logger.info(f'Creating Ethereum payment with amount {amount} to address {address}')
 
         transaction = {
+            'from': self.get_address(),
             'to': address,
-            'value': amount,
-            'gas': self.provider.estimate_gas(),
-            'nonce': 1,
+            'value': int(amount),
+            'nonce': self.provider.get_transaction_count(self.get_address()),
             'gasPrice': self.provider.get_gas_price(),
-            'chainId': 1
+            'chainId': self.get_chain_id()
         }
 
+        transaction['gas'] = self.provider.estimate_gas(transaction)
         # submit to blockchain
         signed = self.account.sign_transaction(transaction)
-        self.provider.submit_transaction(signed, signed['rawTransaction'])
+        self.provider.submit_transaction(signed['rawTransaction'])
 
         # add transaction to database
         self._session.add(
@@ -131,12 +132,19 @@ class EthereumWallet(Wallet):
                 gas=transaction['gas'],
                 nonce=transaction['nonce'],
                 gas_price=transaction['gasPrice'],
-                hash=signed['hash'],
+                hash=signed['hash'].hex(),
                 is_pending=True
             )
         )
         self._session.commit()
-        return signed['hash']
+        return signed['hash'].hex()
+
+    def get_chain_id(self):
+        """
+        Get the chain id of the current ethereum network.
+        """
+
+        return 1
 
     def get_address(self):
         if not self.account:
@@ -165,6 +173,7 @@ class EthereumWallet(Wallet):
         transactions_to_return = []
         latest_block_height = self.provider.get_latest_blocknr()
         for tx in transactions_db:
+            confirmations = latest_block_height - tx.block_number + 1 if tx.block_number else 0
             transactions_to_return.append({
                 'id': tx.hash,
                 'outgoing': tx.from_.lower() == self.get_address().lower(),
@@ -174,7 +183,7 @@ class EthereumWallet(Wallet):
                 'fee_amount': tx.gas * tx.gas_price,
                 'currency': self.get_identifier(),
                 'timestamp': time.mktime(tx.date_time.timetuple()),
-                'description': f'Confirmations: {latest_block_height - tx.block_number + 1}'
+                'description': f'Confirmations: {confirmations}'
             })
 
         return succeed(transactions_to_return)
@@ -224,3 +233,6 @@ class EthereumTestnetWallet(EthereumWallet):
 
     def get_identifier(self):
         return 'TETH'
+
+    def get_chain_id(self):
+        return 3
