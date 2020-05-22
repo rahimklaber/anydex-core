@@ -337,11 +337,14 @@ class EtherscanProvider(EthereumProvider):
         self.network = network
 
     def _send_request(self, data={}, method='get'):
+        headers = {
+            'User-Agent': 'Anydex'
+        }
         response = None
         if method == 'get':
-            response = requests.get(self.base_url, data=data)
+            response = requests.get(self.base_url, data=data, headers=headers)
         elif method == 'post':
-            response = requests.post(self.base_url, data=data)
+            response = requests.post(self.base_url, data=data, headers=headers)
         else:
             raise ValueError(f'expected get or post but got: {method}')
         self._check_response(response)
@@ -451,8 +454,9 @@ class EtherscanProvider(EthereumProvider):
         """
         if response.status_code != 200:
             raise RequestException(f'something went wrong, status code was : {response.status_code}')
+
         try:  # etherscan might not always return the "status"
-            if response.json()["status"] == "0":
+            if response.json()["status"] == "0" and response.json()["message"].startswith('NOTOK'):
                 raise RequestException(f'something went wrong, message was : {response.json()["message"]}')
         except KeyError:
             pass
