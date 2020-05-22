@@ -338,6 +338,18 @@ class EtherscanProvider(EthereumProvider):
         self.network = network
 
     def _send_request(self, data={}, method='get'):
+        """
+       Makes a request to the specified path.
+
+       This method was created to have one place where all calls to the requests library are made
+       , to reduce the possibility of errors.
+
+       :param path: the path after the base url
+       :param data: Data that is send with the request. It is sent as url params if the method is get
+       and in the body if the method is post
+       :param method: The type of the request (get, post...)
+       :return: the response object
+        """
         headers = {
             'User-Agent': 'Anydex'
         }
