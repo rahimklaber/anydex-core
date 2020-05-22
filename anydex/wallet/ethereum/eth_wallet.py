@@ -5,10 +5,10 @@ from ipv8.util import fail, succeed
 from sqlalchemy import func, or_
 from web3 import Web3
 
-from wallet.cryptocurrency import Cryptocurrency
-from wallet.ethereum.eth_db import initialize_db, Key, Transaction
-from wallet.ethereum.eth_provider import AutoEthereumProvider, AutoTestnetEthereumProvider
-from wallet.wallet import Wallet, InsufficientFunds
+from anydex.wallet.cryptocurrency import Cryptocurrency
+from anydex.wallet.ethereum.eth_db import initialize_db, Key, Transaction
+from anydex.wallet.ethereum.eth_provider import AutoEthereumProvider, AutoTestnetEthereumProvider
+from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 
 class EthereumWallet(Wallet):
