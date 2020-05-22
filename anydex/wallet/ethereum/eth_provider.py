@@ -1,5 +1,6 @@
 import abc
 from datetime import datetime
+from time import sleep
 
 import requests
 from web3 import Web3
@@ -452,6 +453,7 @@ class EtherscanProvider(EthereumProvider):
         Check the respsonse for errors
         :param response: response object
         """
+        print(response.content)
         if response.status_code != 200:
             raise RequestException(f'something went wrong, status code was : {response.status_code}')
 
@@ -489,11 +491,12 @@ class AutoEthereumProvider(EthereumProvider):
             'get_balance': [web3, etherscan, blockcypher, blockchair]
         }
 
-    def _make_request(self, fun, *args):
+    def _make_request(self, fun, *args, **kwargs):
         """
         Try to use one of the provider to make the request.
         :param fun: request to make
         :param args: request params
+        :param retry: amount of times to retry
         :return: the request response
         Todo: implement mechanism to ignore certain providers when we have been blocked by them
         """
@@ -506,7 +509,11 @@ class AutoEthereumProvider(EthereumProvider):
                     return provider.__getattribute__(fun)(*args)
                 except (RequestException, NotSupportedOperationException):
                     pass
-        raise RequestException(f"something went wrong, request : {fun}")
+        retry = kwargs.pop("retry", 1)
+        if retry > 0:
+            sleep(0.2)
+            self._make_request(fun, *args, retry=retry - 1)
+            raise RequestException(f"something went wrong, request : {fun}")
 
     def get_transaction_count(self, address):
         return self._make_request("get_transaction_count", address)
@@ -547,13 +554,14 @@ class AutoTestnetEthereumProvider(AutoEthereumProvider):
 
         # blockchair = EthereumBlockchairProvider()
         # blockcypher = EthereumBlockcypherProvider(network="testnet")
+        web3 = Web3Provider("https://ropsten-rpc.linkpool.io/")  # Todo fix config so we don't have to hardcode this.
         etherscan = EtherscanProvider("testnet")
         self.providers = {
-            'get_transaction_count': [etherscan],
-            'get_gas_price': [etherscan],
+            'get_transaction_count': [web3, etherscan],
+            'get_gas_price': [web3, etherscan],
             'get_transactions': [etherscan],
             'get_transactions_received': [],
-            'get_latest_blocknr': [etherscan],
-            'submit_transaction': [etherscan],
-            'get_balance': [etherscan]
+            'get_latest_blocknr': [web3, etherscan],
+            'submit_transaction': [web3, etherscan],
+            'get_balance': [web3, etherscan]
         }
