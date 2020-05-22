@@ -474,15 +474,15 @@ class AutoEthereumProvider(EthereumProvider):
 
         blockchair = EthereumBlockchairProvider()
         blockcypher = EthereumBlockcypherProvider()
-
+        etherscan = EtherscanProvider()
         self.providers = {
-            'get_transaction_count': [web3, blockcypher, blockchair],
-            'get_gas_price': [web3, blockcypher, blockchair],
-            'get_transactions': [blockchair],
+            'get_transaction_count': [web3, etherscan, blockcypher, blockchair],
+            'get_gas_price': [web3, etherscan, blockcypher, blockchair],
+            'get_transactions': [blockchair, etherscan],
             'get_transactions_received': [blockchair],
-            'get_latest_blocknr': [web3, blockcypher, blockchair],
-            'submit_transaction': [web3, blockchair],
-            'get_balance': [web3, blockcypher, blockchair]
+            'get_latest_blocknr': [web3, blockcypher, etherscan, blockchair],
+            'submit_transaction': [web3, etherscan, blockchair],
+            'get_balance': [web3, etherscan, blockcypher, blockchair]
         }
 
     def _make_request(self, fun, *args):
@@ -527,9 +527,15 @@ class AutoEthereumProvider(EthereumProvider):
 
 
 class AutoTestnetEthereumProvider(AutoEthereumProvider):
+    """
+        This class chooses the provider to use to make the request.
+        If one provider does not work, then it tries another one.
+        Note: the ropsten testnet is used.
+        """
+
     def __init__(self):
         # try:
-        #     node = create_node(Cryptocurrency.ETHEREUM) TODO testnet
+        #     node = create_node(Cryptocurrency.ETHEREUM)
         #     address = f"{node.host}:{node.port}" if node.port else node.host
         #     web3 = Web3Provider(address)
         # except (ConnectionException, CannotCreateNodeException):
@@ -537,13 +543,13 @@ class AutoTestnetEthereumProvider(AutoEthereumProvider):
 
         # blockchair = EthereumBlockchairProvider()
         # blockcypher = EthereumBlockcypherProvider(network="testnet")
-
+        etherscan = EtherscanProvider("testnet")
         self.providers = {
-            'get_transaction_count': [],
-            'get_gas_price': [],
-            'get_transactions': [],
+            'get_transaction_count': [etherscan],
+            'get_gas_price': [etherscan],
+            'get_transactions': [etherscan],
             'get_transactions_received': [],
-            'get_latest_blocknr': [],
-            'submit_transaction': [],
-            'get_balance': []
+            'get_latest_blocknr': [etherscan],
+            'submit_transaction': [etherscan],
+            'get_balance': [etherscan]
         }
