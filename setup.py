@@ -21,7 +21,8 @@ setup(
         "libnacl",
         "netifaces",
         "aiohttp",
-        "pyOpenSSL"
+        "pyOpenSSL",
+        'pyota'
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
