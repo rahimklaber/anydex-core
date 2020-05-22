@@ -6,7 +6,7 @@ import responses
 from anydex.test.util import MockObject
 from anydex.wallet.ethereum.eth_db import Transaction
 from anydex.wallet.ethereum.eth_provider import EthereumBlockchairProvider, EthereumBlockcypherProvider, \
-    AutoEthereumProvider
+    AutoEthereumProvider, EtherscanProvider
 from anydex.wallet.provider import *
 
 
@@ -416,3 +416,119 @@ class TestAutoEthereumProvider(TestCase):
         request, params = self.aep.get_balance("addr")
         self.assertEqual("get_balance", request)
         self.assertEqual(("addr",), params)
+
+
+class testEtherscanProvider(TestCase):
+    # TODO: find a way to test query params
+    sample_transaction_count_response = {"jsonrpc": "2.0", "id": 1, "result": "0xaf5e"}
+    sample_gas_response = {"status": "1", "message": "OK-Missing/Invalid API Key, rate limit of 1/3sec applied",
+                           "result": {"LastBlock": "10116137", "SafeGasPrice": "1", "ProposeGasPrice": "48"}}
+    sample_transactions_response = {
+        "status": "1",
+        "message": "OK-Missing/Invalid API Key, rate limit of 1/3sec applied",
+        "result": [
+            {
+                "blockNumber": "10116177",
+                "timeStamp": "1590157996",
+                "hash": "0x7688616385aeca4362e30eea9a46ab10ec18259793d1db969c527ada84c73a88",
+                "nonce": "0",
+                "blockHash": "0x40a1f3ddbd23a174fdd2eff4c2cf5c68a28fcc8f71beff90be5e14ff977b2d2b",
+                "transactionIndex": "101",
+                "from": "0x4d52d092b1c54f29c33ff2a2290e51849c3cf020",
+                "to": "0x1120987bb7e25816ac01c74e70f643b28adf341c",
+                "value": "988000000000000000",
+                "gas": "21000",
+                "gasPrice": "40000000000",
+                "isError": "0",
+                "txreceipt_status": "1",
+                "input": "0x",
+                "contractAddress": "",
+                "cumulativeGasUsed": "6177517",
+                "gasUsed": "21000",
+                "confirmations": "3"
+            }
+        ]
+    }
+    sample_balance_response = {"status": "1", "message": "OK-Missing/Invalid API Key, rate limit of 1/3sec applied",
+                               "result": "585633603350234536909365"}
+
+    def setUp(self):
+        self.esp = EtherscanProvider()
+
+    def test_init_ethereum(self):
+        """
+        Test for initializing the provider with the main network
+        """
+        try:
+            EtherscanProvider("ethereum")
+        except ValueError:
+            self.fail("__init__ threw exception when it wasn't expected")
+
+    def test_init_testnet(self):
+        """
+        Test for initializing the provider with the testnet network
+        """
+        try:
+            EtherscanProvider("testnet")
+        except ValueError:
+            self.fail("__init__ threw exception when it wasn't expected")
+
+    def test_init_ethereum(self):
+        """
+        Test for initializing the provider with an invalid network
+        """
+        self.assertRaises(ValueError, EtherscanProvider, "xxx")
+
+    @responses.activate
+    def test_get_transaction_count(self):
+        """
+        Test for get_transaction count
+        """
+        responses.add(responses.GET, f"{self.esp.base_url}",
+                      json=self.sample_transaction_count_response)
+        count = self.esp.get_transaction_count("xxx")
+        self.assertEqual(44894, count)
+
+    @responses.activate
+    def test_get_gas_price(self):
+        """
+        Test for get price
+        """
+        responses.add(responses.GET, f"{self.esp.base_url}",
+                      json=self.sample_gas_response)
+        count = self.esp.get_gas_price()
+        self.assertEqual(48, count)
+
+    @responses.activate
+    def test_get_transactions(self):
+        """
+        Test for get transactions
+        """
+        correct_tx = [Transaction(block_number=10116177,
+                                  hash="0x7688616385aeca4362e30eea9a46ab10ec18259793d1db969c527ada84c73a88",
+                                  from_="0x4d52d092b1c54f29c33ff2a2290e51849c3cf020",
+                                  to="0x1120987bb7e25816ac01c74e70f643b28adf341c",
+                                  value=988000000000000000,
+                                  gas=21000,
+                                  gas_price=40000000000,
+                                  is_pending=False,
+                                  date_time=datetime.utcfromtimestamp(1590157996))]
+        responses.add(responses.GET, f"{self.esp.base_url}",
+                      json=self.sample_gas_block)
+        tx = self.esp.get_transactions("0x1120987bb7e25816aC01c74e70f643b28AdF341C")
+        self.assertEqual(correct_tx, tx)
+
+    def test_get_transactions(self):
+        """
+        Test for get transactions received
+        """
+        self.assertRaises(NotSupportedOperationException, self.esp.get_transactions_received, '')
+
+    @responses.activate
+    def test_get_balance(self):
+        """
+        Test for get balance
+        """
+        responses.add(responses.GET, f"{self.esp.base_url}",
+                      json=self.sample_balance_response)
+        self.assertEqual(585633603350234536909365, self.esp.get_balance("0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae"))
