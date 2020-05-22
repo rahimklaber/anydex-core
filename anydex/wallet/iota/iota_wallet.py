@@ -1,9 +1,12 @@
 import abc
+from abc import ABCMeta
+
+from iota.transaction import ProposedTransaction
+from iota.types import Address
 
 from anydex.wallet.wallet import Wallet
 from iota.crypto.types import Seed
 from ipv8.util import fail, succeed
-from iota import Iota
 
 
 class AbstractIotaWallet(Wallet, metaclass=abc.ABCMeta):
@@ -16,15 +19,20 @@ class AbstractIotaWallet(Wallet, metaclass=abc.ABCMeta):
         self.directory = db_path
         self.testnet = testnet
         self.created = self.wallet_initialized()
-        self.seed = self.get_seed() if self.created else None
-        self.api = self.initialize_api() if self.created else None
+        self.seed = None
 
     def get_seed(self):
         """
         Returns the seed of the wallet or raises an exception if no seed exists
         :return: the seed
         """
-        pass
+        if not self.created:
+            raise Exception('Wallet not created!')
+
+        if self.seed is None:
+            raise Exception('Wallet created, seed missing!')
+
+        return self.seed
 
     def wallet_initialized(self) -> bool:
         """
@@ -41,24 +49,16 @@ class AbstractIotaWallet(Wallet, metaclass=abc.ABCMeta):
         # TODO create database
         self.seed = Seed.random()
         # TODO store seed in database!
-        self.initialize_api()
+        self.provider.initialize_api()
         # TODO store current address in database for the num_of_addresses function
         self.created = True
 
-    def initialize_api(self):
-        """
-        Initializes API instance with
-        """
-        if not self.created:
-            return fail(RuntimeError(f'Cannot initialize API for unitiliazed wallet {self.wallet_name}'))
-        # TODO get optimal node
-        self.api = Iota('somenode', self.seed, testnet=self.testnet)
-
     def transfer(self, amount, address):
-        pass
-        # transfer
-        # transfer
-        # transfer
+        tx = ProposedTransaction(
+            address=Address(address),
+            value=amount
+        )
+        self.provider.submit_transaction(tx)
 
     def precision(self):
         return 6    # Exchanges generally trade MIOTAs or 1 Million IOTAs
@@ -67,17 +67,25 @@ class AbstractIotaWallet(Wallet, metaclass=abc.ABCMeta):
         return 0    # Valueless and feeless transactions are possible
 
     def get_balance(self):
-        pass
+        if not self.created:
+            return succeed({'available': 0, 'pending': 0, 'currency': 'MIOTA', 'precision': self.precision()})
+
+        return succeed({
+            'available': self.provider.get_balance(),
+            'pending': self.provider.get_pending(self.seed),
+            'currency': 'MIOTA',
+            'precision': self.precision()
+        })
 
     def is_testnet(self):
-        pass
+        return self.testnet
 
 
-class IotaWallet(AbstractIotaWallet):
+class IotaWallet(AbstractIotaWallet, metaclass=ABCMeta):
     pass
 
 
-class IotaTestnetWallet(AbstractIotaWallet):
+class IotaTestnetWallet(AbstractIotaWallet, metaclass=ABCMeta):
     # TODO pick tesnet
     pass
 

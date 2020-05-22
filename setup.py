@@ -22,8 +22,9 @@ setup(
         "netifaces",
         "aiohttp",
         "pyOpenSSL",
+        "sqlalchemy",
         'pyota',
-        "sqlalchemy"
+        "iota",
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
