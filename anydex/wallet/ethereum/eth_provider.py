@@ -453,7 +453,6 @@ class EtherscanProvider(EthereumProvider):
         Check the respsonse for errors
         :param response: response object
         """
-        print(response.content)
         if response.status_code != 200:
             raise RequestException(f'something went wrong, status code was : {response.status_code}')
 
