@@ -1,5 +1,6 @@
 import os
 import time
+from asyncio import Future
 
 from ipv8.util import fail, succeed
 from sqlalchemy import func, or_
@@ -219,6 +220,22 @@ class EthereumWallet(Wallet):
             elif transaction not in confirmed_transactions:
                 self._session.add(transaction)
         self._session.commit()
+
+    def monitor_transaction(self, txid):
+        monitor_future = Future()
+
+        async def monitor():
+            transactions = await self.get_transactions()
+            for transaction in transactions:
+                if transaction.hash == txid:
+                    self._logger.debug("Found transaction with id %s", txid)
+                    monitor_future.set_result(None)
+                    monitor_task.cancel()
+
+        self._logger.debug("Start polling for transaction %s", txid)
+        monitor_task = self.register_task(f"{self.name}_poll_{txid}", monitor, interval=5)
+
+        return monitor_future
 
 
 class EthereumTestnetWallet(EthereumWallet):
