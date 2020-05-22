@@ -215,7 +215,7 @@ class EthereumBlockchairProvider(EthereumProvider):
         elif response.status_code == 435:
             raise RateExceeded("You are sending requests too fast")
         elif response.status_code != 200:
-            raise RequestException(f"something went wrong, status code: {response.status_code}")
+            raise RequestException(f"something went wrong, status code was : {response.status_code}")
 
     def _normalize_transactions(self, txs):
         """
@@ -318,7 +318,7 @@ class EthereumBlockcypherProvider(EthereumProvider):
             raise RateExceeded(
                 "The server indicated the rate limit has been reached")
         elif response.status_code != 200:
-            raise RequestException("something went wrong")
+            raise RequestException(f"something went wrong, status code was : {response.status_code}")
 
 
 class EtherscanProvider(EthereumProvider):
@@ -327,52 +327,135 @@ class EtherscanProvider(EthereumProvider):
     The testnet available through etherscan is the ropsten testnet.
     """
 
-    def __init__(self, network="ethereum"):
-        if network == "testnet":
-            self.base_url = "https://api-ropsten.etherscan.io/api"
-        elif network == "ethereum":
-            self.base_url = "https://api.etherscan.io/api"
+    def __init__(self, network='ethereum'):
+        if network == 'testnet':
+            self.base_url = 'https://api-ropsten.etherscan.io/api'
+        elif network == 'ethereum':
+            self.base_url = 'https://api.etherscan.io/api'
         else:
-            raise ValueError(f"expected ethereum or testnet but got : {network}")
+            raise ValueError(f'expected ethereum or testnet but got : {network}')
         self.network = network
 
-    def _send_request(self, data={}, method="get"):
+    def _send_request(self, data={}, method='get'):
         response = None
-        if method == "get":
+        if method == 'get':
             response = requests.get(self.base_url, data=data)
-        elif method == "post":
+        elif method == 'post':
             response = requests.post(self.base_url, data=data)
         else:
-            raise ValueError(f"expected get or post but got: {method}")
+            raise ValueError(f'expected get or post but got: {method}')
         self._check_response(response)
         return response
 
     def get_transaction_count(self, address):
-        pass
+        data = {
+            'module': 'proxy',
+            'action': 'eth_getTransactionCount',
+            'address': address
+        }
+        response = self._send_request(data=data)
+        return int(response.json()["result"], 16)
 
     def get_gas_price(self):
-        pass
+        data = {
+            'module': 'gastracker',
+            'action': 'gasoracle'
+        }
+        response = self._send_request(data=data)
+        result = response.json()["result"]
+        propose_gas_price = int(result["ProposeGasPrice"])
+        return propose_gas_price
 
     def get_transactions(self, address, start_block=None, end_block=None):
-        pass
+        # Todo does this include pending tx?
+        data = {
+            'module': 'account',
+            'action': 'txlist',
+            'address': address,
+            'sort': 'desc'
+        }
+        if start_block and end_block:
+            data['startblock'] = start_block
+            data['endblock'] = end_block
+        response = self._send_request(data=data)
+        result = response.json()["result"]
+        # normalize transactions
+        return self._normalize_transactions(result)
 
     def get_transactions_received(self, address, start_block=None, end_block=None):
-        pass
+        raise NotSupportedOperationException()
 
     def get_latest_blocknr(self):
-        pass
+        data = {
+            'module': 'proxy',
+            'action': 'eth_blockNumber',
+        }
+        response = self._send_request(data=data)
+        return int(response.json()["result"], 16)
 
     def submit_transaction(self, tx):
-        pass
+        data = {
+            'module': 'proxy',
+            'action': 'eth_sendRawTransaction',
+            'hex': tx
+        }
+        response = self._send_request(data=data, method='post')
+        return response.json()["result"]["hash"]  # TODO: is this correct
 
     def get_balance(self, address):
         data = {
-            "module": "account",
-            "action": "balance",
-            "address": address,
-            "tag": "latest"
+            'module': 'account',
+            'action': 'balance',
+            'address': address,
+            'tag': 'latest'
         }
         response = self._send_request(data=data)
+        return int(response.json()["result"])
+
+    def _normalize_transactions(self, txs):
+        """
+        Turns a list of txs from etherscan into the tx format of the wallet.
+        :param txs: Txs from etherscan
+        :return: list of Transaction objects
+        """
+        normalized_txs = []
+        for tx in txs:
+            normalized_txs.append(self._normalize_transaction(tx))
+        return normalized_txs
+
+    def _normalize_transaction(self, tx) -> Transaction:
+        """
+        Turns the tx from etherscan into the tx format of the wallet.
+        :param tx: Tx from etherscan
+        :return: Transaction object
+        """
+
+        return Transaction(
+            block_number=tx["blockNumber"],
+            hash=tx["hash"],
+            date_time=datetime.utcfromtimestamp(int(tx["timeStamp"])),
+            to=tx["to"],
+            from_=tx["from"],
+            value=tx["value"],
+            gas_price=tx["gasPrice"],
+            gas=tx["gasUsed"],
+            nonce=tx["nonce"],
+            is_pending=False  # etherscan transactions are allways confirmed
+
+        )
+
+    def _check_response(self, response):
+        """
+        Check the respsonse for errors
+        :param response: response object
+        """
+        if response.status_code != 200:
+            raise RequestException(f'something went wrong, status code was : {response.status_code}')
+        try:  # etherscan might not always return the "status"
+            if response.json()["status"] == "0":
+                raise RequestException(f'something went wrong, message was : {response.json()["message"]}')
+        except KeyError:
+            pass
 
 
 class AutoEthereumProvider(EthereumProvider):

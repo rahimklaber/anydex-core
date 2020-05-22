@@ -215,6 +215,7 @@ class EthereumWallet(Wallet):
 class EthereumTestnetWallet(EthereumWallet):
     """
     This wallet represents testnet Ethereum.
+    Note: The testnet we are currently using is ropsten.
     """
     TESTNET = True
 
