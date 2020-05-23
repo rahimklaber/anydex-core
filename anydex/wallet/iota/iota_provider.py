@@ -5,7 +5,7 @@ from wallet.provider import Provider
 
 class IotaProvider(Provider):
     """
-    An abstract IOTA provider for interaction with an IOTA ledger.
+    An IOTA provider for interaction with an IOTA ledger.
     """
 
     def __init__(self):
@@ -58,3 +58,20 @@ class IotaProvider(Provider):
         transactions = Iota.find_transaction_objects(wallet_addresses)
 
         return transactions
+
+    def get_pending(self):
+        """
+        Get the pending balance of the given address
+        :return: the balance
+        """
+        if self.api is None:
+            raise Exception("API is not initialized!")
+
+        transactions = self.get_transactions()
+        pending_balance = 0
+
+        for tx in transactions:
+            if not tx.is_confirmed:
+                pending_balance += tx.value
+
+        return pending_balance

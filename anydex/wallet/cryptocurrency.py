@@ -3,7 +3,7 @@ from enum import Enum
 
 class Cryptocurrency(Enum):
     """
-    Enum representing curerntly implemented cryptocurrencies.
+    Enum representing currently implemented cryptocurrencies.
     """
 
     BITCOIN = 'bitcoin'
