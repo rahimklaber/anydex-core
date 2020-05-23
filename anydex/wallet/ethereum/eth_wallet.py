@@ -114,7 +114,7 @@ class EthereumWallet(Wallet):
             'from': self.get_address(),
             'to': address,
             'value': int(amount),
-            'nonce': self.provider.get_transaction_count(self.get_address()),
+            'nonce': self.get_transaction_count(),
             'gasPrice': self.provider.get_gas_price(),
             'chainId': self.get_chain_id()
         }
@@ -237,6 +237,18 @@ class EthereumWallet(Wallet):
         monitor_task = self.register_task(f'{self.name}_poll_{txid}', monitor, interval=5)
 
         return monitor_future
+
+    def get_transaction_count(self):
+        """
+        Get the amount of transactions sent by this wallet
+        """
+        row = self._session.query(Transaction.nonce).filter(Transaction.from_ == self.get_address()).order_by(
+            Transaction.nonce.desc()).first()
+        if row:
+            return row[0] + 1  # nonce + 1
+        return 0
+
+        pass
 
 
 class EthereumTestnetWallet(EthereumWallet):

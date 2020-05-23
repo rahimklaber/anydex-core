@@ -168,6 +168,33 @@ class TestEthereumWallet(AbstractServer):
         }
         self.assertEqual([tx_dict], transactions)
 
+    def test_get_transaction_count(self):
+        """
+        Test get transaction count
+        """
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
+        wallet.create_wallet()
+        tx = Transaction(hash="0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060",
+                         date_time=datetime(2015, 8, 7, 3, 30, 33),
+                         from_=wallet.get_address(),
+                         to="0x5df9b87991262f6ba471f09758cde1c0fc1de734",
+                         gas=5,
+                         gas_price=5,
+                         nonce=5,
+                         is_pending=True,
+                         value=31337,
+                         block_number=46147)
+        wallet._session.add(tx)
+        self.assertEqual(6,wallet.get_transaction_count())
+
+    def test_get_transaction_count_zero_tx(self):
+        """
+        Test get transaction count when the wallet has sent 0 transactions
+        """
+        wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
+        wallet.create_wallet()
+        self.assertEqual(0,wallet.get_transaction_count())
+
 
 class TestTestnetEthereumWallet(AbstractServer):
 
