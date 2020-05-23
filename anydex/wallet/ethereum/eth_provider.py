@@ -416,7 +416,7 @@ class EtherscanProvider(EthereumProvider):
             'hex': tx
         }
         response = self._send_request(data=data, method='post')
-        return response.json()['result']['hash']  # TODO: is this correct
+        return response.json()['result']
 
     def get_balance(self, address):
         data = {
@@ -523,8 +523,8 @@ class AutoEthereumProvider(EthereumProvider):
         retry = kwargs.pop('retry', 1)
         if retry > 0:
             sleep(0.2)
-            self._make_request(fun, *args, retry=retry - 1)
-            raise RequestException(f'something went wrong, request : {fun}')
+            return self._make_request(fun, *args, retry=retry - 1)
+        raise RequestException(f'something went wrong, request : {fun}')
 
     def get_transaction_count(self, address):
         return self._make_request('get_transaction_count', address)

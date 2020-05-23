@@ -122,7 +122,7 @@ class EthereumWallet(Wallet):
         transaction['gas'] = self.provider.estimate_gas(transaction)
         # submit to blockchain
         signed = self.account.sign_transaction(transaction)
-        self.provider.submit_transaction(signed['rawTransaction'])
+        self.provider.submit_transaction(signed['rawTransaction'].hex())
 
         # add transaction to database
         self._session.add(
