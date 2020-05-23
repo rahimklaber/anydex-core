@@ -202,7 +202,8 @@ class EthereumWallet(Wallet):
     def _update_database(self, transactions):
         """
         Update transactions in the database.
-        Pending transactions that have been confirmed will be updated to have a block number and will no longer be pending.
+        Pending transactions that have been confirmed will be updated to have a block number and will no longer be
+        pending.
         Other transactions that are not in the database will be added.
 
         :param transactions: list of transactions retrieved by self.provider

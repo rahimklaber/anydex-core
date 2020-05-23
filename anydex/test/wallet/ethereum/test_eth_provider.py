@@ -293,7 +293,8 @@ class TestEthereumBlockcypherProvider(TestCase):
         "latest_url": "https://api.blockcypher.com/v1/eth/main/blocks"
                       "/2dc3d6b080fbc78e576c8a0a7ccb52ca2af25b60c0df30ff82279fa41454729c",
         "previous_hash": "00709ed44e1ee2f2e5416c1e48bfd1a820e30aa14348b97d802d463f4ec940a6",
-        "previous_url": "https://api.blockcypher.com/v1/eth/main/blocks/00709ed44e1ee2f2e5416c1e48bfd1a820e30aa14348b97d802d463f4ec940a6",
+        "previous_url": "https://api.blockcypher.com/v1/eth/main/blocks"
+                        "/00709ed44e1ee2f2e5416c1e48bfd1a820e30aa14348b97d802d463f4ec940a6",
         "peer_count": 55,
         "unconfirmed_count": 11924,
         "high_gas_price": 40000000000,
@@ -418,7 +419,7 @@ class TestAutoEthereumProvider(TestCase):
         self.assertEqual(("addr",), params)
 
 
-class testEtherscanProvider(TestCase):
+class TestEtherscanProvider(TestCase):
     # TODO: find a way to test query params
     sample_transaction_count_response = {"jsonrpc": "2.0", "id": 1, "result": "0xaf5e"}
     sample_gas_response = {"status": "1", "message": "OK-Missing/Invalid API Key, rate limit of 1/3sec applied",
@@ -514,11 +515,11 @@ class testEtherscanProvider(TestCase):
                                   is_pending=False,
                                   date_time=datetime.utcfromtimestamp(1590157996))]
         responses.add(responses.GET, f"{self.esp.base_url}",
-                      json=self.sample_gas_block)
+                      json=self.sample_transactions_response)
         tx = self.esp.get_transactions("0x1120987bb7e25816aC01c74e70f643b28AdF341C")
         self.assertEqual(correct_tx, tx)
 
-    def test_get_transactions(self):
+    def test_get_transactions_received(self):
         """
         Test for get transactions received
         """
