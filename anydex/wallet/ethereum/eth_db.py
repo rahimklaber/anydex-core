@@ -11,7 +11,7 @@ class Key(Base):
     """
     Database definition for keys table.
     """
-    __tablename__ = "keys"
+    __tablename__ = 'keys'
     id = Column(Integer, primary_key=True)
     name = Column(String)
     # public_key = Column(String(32))
@@ -23,7 +23,7 @@ class Transaction(Base):
     """
     Database definition for transactions
     """
-    __tablename__ = "transactions"
+    __tablename__ = 'transactions'
 
     id = Column(Integer, primary_key=True)
 
@@ -43,12 +43,12 @@ class Transaction(Base):
 
     def __eq__(self, other):
         if not isinstance(other, Transaction):
-            raise NotImplementedError(f"cannot compare equality between{self} and {other}")
+            raise NotImplementedError(f'cannot compare equality between{self} and {other}')
         return self.hash == other.hash
 
 
 def initialize_db(db_path):
-    engine = create_engine(f"sqlite:///{db_path}", echo=False)
+    engine = create_engine(f'sqlite:///{db_path}', echo=False)
     Base.metadata.create_all(engine)
     session_maker = sessionmaker(bind=engine)
     session = session_maker()

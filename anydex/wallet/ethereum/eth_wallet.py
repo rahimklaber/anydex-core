@@ -28,7 +28,7 @@ class EthereumWallet(Wallet):
         self.network = 'testnet' if self.TESTNET else Cryptocurrency.ETHEREUM.value
         self.min_confirmations = 0
         self.unlocked = True
-        self._session = initialize_db(os.path.join(db_path, "eth.db"))
+        self._session = initialize_db(os.path.join(db_path, 'eth.db'))
         self.wallet_name = 'tribler_testnet' if self.TESTNET else 'tribler'
 
         row = self._session.query(Key).filter(Key.name == self.wallet_name).first()
@@ -229,12 +229,12 @@ class EthereumWallet(Wallet):
             transactions = await self.get_transactions()
             for transaction in transactions:
                 if transaction.hash == txid:
-                    self._logger.debug("Found transaction with id %s", txid)
+                    self._logger.debug('Found transaction with id %s', txid)
                     monitor_future.set_result(None)
                     monitor_task.cancel()
 
-        self._logger.debug("Start polling for transaction %s", txid)
-        monitor_task = self.register_task(f"{self.name}_poll_{txid}", monitor, interval=5)
+        self._logger.debug('Start polling for transaction %s', txid)
+        monitor_task = self.register_task(f'{self.name}_poll_{txid}', monitor, interval=5)
 
         return monitor_future
 
