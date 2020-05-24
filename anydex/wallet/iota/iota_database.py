@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, LargeBinary, create_engine, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, LargeBinary, create_engine, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -13,27 +13,27 @@ class DatabaseSeed(Base):
     """
     __tablename__ = "seeds"
     id = Column(Integer, primary_key=True)
-    name = Column(String)
-    seed = Column(String)
+    name = Column(String)  # TODO: unique=True?
+    seed = Column(String, unique=True)
 
 
 class DatabaseTransaction(Base):
     """
-    Database definition for transactions
+    Database definition for transactions.
     """
     __tablename__ = "transactions"
     # need to include a relation to the key table.
     id = Column(Integer, primary_key=True)
-    seed = Column(Integer)      # TODO FK for seeds
-    origin = Column(String(90))     # 90 in case address is checksummed
+    seed = Column(Integer, ForeignKey('seeds.seed'))  # TODO: FK seed or seedID to avoid large seed storing?
+    origin = Column(String(90))  # 81 (address) + 9 (checksum)
     destination = Column(String(90))
     value = Column(Integer)
-    hash = Column(String, unique=True)
-    message = Column(String(255))   # TODO figure length
-    currentindex = Column(Integer)
+    hash = Column(String(81), unique=True)
+    message = Column(String(2187))
+    current_index = Column(Integer)
     date_time = Column(DateTime, default=datetime.utcnow())
     is_pending = Column(Boolean, default=False)
-    bundle = Column(Integer('foreign key'))     # TODO figure out FK
+    bundle = Column(Integer, ForeignKey('bundles.id'))  # TODO: FK seed or seedID to avoid large seed storing?
 
     # transaction_index = Column(Integer)
 
@@ -42,8 +42,12 @@ class DatabaseTransaction(Base):
 
 
 class DatabaseBundle(Base):
+    """
+    Database definition for bundles.
+    """
+    __tablename__ = "bundles"
     id = Column(Integer, primary_key=True)
-    hash = Column(String(255))      # TODO figure length
+    hash = Column(String(81), unique=True)
     count = Column(Integer)
 
 
