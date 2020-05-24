@@ -32,7 +32,7 @@ class IotaProvider(Provider):
         if self.api is None:
             raise Exception("API is not initialized!")
 
-        self.api.send_transfer(transfers=[tx])
+        return self.api.send_transfer(transfers=[tx])
 
     def get_balance(self, **kwargs):
         """

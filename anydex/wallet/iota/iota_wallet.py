@@ -9,7 +9,7 @@ from iota.crypto.types import Seed
 from ipv8.util import fail, succeed
 
 from wallet.cryptocurrency import Cryptocurrency
-from wallet.iota.iota_database import initialize_db, DatabaseSeed
+from wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction
 
 
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
@@ -57,18 +57,33 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         if self.created:
             return fail(RuntimeError(f'IOTA wallet with name {self.wallet_name} already exists.'))
 
+        # generate random seed and store it in the database as a String instead of TryteString
         self.seed = Seed.random()
         self.database.add(DatabaseSeed(seed=self.seed.as_string()))
+        self.database.commit()
+
+        # initialize connection with API through the provider and get an active non-spent address
         self.provider.initialize_api()
         self.address = self.get_address()
         self.created = True
 
-    def transfer(self, amount, address):
+    def transfer(self, value, address):
         tx = ProposedTransaction(
             address=Address(address),
-            value=amount
+            value=value
         )
-        self.provider.submit_transaction(tx)
+        bundle = self.provider.submit_transaction(tx)
+
+        # TODO: fetch bundle through provider
+        # TODO: store bundle in the database
+        # TODO: store all transactions in the bundle in the database
+
+        # id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed == self.seed.as_string).one()
+        # db_transaction = DatabaseTransaction(
+        #     seed=id, destination=address, value=value, hash=
+        # )
+        # self.database.add(db_transaction)
+        # self.database.commit()
 
     def get_balance(self):
         if not self.created:
