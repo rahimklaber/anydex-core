@@ -13,8 +13,8 @@ class DatabaseSeed(Base):
     """
     __tablename__ = "seeds"
     id = Column(Integer, primary_key=True)
-    name = Column(String)  # TODO: unique=True?
-    seed = Column(String, unique=True)
+    name = Column(String)  # TODO: unique=True? necessary?
+    seed = Column(String(81), unique=True)  # 90 trytes with a checksum
 
 
 class DatabaseTransaction(Base):
@@ -24,7 +24,7 @@ class DatabaseTransaction(Base):
     __tablename__ = "transactions"
     # need to include a relation to the key table.
     id = Column(Integer, primary_key=True)
-    seed = Column(Integer, ForeignKey('seeds.seed'))  # TODO: FK seed or seedID to avoid large seed storing?
+    seed = Column(Integer, ForeignKey('seeds.id'))  # TODO: FK seed or seedID to avoid large seed storing?
     origin = Column(String(90))  # 81 (address) + 9 (checksum)
     destination = Column(String(90))
     value = Column(Integer)
@@ -49,6 +49,16 @@ class DatabaseBundle(Base):
     id = Column(Integer, primary_key=True)
     hash = Column(String(81), unique=True)
     count = Column(Integer)
+
+
+class DatabaseAddress(Base):
+    """
+    Database definition for addresses.
+    """
+    __tablename__ = "addresses"
+    id = Column(Integer, primary_key=True)
+    address = Column(String(81), unique=True)  # 90 trytes with a checksum
+    seed_id = Column(Integer, ForeignKey('seeds.id'))
 
 
 def initialize_db(db_path):

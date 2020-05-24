@@ -75,3 +75,19 @@ class IotaProvider(Provider):
                 pending_balance += tx.value
 
         return pending_balance
+
+    def generate_address(self, index=0, security_level=3):
+        """
+        Get the newly generated address
+        :return: the new unspent address
+        """
+        if self.api is None:
+            raise Exception("API is not initialized!")
+
+        address = self.api.get_new_addresses(index=index, count=None, security_level=security_level)['addresses'][0]
+        # is_spent = self.api.were_addresses_spent_from([address])['states'][0]
+        #
+        # if is_spent:
+        #     raise Exception("Generated address already spent!")
+        return address
+
