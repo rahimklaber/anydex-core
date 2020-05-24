@@ -185,7 +185,7 @@ class TestEthereumWallet(AbstractServer):
                          value=31337,
                          block_number=46147)
         wallet._session.add(tx)
-        self.assertEqual(6,wallet.get_transaction_count())
+        self.assertEqual(6, wallet.get_transaction_count())
 
     def test_get_transaction_count_zero_tx(self):
         """
@@ -193,7 +193,7 @@ class TestEthereumWallet(AbstractServer):
         """
         wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         wallet.create_wallet()
-        self.assertEqual(0,wallet.get_transaction_count())
+        self.assertEqual(0, wallet.get_transaction_count())
 
 
 class TestTestnetEthereumWallet(AbstractServer):
