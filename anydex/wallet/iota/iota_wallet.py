@@ -9,7 +9,7 @@ from iota.crypto.types import Seed
 from ipv8.util import fail, succeed
 
 from wallet.cryptocurrency import Cryptocurrency
-from wallet.iota.iota_database import initialize_db
+from wallet.iota.iota_database import initialize_db, DatabaseSeed
 
 
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
@@ -23,10 +23,14 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.testnet = testnet
         self.created = self.wallet_initialized()
         self.seed = None
+        self.address = None
 
     def get_address(self):
-        # TODO: implement providing non spent addresses
-        pass
+        address = ''
+        # TODO: update status of all non-spent addresses in db with api.were_addresses_spent_from([sender])['states'][0]
+        # TODO: check db for non-spent addresses
+        # TODO: if no exist: generate a new address and check that it is not in the database
+        return address
 
     def get_seed(self):
         """
@@ -54,9 +58,9 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
             return fail(RuntimeError(f'IOTA wallet with name {self.wallet_name} already exists.'))
 
         self.seed = Seed.random()
-        # TODO store seed in database!
+        self.database.add(DatabaseSeed(seed=self.seed.as_string()))
         self.provider.initialize_api()
-        # TODO store current address in database for the num_of_addresses function
+        self.address = self.get_address()
         self.created = True
 
     def transfer(self, amount, address):
@@ -68,12 +72,12 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
     def get_balance(self):
         if not self.created:
-            return succeed({'available': 0, 'pending': 0, 'currency': 'MIOTA', 'precision': self.precision()})
+            return succeed({'available': 0, 'pending': 0, 'currency': 'IOTA', 'precision': self.precision()})
 
         return succeed({
             'available': self.provider.get_balance(),
             'pending': self.provider.get_pending(),
-            'currency': 'MIOTA',
+            'currency': 'IOTA',
             'precision': self.precision()
         })
 

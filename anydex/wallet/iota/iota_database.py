@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from iota import TryteString
 from sqlalchemy import Column, Integer, String, LargeBinary, create_engine, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -13,7 +14,6 @@ class DatabaseSeed(Base):
     """
     __tablename__ = "seeds"
     id = Column(Integer, primary_key=True)
-    name = Column(String)  # TODO: unique=True? necessary?
     seed = Column(String(81), unique=True)  # 90 trytes with a checksum
 
 
@@ -24,8 +24,8 @@ class DatabaseTransaction(Base):
     __tablename__ = "transactions"
     # need to include a relation to the key table.
     id = Column(Integer, primary_key=True)
-    seed = Column(Integer, ForeignKey('seeds.id'))  # TODO: FK seed or seedID to avoid large seed storing?
-    origin = Column(String(90))  # 81 (address) + 9 (checksum)
+    seed = Column(Integer, ForeignKey('seeds.id'))
+    origin = Column(String(90), ForeignKey('addresses.id'))  # 81 (address) + 9 (checksum)
     destination = Column(String(90))
     value = Column(Integer)
     hash = Column(String(81), unique=True)
@@ -33,7 +33,7 @@ class DatabaseTransaction(Base):
     current_index = Column(Integer)
     date_time = Column(DateTime, default=datetime.utcnow())
     is_pending = Column(Boolean, default=False)
-    bundle = Column(Integer, ForeignKey('bundles.id'))  # TODO: FK seed or seedID to avoid large seed storing?
+    bundle = Column(Integer, ForeignKey('bundles.id'))
 
     # transaction_index = Column(Integer)
 
@@ -57,8 +57,9 @@ class DatabaseAddress(Base):
     """
     __tablename__ = "addresses"
     id = Column(Integer, primary_key=True)
-    address = Column(String(81), unique=True)  # 90 trytes with a checksum
+    address = Column(String(90), unique=True)  # 81 (address) + 9 (checksum)
     seed_id = Column(Integer, ForeignKey('seeds.id'))
+    is_spent = Column(Boolean, default=False)
 
 
 def initialize_db(db_path):
