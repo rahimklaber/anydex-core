@@ -25,8 +25,8 @@ jobs:
       run: |
         # Upgrade pip
         python -m pip install --upgrade pip
-        # flake8 and pytest are required for linting
-        pip install flake8 pytest
+        # flake8 and nose are required for linting / running tests
+        pip install flake8 nose
         # Install all other requirements
         python setup.py install
         # Install IPv8
