@@ -24,7 +24,7 @@ class DatabaseTransaction(Base):
     __tablename__ = "transactions"
     # need to include a relation to the key table.
     id = Column(Integer, primary_key=True)
-    seed = Column(Integer, ForeignKey('seeds.id'))
+    seed_id = Column(Integer, ForeignKey('seeds.id'))
     destination = Column(String(90))
     value = Column(Integer)
     hash = Column(String(81), unique=True)
@@ -32,7 +32,7 @@ class DatabaseTransaction(Base):
     current_index = Column(Integer)
     date_time = Column(DateTime, default=datetime.utcnow())
     is_pending = Column(Boolean, default=False)
-    bundle = Column(Integer, ForeignKey('bundles.id'))
+    bundle_id = Column(Integer, ForeignKey('bundles.id'))
 
     # transaction_index = Column(Integer)
 
@@ -48,6 +48,7 @@ class DatabaseBundle(Base):
     id = Column(Integer, primary_key=True)
     hash = Column(String(81), unique=True)
     count = Column(Integer)
+    is_pending = Column(Boolean, default=False)
 
 
 class DatabaseAddress(Base):

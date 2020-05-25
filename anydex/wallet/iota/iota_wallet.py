@@ -9,7 +9,7 @@ from iota.crypto.types import Seed
 from ipv8.util import fail, succeed
 
 from wallet.cryptocurrency import Cryptocurrency
-from wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction
+from wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction, DatabaseBundle
 
 
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
@@ -68,22 +68,39 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.created = True
 
     def transfer(self, value, address):
-        tx = ProposedTransaction(
+        # generate and send a transaction
+        transaction = ProposedTransaction(
             address=Address(address),
             value=value
         )
-        bundle = self.provider.submit_transaction(tx)
+        bundle = self.provider.submit_transaction(transaction)
 
-        # TODO: fetch bundle through provider
-        # TODO: store bundle in the database
-        # TODO: store all transactions in the bundle in the database
+        # store bundle in the database
+        self.database.add(DatabaseBundle(
+            hash=bundle.hash,
+            count=bundle.transactions.len(),
+            is_pending=False
+        ))
 
-        # id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed == self.seed.as_string).one()
-        # db_transaction = DatabaseTransaction(
-        #     seed=id, destination=address, value=value, hash=
-        # )
-        # self.database.add(db_transaction)
-        # self.database.commit()
+        # fetch seed_id and bundle_id for storing transaction
+        seed_id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed == self.seed.as_string).one()
+        bundle_id = self.database.query(DatabaseBundle).filter(DatabaseBundle.hash == bundle.hash).one()
+
+        # store all the transactions from the bundle in the database
+        for tx in bundle.transactions:
+            self.database.add(DatabaseTransaction(
+                seed_id=seed_id,
+                destination=tx.address,
+                value=tx.value,
+                hash=tx.hash,
+                msg_sig=tx.signature_message_fragment,
+                current_index=tx.current_index,
+                date_time=tx.timestamp,
+                is_pending=(not tx.is_confirmed),
+                bundle_id=bundle_id
+            ))
+
+        self.database.commit()
 
     def get_balance(self):
         if not self.created:
