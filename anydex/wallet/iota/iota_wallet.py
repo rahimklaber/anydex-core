@@ -9,7 +9,7 @@ from iota.crypto.types import Seed
 from ipv8.util import fail, succeed
 
 from wallet.cryptocurrency import Cryptocurrency
-from wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction, DatabaseBundle
+from wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction, DatabaseBundle, DatabaseAddress
 
 
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
@@ -26,10 +26,16 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.address = None
 
     def get_address(self):
-        address = ''
+        query = self.database.query(DatabaseAddress).filter(not DatabaseAddress.is_spent).all()
         # TODO: update status of all non-spent addresses in db with api.were_addresses_spent_from([sender])['states'][0]
-        # TODO: check db for non-spent addresses
-        # TODO: if no exist: generate a new address and check that it is not in the database
+        query = self.database.query(DatabaseAddress).filter(not DatabaseAddress.is_spent).all()
+
+        if query.len() > 0:
+            return query[0]
+
+        index = self.database.query(DatabaseAddress).count()
+        address = self.provider.generate_address(index=index)
+        # TODO: check that it is not in the database
         return address
 
     def get_seed(self):
@@ -85,6 +91,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         # fetch seed_id and bundle_id for storing transaction
         seed_id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed == self.seed.as_string).one()
         bundle_id = self.database.query(DatabaseBundle).filter(DatabaseBundle.hash == bundle.hash).one()
+
+        # TODO: update spent address database
 
         # store all the transactions from the bundle in the database
         for tx in bundle.transactions:
