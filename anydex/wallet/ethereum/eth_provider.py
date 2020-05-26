@@ -5,7 +5,7 @@ import requests
 from web3 import Web3
 
 from anydex.wallet.ethereum.eth_db import Transaction
-from anydex.wallet.provider import Provider
+from anydex.wallet.provider import Provider, NotSupportedOperationException
 from anydex.wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
 
 
@@ -66,13 +66,6 @@ class EthereumProvider(Provider, metaclass=abc.ABCMeta):
 class InvalidNode(Exception):
     """
     Used for throwing exceptions when the given node is invalid ( you can't connect to it).
-    """
-    pass
-
-
-class NotSupportedOperationException(Exception):
-    """
-    Exception raised whenever a provider operation is not supported by the specific concrete provider.
     """
     pass
 

@@ -24,7 +24,8 @@ setup(
         "pyOpenSSL",
         "requests",
         "web3",
-        "sqlalchemy"
+        "sqlalchemy",
+        "monero-python"
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",

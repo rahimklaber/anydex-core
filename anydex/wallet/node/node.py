@@ -4,6 +4,7 @@ import socket
 from enum import Enum, auto
 from ipaddress import ip_address, IPv4Address
 from time import time
+from urllib.parse import urlparse
 
 from anydex.config import get_anydex_configuration
 from anydex.wallet.cryptocurrency import Cryptocurrency
@@ -30,21 +31,25 @@ class Node:
     a DefaultNode-class implementation.
     """
 
-    def __init__(self, name: str, host: str, port: int, source: Source,
-                 network: Cryptocurrency, latency: float):
+    def __init__(self, name: str, host: str, port: int, source: Source, network: Cryptocurrency,
+                 latency: float, protocol: str = 'http', username='', password=''):
         self.name = name
         self.host = host
         self.port = port
         self.source = source
         self.network = network
         self.latency = latency
+        self.protocol = protocol
+        self.username = username
+        self.password = password
 
     def __repr__(self):
         return f'{self.name}\n' \
                f'address: {self.host}:{self.port}\n' \
                f'source: {self.source}\n' \
                f'network: {self.network.value}\n' \
-               f'latency: {self.latency}'
+               f'latency: {self.latency}\n' \
+               f'protocol: {self.protocol}'
 
 
 def create_node(network: Cryptocurrency) -> Node:
@@ -60,6 +65,7 @@ def create_node(network: Cryptocurrency) -> Node:
     config = get_anydex_configuration()
     params = {'network': network}
 
+    # TODO split user/default node retrieval
     if 'node' in config:
         _logger.info('Parsing user node config')
 
@@ -77,6 +83,10 @@ def create_node(network: Cryptocurrency) -> Node:
         except KeyError:
             raise CannotCreateNodeException('Missing key `port` from node config')
 
+        params['protocol'] = node_config.get('protocol', 'http')
+        params['username'] = node_config.get('username', '')
+        params['password'] = node_config.get('password', '')
+
         params['latency'] = determine_latency(params['host'], params['port'])
     else:
         _logger.info('Finding best host from pool of default hosts')
@@ -91,8 +101,19 @@ def create_node(network: Cryptocurrency) -> Node:
         except KeyError:
             raise CannotCreateNodeException(f'Missing default nodes for {network.value}')
 
+        # host format: protocol://username:password@domain
         selected_host, latency = select_best_host(network_hosts)
-        params['host'], params['port'] = selected_host.split(':')
+        protocol, username, password, host, port = parse_url(selected_host)
+
+        if protocol:
+            params['protocol'] = protocol
+        if username:
+            params['username'] = username
+        if password:
+            params['password'] = password
+
+        params['host'], params['port'] = host, port
+        params['latency'] = latency
 
     node = Node(**params)
     _logger.info(f'Using following node:\n{node}')
@@ -100,10 +121,18 @@ def create_node(network: Cryptocurrency) -> Node:
 
 
 class CannotCreateNodeException(Exception):
+    """
+    Raise exception from `create_node` if configuration is lacking.
+    """
     pass
 
 
 def read_default_hosts():
+    """
+    Read default nodes for each cryptocurrency from `hosts.json`.
+
+    :return: return dictionary of cryptocurrency network and corresponding hosts
+    """
     nodes = dict()
 
     with open('hosts.json') as file:
@@ -126,8 +155,8 @@ def select_best_host(hosts) -> tuple:
 
     for host in hosts:
         # TODO investigate possibilities for multi-threaded or async approach
-        _logger.info(f'Determining latency for {host} at port {port}')
-        address, port = host.split(':')
+        _, _, _, address, port = parse_url(host)
+        _logger.info(f'Determining latency for {address} at port {port}')
         latency = determine_latency(address, port)
         results[host] = latency
 
@@ -135,17 +164,17 @@ def select_best_host(hosts) -> tuple:
     return best_host
 
 
-def determine_latency(host: str, port: int) -> float:
+def determine_latency(address: str, port: int) -> float:
     """
     Returns latency to server with address passed as parameter.
     Attempts to connect to `port` at `host` while timing the roundtrip.
 
-    :param host
+    :param address
     :param port
     :return: latency in ms as float
     """
     try:
-        addr = ip_address(host)
+        addr = ip_address(address)
     except ValueError:
         return float('inf')
 
@@ -164,10 +193,10 @@ def determine_latency(host: str, port: int) -> float:
     for count in range(retry):
         start_time = time()
         try:
-            sock.connect((host, port))
+            sock.connect((address, port))
             sock.shutdown(socket.SHUT_RD)
         except socket.timeout:
-            _logger.warning(f'Ping attempt to host {host} timed out after {timeout} seconds')
+            _logger.warning(f'Ping attempt to host {address} timed out after {timeout} seconds')
             return float('inf')
         except OSError:
             return float('inf')
@@ -178,3 +207,12 @@ def determine_latency(host: str, port: int) -> float:
 
 def avg(elements: list):
     return sum(elements) / len(elements)
+
+
+def parse_url(url: str) -> tuple:
+    parsed = urlparse(url)
+    protocol = parsed.scheme
+    username = parsed.username
+    password = parsed.password
+    host, port = parsed.netloc.split(':')
+    return protocol, username, password, host, port

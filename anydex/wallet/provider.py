@@ -39,6 +39,13 @@ class Provider(metaclass=abc.ABCMeta):
         return
 
 
+class NotSupportedOperationException(Exception):
+    """
+    Exception raised whenever a provider operation is not supported by the specific concrete provider.
+    """
+    pass
+
+
 class RequestException(Exception):
     """
     Used for throwing exceptions relating to requests.
