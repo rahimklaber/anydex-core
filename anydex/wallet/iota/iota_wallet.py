@@ -15,16 +15,17 @@ from wallet.iota.iota_provider import IotaProvider
 
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
-    def __init__(self, provider, db_path, testnet):
+    def __init__(self, db_path, testnet, node):
         super().__init__()
+        self.seed = None
+        self.address = None
         self.provider = None
+        self.node = node
         self.network = 'iota_testnet' if testnet else 'iota'
         self.wallet_name = 'iota testnet' if testnet else 'iota'
         self.database = initialize_db(os.path.join(db_path, 'iota.db'))
         self.testnet = testnet
-        self.created = self.wallet_initialized()
-        self.seed = None
-        self.address = None
+        self.created = self.wallet_exists()
 
     def get_address(self):
         """
@@ -52,6 +53,15 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         spent_count = self.database.query(DatabaseAddress).count()
         address = self.provider.generate_address(index=spent_count)
 
+        # generating address with checksum and fetching seed's id
+        address_with_checksum = address.with_valid_checksum()
+        seed_id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed == self.seed.as_string).one()
+        # store address in the database
+        self.database.add(DatabaseAddress(
+            address=address_with_checksum,
+            seed_id=seed_id,
+        ))
+
         return address
 
     def get_seed(self):
@@ -67,13 +77,16 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         return self.seed
 
-    def wallet_initialized(self) -> bool:
+    def wallet_exists(self) -> bool:
         """
         Checks whether the wallet has been created or not
         :return: boolean
         """
-        # TODO implement database querying by wallet name
-        pass
+        query = self.database.query(DatabaseSeed)
+        wallet_count = query.filter(DatabaseSeed.name == self.wallet_name).count()
+
+        # return self.database.query(exists().where(DatabaseSeed.name == self.wallet_name)).scalar() ???
+        return wallet_count > 0
 
     def create_wallet(self):
         if self.created:
@@ -81,11 +94,11 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         # generate random seed and store it in the database as a String instead of TryteString
         self.seed = Seed.random()
-        self.database.add(DatabaseSeed(seed=self.seed.as_string()))
+        self.database.add(DatabaseSeed(name=self.wallet_name, seed=self.seed.as_string()))
         self.database.commit()
 
         # initialize connection with API through the provider and get an active non-spent address
-        self.provider = IotaProvider
+        self.provider = IotaProvider(self.testnet)
         self.provider.initialize_api(self.seed)
         self.address = self.get_address()
         self.created = True
@@ -135,6 +148,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         if not self.created:
             return succeed({'available': 0, 'pending': 0, 'currency': 'IOTA', 'precision': self.precision()})
 
+        # if wallet created, fetch needed data
         return succeed({
             'available': self.provider.get_balance(),
             'pending': self.provider.get_pending(),
@@ -156,8 +170,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
 
 class IotaWallet(AbstractIotaWallet, metaclass=ABCMeta):
-    def __init__(self, provider, db_path):
-        super(IotaWallet, self).__init__(provider, db_path, False)
+    def __init__(self, db_path, node=None):
+        super(IotaWallet, self).__init__(db_path, False, node)
 
     def get_name(self):
         return Cryptocurrency.IOTA.value
@@ -167,8 +181,8 @@ class IotaWallet(AbstractIotaWallet, metaclass=ABCMeta):
 
 
 class IotaTestnetWallet(AbstractIotaWallet, metaclass=ABCMeta):
-    def __init__(self, provider, db_path):
-        super(IotaTestnetWallet, self).__init__(provider, db_path, True)
+    def __init__(self, db_path, node=None):
+        super(IotaTestnetWallet, self).__init__(db_path, True, node)
 
     def get_name(self):
         return 'Testnet IOTA'

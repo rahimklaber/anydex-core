@@ -8,20 +8,18 @@ class IotaProvider(Provider):
     An IOTA provider for interaction with an IOTA ledger.
     """
 
-    def __init__(self):
+    def __init__(self, testnet, node=None):
         super().__init__()
         self.api = None
-        self.initialized = False
-        self.node = 'https://nodes.devnet.iota.org:443'
-        self.testnet = True
+        self.testnet = testnet
+        self.node = 'https://nodes.devnet.iota.org:443' if node is None else node
 
     def initialize_api(self, seed):
         """
         Initializes API instance
         """
         # TODO get optimal node
-        self.api = Iota(self.node, seed, testnet=self.testnet)
-        self.initialized = True
+        self.api = Iota(adapter=self.node, seed=seed, testnet=self.testnet)
 
     def submit_transaction(self, tx):
         """
@@ -53,6 +51,7 @@ class IotaProvider(Provider):
         if self.api is None:
             raise Exception("API is not initialized!")
 
+        # fetch transactions from wallet_addresses from account_data
         account_data = self.api.get_account_data()
         wallet_addresses = account_data['addresses']
         transactions = Iota.find_transaction_objects(wallet_addresses)
@@ -70,6 +69,7 @@ class IotaProvider(Provider):
         transactions = self.get_transactions()
         pending_balance = 0
 
+        # iterate through transaction and check whether they are confirmed
         for tx in transactions:
             if not tx.is_confirmed:
                 pending_balance += tx.value
@@ -84,12 +84,7 @@ class IotaProvider(Provider):
         if self.api is None:
             raise Exception("API is not initialized!")
 
-        address = self.api.get_new_addresses(index=index, count=None, security_level=security_level)['addresses'][0]
-        # is_spent = self.api.were_addresses_spent_from([address])['states'][0]
-        #
-        # if is_spent:
-        #     raise Exception("Generated address already spent!")
-        return address
+        return self.api.get_new_addresses(index=index, count=None, security_level=security_level)['addresses'][0]
 
     def is_spent(self, address):
         """

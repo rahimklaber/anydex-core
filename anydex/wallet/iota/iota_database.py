@@ -13,6 +13,7 @@ class DatabaseSeed(Base):
     """
     __tablename__ = "seeds"
     id = Column(Integer, primary_key=True)
+    name = Column(String(), unique=True)  # TODO: string length
     seed = Column(String(81), unique=True)  # 90 trytes with a checksum
 
 
@@ -24,7 +25,7 @@ class DatabaseTransaction(Base):
     # need to include a relation to the key table.
     id = Column(Integer, primary_key=True)
     seed_id = Column(Integer, ForeignKey('seeds.id'))
-    address = Column(String(90))
+    address = Column(String(81))
     value = Column(Integer)
     hash = Column(String(81), unique=True)
     msg_sig = Column(String(2187))
