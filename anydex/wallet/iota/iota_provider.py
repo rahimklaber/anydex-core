@@ -10,7 +10,7 @@ class IotaProvider(Provider):
 
     def __init__(self, testnet, seed=None, node='https://nodes.devnet.iota.org:443'):
         super().__init__()
-        self.testnet = testnet
+        self.testnet = testnet,
         self.node = node,
         self.api = self.initialize_api(seed)
 
@@ -18,8 +18,10 @@ class IotaProvider(Provider):
         """
         Initializes API instance
         """
-        # TODO get optimal node
-        return Iota(adapter=self.node, seed=seed, testnet=self.testnet)
+        # TODO: ensure couple of checked nodes / fetch regularly best from site such as https://iota-nodes.net/
+        # noinspection PyTypeChecker
+        api = Iota(adapter=self.node, seed=seed, testnet=self.testnet)
+        return api
 
     def submit_transaction(self, tx):
         """
@@ -27,34 +29,22 @@ class IotaProvider(Provider):
         :param tx: the signed transaction to submit to the network
         :return: the transaction hash
         """
-        if self.api is None:
-            raise Exception("API is not initialized!")
-
-        return self.api.send_transfer(transfers=[tx])['bundle']
+        response = self.api.send_transfer(transfers=[tx])
+        return response['bundle']
 
     def get_balance(self, address):
         """
         Get the balance of the given address
         :return: the balance
         """
-        if self.api is None:
-            raise Exception("API is not initialized!")
-
         response = self.api.get_balances(addresses=[address])
-
-        if response['balances'][0]:
-            return response['balances'][0]
-        else:
-            raise Exception('No balance found!')
+        return response['balances'][0]
 
     def get_seed_balance(self):
         """
         Get the balance of the given seed
         :return: the balance
         """
-        if self.api is None:
-            raise Exception("API is not initialized!")
-
         account_data = self.api.get_account_data()
         return account_data['balance']
 
@@ -63,19 +53,14 @@ class IotaProvider(Provider):
         Retrieve all the transactions associated with the given address
         :return: A list of all transactions retrieved
         """
-        if self.api is None:
-            raise Exception("API is not initialized!")
-
-        # TODO: return all transactions associated with a particular address
+        transactions = self.api.find_transaction_objects(addresses=[address])
+        return transactions
 
     def get_seed_transactions(self):
         """
         Retrieve all the transactions associated with the given seed
         :return: A list of all transactions retrieved
         """
-        if self.api is None:
-            raise Exception("API is not initialized!")
-
         # fetch transactions from wallet_addresses from account_data
         account_data = self.api.get_account_data()
         wallet_addresses = account_data['addresses']
@@ -83,40 +68,18 @@ class IotaProvider(Provider):
 
         return transactions
 
-    def get_pending(self):
-        """
-        Get the pending balance of the given address
-        :return: the balance
-        """
-        if self.api is None:
-            raise Exception("API is not initialized!")
-
-        transactions = self.get_transactions()
-        pending_balance = 0
-
-        # iterate through transaction and check whether they are confirmed
-        for tx in transactions:
-            if not tx.is_confirmed:  # TODO: check if tx.address is owned
-                pending_balance += tx.value
-
-        return pending_balance
-
     def generate_address(self, index=0, security_level=3):
         """
         Get the newly generated address
         :return: the new unspent address
         """
-        if self.api is None:
-            raise Exception("API is not initialized!")
-
-        return self.api.get_new_addresses(index=index, count=None, security_level=security_level)['addresses'][0]
+        new_addresses = self.api.get_new_addresses(index=index, count=None, security_level=security_level)
+        return new_addresses['addresses'][0]
 
     def is_spent(self, address):
         """
         Check whether an address is spent
         :return: the new unspent address
         """
-        if self.api is None:
-            raise Exception("API is not initialized!")
-
-        return self.api.were_addresses_spent_from([address])['states'][0]
+        response = self.api.were_addresses_spent_from([address])
+        return response['states'][0]

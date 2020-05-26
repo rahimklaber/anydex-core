@@ -3,10 +3,10 @@ from abc import ABCMeta
 
 from iota.transaction import ProposedTransaction
 from iota.types import Address
+from iota.crypto.types import Seed
 
 from anydex.wallet.wallet import Wallet
-from iota.crypto.types import Seed
-from ipv8.util import fail, succeed
+from ipv8.util import succeed
 
 from wallet.cryptocurrency import Cryptocurrency
 from wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction, DatabaseBundle, DatabaseAddress
@@ -28,7 +28,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
     def create_wallet(self):
         if self.created:
-            return fail(RuntimeError(f'IOTA wallet with name {self.wallet_name} already exists.'))
+            raise Exception(f'IOTA wallet with name {self.wallet_name} already exists.')
 
         # generate random seed and store it in the database as a String instead of TryteString
         self.seed = Seed.random()
@@ -88,7 +88,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         return address
 
-    def transfer(self, value, address):  # TODO: separate transfer and database updating?
+    async def transfer(self, value, address):  # TODO: separate transfer and database updating?
         # generate and send a transaction
         transaction = ProposedTransaction(
             address=Address(address),
@@ -121,7 +121,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                 bundle_id=bundle_id
             ))
             # if sending address, mark it as spent in the database
-            if tx.value <= 0:  # TODO: check
+            if tx.value <= 0:
                 address_query = self.database.query(DatabaseAddress)
                 address_query.filter(DatabaseAddress.address == tx.address).update({
                     DatabaseAddress.is_spent: True,
@@ -136,10 +136,27 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         # if wallet created, fetch needed data
         return succeed({
             'available': self.provider.get_seed_balance(),
-            'pending': self.provider.get_pending(),
+            'pending': self.get_pending(),
             'currency': 'IOTA',
             'precision': self.precision()
         })
+
+    def get_pending(self):
+        """
+        Get the pending balance of the given seed
+        :return: the balance
+        """
+        transactions = self.provider.get_seed_transactions()
+        pending_balance = 0
+
+        # iterate through transaction and check whether they are confirmed
+        for tx in transactions:
+            query = self.database.query(DatabaseBundle).filter(DatabaseAddress.address == tx.address).all()
+            # return self.database.query(exists().where(DatabaseAddress.address == tx.address)).scalar() ???
+            if not tx.is_confirmed and query.len() > 0:
+                pending_balance += tx.value
+
+        return pending_balance
 
     def get_transactions(self):
         # TODO: update database with transactions
@@ -182,4 +199,3 @@ class IotaTestnetWallet(AbstractIotaWallet):
 
     def get_identifier(self):
         return 'TIOTA'  # or TMIOTA, depends if we decide to trade 1 Million IOTAs or 1 IOTA
-

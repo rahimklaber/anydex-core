@@ -13,8 +13,8 @@ class DatabaseSeed(Base):
     """
     __tablename__ = "seeds"
     id = Column(Integer, primary_key=True)
-    name = Column(String(), unique=True)  # TODO: string length
-    seed = Column(String(81), unique=True)  # TODO: 90 trytes with a checksum
+    name = Column(String(50), unique=True)
+    seed = Column(String(81), unique=True)  # 84 with checksum - not supported by pyota
 
 
 class DatabaseTransaction(Base):
@@ -68,4 +68,3 @@ def initialize_db(db_path):
     session_maker = sessionmaker(bind=engine)
     session = session_maker()
     return session
-
