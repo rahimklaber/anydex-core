@@ -81,6 +81,7 @@ def create_node(network: Cryptocurrency) -> Node:
         try:
             params['port'] = node_config['port']
         except KeyError:
+            # TODO don't raise bare exceptions
             raise CannotCreateNodeException('Missing key `port` from node config')
 
         params['protocol'] = node_config.get('protocol', 'http')
@@ -99,6 +100,7 @@ def create_node(network: Cryptocurrency) -> Node:
         try:
             network_hosts = default_hosts[network.value]
         except KeyError:
+            # TODO don't raise bare exceptions
             raise CannotCreateNodeException(f'Missing default nodes for {network.value}')
 
         # host format: protocol://username:password@domain

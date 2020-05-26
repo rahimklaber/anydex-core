@@ -1,11 +1,3 @@
-<<<<<<< HEAD
-from web3 import Web3
-from ipv8.util import fail, succeed
-
-from anydex.wallet.cryptocurrency import Cryptocurrency
-from anydex.wallet.ethereum.eth_db import initialize_db, Key, Transaction
-from anydex.wallet.ethereum.eth_provider import NotSupportedOperationException, EthereumBlockchairProvider
-=======
 import os
 import time
 from asyncio import Future
@@ -17,7 +9,6 @@ from web3 import Web3
 from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.ethereum.eth_db import initialize_db, Key, Transaction
 from anydex.wallet.ethereum.eth_provider import AutoEthereumProvider, AutoTestnetEthereumProvider
->>>>>>> master
 from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 
@@ -26,13 +17,6 @@ class EthereumWallet(Wallet):
     This class is responsible for handling your Ethereum wallet.
     """
     TESTNET = False
-<<<<<<< HEAD
-    default_provider = EthereumBlockchairProvider()
-
-    def __init__(self, provider, db_path):
-        super().__init__()
-        self.provider = provider
-=======
 
     def __init__(self, db_path, provider=None):
         super().__init__()
@@ -40,26 +24,16 @@ class EthereumWallet(Wallet):
             self.provider = provider
         else:
             self.provider = AutoTestnetEthereumProvider() if self.TESTNET else AutoEthereumProvider()
->>>>>>> master
 
         self.network = 'testnet' if self.TESTNET else Cryptocurrency.ETHEREUM.value
         self.min_confirmations = 0
         self.unlocked = True
-<<<<<<< HEAD
-        self.session = initialize_db(db_path)
-        self.wallet_name = 'tribler_testnet' if self.TESTNET else 'tribler'
-
-        row = self.session.query(Key).filter(Key.name == self.wallet_name).first()
-        if row:
-            self.account = Web3.eth.account.from_key(row)
-=======
         self._session = initialize_db(os.path.join(db_path, 'eth.db'))
         self.wallet_name = 'tribler_testnet' if self.TESTNET else 'tribler'
 
         row = self._session.query(Key).filter(Key.name == self.wallet_name).first()
         if row:
             self.account = Web3().eth.account.from_key(row.private_key)
->>>>>>> master
             self.created = True
         else:
             self.account = None
@@ -76,15 +50,10 @@ class EthereumWallet(Wallet):
 
         self._logger.info(f'Creating Ethereum wallet with name {self.wallet_name}')
         if not self.account:
-<<<<<<< HEAD
-            self.account = Web3.eth.account.create()
-            self.created = True
-=======
             self.account = Web3().eth.account.create()
             self.created = True
             self._session.add(Key(name=self.wallet_name, private_key=self.account.key, address=self.account.address))
             self._session.commit()
->>>>>>> master
 
         return succeed(None)
 
@@ -97,10 +66,6 @@ class EthereumWallet(Wallet):
                 'precision': self.precision()
             })
         address = self.get_address()
-<<<<<<< HEAD
-        # TODO verify .get_balance() maintains same format as above dictionary
-        return succeed(self.provider.get_balance(address))
-=======
         self._update_database(self.get_transactions())
         pending_outgoing = self.get_outgoing_amount()
         balance = {
@@ -128,7 +93,6 @@ class EthereumWallet(Wallet):
         incoming = self._session.query(func.sum(Transaction.value)).filter(Transaction.is_pending.is_(True)).filter(
             func.lower(Transaction.to) == self.account.address.lower()).first()[0]
         return incoming if incoming else 0
->>>>>>> master
 
     async def transfer(self, amount, address) -> str:
         """
@@ -144,25 +108,6 @@ class EthereumWallet(Wallet):
         if balance['available'] < int(amount):
             raise InsufficientFunds('Insufficient funds')
 
-<<<<<<< HEAD
-        self._logger(f'Creating Ethereum payment with amount {amount} to address {address}')
-
-        transaction = {
-            'to': address,
-            'value': amount,
-            'gas': self.provider.estimate_gas(),
-            'nonce': 1,
-            'gasPrice': self.provider.get_gas_price(),
-            'chainId': 1
-        }
-
-        # submit to blockchain
-        signed = self.account.sign_transaction(transaction)
-        self.provider.submit_transaction(signed, signed['rawTransaction'])
-
-        # add transaction to database
-        self.session.add(
-=======
         self._logger.info(f'Creating Ethereum payment with amount {amount} to address {address}')
 
         transaction = {
@@ -181,7 +126,6 @@ class EthereumWallet(Wallet):
 
         # add transaction to database
         self._session.add(
->>>>>>> master
             Transaction(
                 from_=transaction['from'],
                 to=transaction['to'],
@@ -189,14 +133,6 @@ class EthereumWallet(Wallet):
                 gas=transaction['gas'],
                 nonce=transaction['nonce'],
                 gas_price=transaction['gasPrice'],
-<<<<<<< HEAD
-                hash=signed['hash'],
-                is_pending=True
-            )
-        )
-        self.session.commit()
-        return signed['hash']
-=======
                 hash=signed['hash'].hex(),
                 is_pending=True
             )
@@ -210,7 +146,6 @@ class EthereumWallet(Wallet):
         """
 
         return 1
->>>>>>> master
 
     def get_address(self):
         if not self.account:
@@ -220,26 +155,11 @@ class EthereumWallet(Wallet):
     def get_transactions(self):
         """
         Retrieve list of transactions from provider.
-<<<<<<< HEAD
-        If the operation is not supported by the provider, use a default provider.
-=======
->>>>>>> master
 
         :return: list of transactions
         """
         if not self.account:
             return succeed([])
-<<<<<<< HEAD
-        try:
-            transactions = self.provider.get_transactions()
-        except NotSupportedOperationException:
-            # use `default` provider to perform operation
-            # here: BlockChairEthereumProvider
-            transactions = self.default_provider.get_transactions(self.get_address())
-
-        self.update_database(transactions)
-        return succeed(transactions)
-=======
 
         transactions = self.provider.get_transactions(self.get_address())
 
@@ -268,7 +188,6 @@ class EthereumWallet(Wallet):
             })
 
         return succeed(transactions_to_return)
->>>>>>> master
 
     def min_unit(self):
         # TODO determine minimal transfer unit
@@ -280,26 +199,6 @@ class EthereumWallet(Wallet):
     def get_identifier(self):
         return 'ETH'
 
-<<<<<<< HEAD
-    def update_database(self, transactions):
-        """
-        Update pending transactions in the database.
-        Set is_pending field to False if they can be retrieved by a provider.
-        Set block_number to value retrieved by provider.
-
-        :param transactions: list of transactions retrieved by self.provider
-        """
-        pending_transactions = self.session.query(Transaction).filter(Transaction.is_pending)
-        self._logger.debug('Update `is_pending` and `block_number` fields for transactions')
-        for pending_transaction in pending_transactions:
-            if pending_transaction in transactions:
-                candidate = transactions[transactions.index(pending_transaction)]
-                # update transaction set is_pending = false where hash = ''
-                self.session.query(Transaction).filter(Transaction.hash == candidate.hash).update({
-                    Transaction.is_pending: False,
-                    Transaction.block_number: candidate.block_number
-                })
-=======
     def _update_database(self, transactions):
         """
         Update transactions in the database.
@@ -350,16 +249,12 @@ class EthereumWallet(Wallet):
         return 0
 
         pass
->>>>>>> master
 
 
 class EthereumTestnetWallet(EthereumWallet):
     """
     This wallet represents testnet Ethereum.
-<<<<<<< HEAD
-=======
     Note: The testnet we are currently using is ropsten.
->>>>>>> master
     """
     TESTNET = True
 
@@ -368,9 +263,6 @@ class EthereumTestnetWallet(EthereumWallet):
 
     def get_identifier(self):
         return 'TETH'
-<<<<<<< HEAD
-=======
 
     def get_chain_id(self):
         return 3
->>>>>>> master

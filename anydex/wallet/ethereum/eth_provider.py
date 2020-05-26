@@ -1,24 +1,16 @@
 import abc
 from datetime import datetime
-<<<<<<< HEAD
-=======
 from time import sleep
->>>>>>> master
 
 import requests
 from web3 import Web3
 
 from anydex.wallet.ethereum.eth_db import Transaction
-<<<<<<< HEAD
-from anydex.wallet.provider import Provider, NotSupportedOperationException
-from anydex.wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
-=======
 from anydex.wallet.node.node import create_node, CannotCreateNodeException
 from anydex.wallet.provider import NotSupportedOperationException
 from anydex.wallet.provider import Provider
 from anydex.wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
-from wallet.cryptocurrency import Cryptocurrency
->>>>>>> master
+from anydex.wallet.cryptocurrency import Cryptocurrency
 
 
 class EthereumProvider(Provider, metaclass=abc.ABCMeta):
@@ -74,21 +66,12 @@ class EthereumProvider(Provider, metaclass=abc.ABCMeta):
         """
         return
 
-<<<<<<< HEAD
-
-class InvalidNode(Exception):
-    """
-    Used for throwing exceptions when the given node is invalid ( you can't connect to it).
-    """
-    pass
-=======
     @abc.abstractmethod
     def get_latest_blocknr(self):
         """
         Retrieve the latest block's number
         :return: latest block number
         """
->>>>>>> master
 
 
 class Web3Provider(EthereumProvider):
@@ -99,11 +82,7 @@ class Web3Provider(EthereumProvider):
     (this is not suported by all nodes) to get transactions https://web3py.readthedocs.io/en/stable/filters.html
     """
 
-<<<<<<< HEAD
-    def check_connection(self):
-=======
     def _check_connection(self):
->>>>>>> master
         """
         Check the connection to the node
         """
@@ -112,17 +91,10 @@ class Web3Provider(EthereumProvider):
 
     def __init__(self, url):
         self.w3 = Web3(Web3.HTTPProvider(url))
-<<<<<<< HEAD
-        self.check_connection()
-
-    def get_transaction_count(self, address):
-        self.check_connection()
-=======
         self._check_connection()
 
     def get_transaction_count(self, address):
         self._check_connection()
->>>>>>> master
         return self.w3.eth.getTransactionCount(address)
 
     # def estimate_gas(self, tx):
@@ -130,19 +102,6 @@ class Web3Provider(EthereumProvider):
     #     return self.w3.eth.estimateGas(tx)
 
     def get_gas_price(self):
-<<<<<<< HEAD
-        self.check_connection()
-        return self.w3.eth.gasPrice
-
-    def submit_transaction(self, raw_tx):
-        self.check_connection()
-        return self.w3.eth.sendRawTransaction(raw_tx)
-
-    def get_balance(self, address):
-        self.check_connection()
-        return self.w3.eth.getBalance(address)
-
-=======
         self._check_connection()
         return self.w3.eth.gasPrice
 
@@ -158,7 +117,6 @@ class Web3Provider(EthereumProvider):
         self._check_connection()
         return self.w3.eth.blockNumber
 
->>>>>>> master
     def get_transactions(self, address, start_block, stop_block):
         raise NotSupportedOperationException()
 
@@ -172,19 +130,11 @@ class EthereumBlockchairProvider(EthereumProvider):
     TODO: check for the rate limit and also check mempool for tx?
     """
 
-<<<<<<< HEAD
-    def __init__(self, base_url="https://api.blockchair.com/", network="ethereum"):
-        self.base_url = f"{base_url}{network}"
-        self.network = network
-
-    def send_request(self, path, data={}, method="get"):
-=======
     def __init__(self, base_url='https://api.blockchair.com/', network='ethereum'):
         self.base_url = f"{base_url}{network}"
         self.network = network
 
     def send_request(self, path, data={}, method='get'):
->>>>>>> master
         """
         Makes a request to the specified path.
 
@@ -198,26 +148,16 @@ class EthereumBlockchairProvider(EthereumProvider):
         :return: the response object
         """
         response = None
-<<<<<<< HEAD
-        if method == "get":
-            response = requests.get(f"{self.base_url}{path}", data)
-        elif method == "post":
-            response = requests.post(f"{self.base_url}{path}", data)
-        else:
-            raise RequestException(f"Unsupported method: {method} ")
-=======
         if method == 'get':
             response = requests.get(f'{self.base_url}{path}', data)
         elif method == 'post':
             response = requests.post(f'{self.base_url}{path}', data)
         else:
             raise RequestException(f'Unsupported method: {method} ')
->>>>>>> master
         self._check_response(response)
         return response
 
     def get_balance(self, address):
-<<<<<<< HEAD
         response = self.send_request(f"/dashboards/address/{address}")
         return response.json()["data"][address.lower()]["address"]["balance"]
 
@@ -250,7 +190,6 @@ class EthereumBlockchairProvider(EthereumProvider):
         sent_data = sent.json()["data"]
         sent_mempool = self.send_request("/mempool/transactions", data={"q": f"sender({address})"})
         sent_mempool_data = sent_mempool.json()["data"]
-=======
         response = self.send_request(f'/dashboards/address/{address}')
         return int(response.json()['data'][address.lower()]['address']['balance'])
 
@@ -287,7 +226,6 @@ class EthereumBlockchairProvider(EthereumProvider):
         sent_data = sent.json()['data']
         sent_mempool = self.send_request('/mempool/transactions', data={'q': f'sender({address})'})
         sent_mempool_data = sent_mempool.json()['data']
->>>>>>> master
         txs = sent_data + sent_mempool_data
         return self._normalize_transactions(txs) + self.get_transactions_received(address)
 
@@ -304,15 +242,6 @@ class EthereumBlockchairProvider(EthereumProvider):
         blocked_codes = [430, 434, 503]
         if response.status_code in request_exceeded:
             raise RequestLimit(
-<<<<<<< HEAD
-                "The server indicated the request limit has been exceeded")
-        elif response.status_code in blocked_codes:
-            raise Blocked("The server has blocked you")
-        elif response.status_code == 435:
-            raise RateExceeded("You are sending requests too fast")
-        elif response.status_code != 200:
-            raise RequestException(f"something went wrong, status code: {response.status_code}")
-=======
                 'The server indicated the request limit has been exceeded')
         elif response.status_code in blocked_codes:
             raise Blocked('The server has blocked you')
@@ -320,7 +249,6 @@ class EthereumBlockchairProvider(EthereumProvider):
             raise RateExceeded('You are sending requests too fast')
         elif response.status_code != 200:
             raise RequestException(f'something went wrong, status code was : {response.status_code}')
->>>>>>> master
 
     def _normalize_transactions(self, txs):
         """
@@ -341,18 +269,6 @@ class EthereumBlockchairProvider(EthereumProvider):
         """
 
         return Transaction(
-<<<<<<< HEAD
-            block_number=tx["block_id"],
-            hash=tx["hash"],
-            date_time=datetime.fromisoformat(tx["time"]),
-            to=tx["recipient"],
-            from_=tx["sender"],
-            value=tx["value"],
-            gas_price=tx["gas_price"],
-            gas=tx["gas_used"],
-            nonce=tx["nonce"],
-            is_pending=tx["block_id"] is None
-=======
             block_number=tx['block_id'],
             hash=tx['hash'],
             date_time=datetime.fromisoformat(tx['time']),
@@ -363,7 +279,6 @@ class EthereumBlockchairProvider(EthereumProvider):
             gas=tx['gas_used'],
             nonce=tx['nonce'],
             is_pending=tx['block_id'] is None
->>>>>>> master
         )
 
 
@@ -372,19 +287,8 @@ class EthereumBlockcypherProvider(EthereumProvider):
     Wrapper around blockcypher
     """
 
-<<<<<<< HEAD
-    def __init__(self, api_url="https://api.blockcypher.com/", network="ethereum"):
-        if network == "ethereum":
-            self.base_url = f"{api_url}1/eth/main/"
-        elif network == "testnet":
-            self.base_url = f"{api_url}1/beth/test/"
-        else:
-            # raise invalidargumentexception
-            pass
-=======
     def __init__(self, api_url='https://api.blockcypher.com/', network="ethereum"):
         self.base_url = f'{api_url}v1/eth/main/'
->>>>>>> master
 
     def send_request(self, path, data={}, method="get"):
         """
@@ -400,20 +304,6 @@ class EthereumBlockcypherProvider(EthereumProvider):
         :return: the response object
         """
         response = None
-<<<<<<< HEAD
-        if method == "get":
-            response = requests.get(f"{self.base_url}{path}", data)
-        elif method == "post":
-            response = requests.post(f"{self.base_url}{path}", data)
-        else:
-            raise RequestException(f"Unsupported method: {method} ")
-        self._check_response(response)
-        return response
-
-    def get_transaction_count(self, address):
-        response = self.send_request(f"addrs/{address}/balance")
-        return response.json()["final_n_tx"]
-=======
         if method == 'get':
             response = requests.get(f'{self.base_url}{path}', data)
         elif method == 'post':
@@ -430,27 +320,17 @@ class EthereumBlockcypherProvider(EthereumProvider):
     def get_transaction_count(self, address):
         response = self.send_request(f'addrs/{address}/balance')
         return response.json()['final_n_tx']
->>>>>>> master
 
     # def estimate_gas(self, tx):
     #     pass
 
     def get_gas_price(self):
-<<<<<<< HEAD
-        response = self.send_request("")
-        return response["medium_gas_price"]
-
-    def get_balance(self, address):
-        response = self.send_request(f"addrs/{address}/balance")
-        return response.json()["balance"]
-=======
         response = self.send_request('')
         return response.json()['medium_gas_price']
 
     def get_balance(self, address):
         response = self.send_request(f'addrs/{address[2:]}/balance')  # they expect the addres without 0x
         return response.json()['balance']
->>>>>>> master
 
     def get_transactions(self, address, start_block=None, end_block=None):
         raise NotSupportedOperationException()
@@ -469,11 +349,6 @@ class EthereumBlockcypherProvider(EthereumProvider):
         # 429 request limit : 3/sec 200/h
         if response.status_code == 429:
             raise RateExceeded(
-<<<<<<< HEAD
-                "The server indicated the rate limit has been reached")
-        elif response.status_code != 200:
-            raise RequestException("something went wrong")
-=======
                 'The server indicated the rate limit has been reached')
         elif response.status_code != 200:
             raise RequestException(f'something went wrong, status code was : {response.status_code}')
@@ -733,4 +608,3 @@ class AutoTestnetEthereumProvider(AutoEthereumProvider):
             'submit_transaction': [web3, etherscan],
             'get_balance': [web3, etherscan]
         }
->>>>>>> master

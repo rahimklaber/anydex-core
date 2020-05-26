@@ -1,5 +1,6 @@
 import logging
 
+from ipv8.util import fail, succeed
 from monero.wallet import Wallet
 from monero.daemon import Daemon
 from monero.backends.jsonrpc import JSONRPCWallet, JSONRPCDaemon
@@ -60,8 +61,8 @@ class MoneroProvider(Provider):
 
     def get_balance(self, address):
         # Official Monero JSONRPC backend does not support retrieving balance of an account/wallet by address.
-        raise NotSupportedOperationException()
+        return fail(NotSupportedOperationException())
 
     def get_transactions(self, address):
         # Official Monero JSONRPC backend does not support retrieving transactions for any address.
-        raise NotSupportedOperationException()
+        return fail(NotSupportedOperationException())
