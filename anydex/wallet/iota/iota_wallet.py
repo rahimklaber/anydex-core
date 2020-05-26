@@ -10,13 +10,14 @@ from ipv8.util import fail, succeed
 
 from wallet.cryptocurrency import Cryptocurrency
 from wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction, DatabaseBundle, DatabaseAddress
+from wallet.iota.iota_provider import IotaProvider
 
 
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
     def __init__(self, provider, db_path, testnet):
         super().__init__()
-        self.provider = provider
+        self.provider = None
         self.network = 'iota_testnet' if testnet else 'iota'
         self.wallet_name = 'iota testnet' if testnet else 'iota'
         self.database = initialize_db(os.path.join(db_path, 'iota.db'))
@@ -26,16 +27,31 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.address = None
 
     def get_address(self):
-        query = self.database.query(DatabaseAddress).filter(not DatabaseAddress.is_spent).all()
-        # TODO: update status of all non-spent addresses in db with api.were_addresses_spent_from([sender])['states'][0]
-        query = self.database.query(DatabaseAddress).filter(not DatabaseAddress.is_spent).all()
+        """
+        Returns a non-spent address: either old one from the database or generates a new one
+        :return: a non-spent address
+        """
+        # fetch all non-spent transactions from the database
+        address_query = self.database.query(DatabaseAddress)
+        non_spent = address_query.filter(DatabaseAddress.is_spent.is_(False)).all()
 
-        if query.len() > 0:
-            return query[0]
+        # update the database: check whether any of non-spent addresses became spent
+        for address in non_spent:
+            if self.provider.is_spent(address):
+                address_query.filter(DatabaseAddress.address == address.address).update({
+                    DatabaseAddress.is_spent: True,
+                })
+        self.database.commit()
 
-        index = self.database.query(DatabaseAddress).count()
-        address = self.provider.generate_address(index=index)
-        # TODO: check that it is not in the database
+        # if any non spent addresses left in the database, return first one
+        non_spent = self.database.query(DatabaseAddress).filter(not DatabaseAddress.is_spent).all()
+        if non_spent.len() > 0:
+            return non_spent[0]
+
+        # otherwise generate a new one with the new index
+        spent_count = self.database.query(DatabaseAddress).count()
+        address = self.provider.generate_address(index=spent_count)
+
         return address
 
     def get_seed(self):
@@ -69,7 +85,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.database.commit()
 
         # initialize connection with API through the provider and get an active non-spent address
-        self.provider.initialize_api()
+        self.provider = IotaProvider
+        self.provider.initialize_api(self.seed)
         self.address = self.get_address()
         self.created = True
 
@@ -92,13 +109,11 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         seed_id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed == self.seed.as_string).one()
         bundle_id = self.database.query(DatabaseBundle).filter(DatabaseBundle.hash == bundle.hash).one()
 
-        # TODO: update spent address database
-
         # store all the transactions from the bundle in the database
         for tx in bundle.transactions:
             self.database.add(DatabaseTransaction(
                 seed_id=seed_id,
-                destination=tx.address,
+                address=tx.address,
                 value=tx.value,
                 hash=tx.hash,
                 msg_sig=tx.signature_message_fragment,
@@ -107,6 +122,12 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                 is_pending=(not tx.is_confirmed),
                 bundle_id=bundle_id
             ))
+            # if sending address, mark it as spent in the database
+            if tx.value < 0:
+                address_query = self.database.query(DatabaseAddress)
+                address_query.filter(DatabaseAddress.address == tx.address).update({
+                    DatabaseAddress.is_spent: True,
+                })
 
         self.database.commit()
 

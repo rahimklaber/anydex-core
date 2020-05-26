@@ -1,6 +1,5 @@
 from datetime import datetime
 
-from iota import TryteString
 from sqlalchemy import Column, Integer, String, LargeBinary, create_engine, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -25,7 +24,7 @@ class DatabaseTransaction(Base):
     # need to include a relation to the key table.
     id = Column(Integer, primary_key=True)
     seed_id = Column(Integer, ForeignKey('seeds.id'))
-    destination = Column(String(90))
+    address = Column(String(90))
     value = Column(Integer)
     hash = Column(String(81), unique=True)
     msg_sig = Column(String(2187))

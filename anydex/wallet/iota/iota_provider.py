@@ -91,3 +91,12 @@ class IotaProvider(Provider):
         #     raise Exception("Generated address already spent!")
         return address
 
+    def is_spent(self, address):
+        """
+        Check whether an address is spent
+        :return: the new unspent address
+        """
+        if self.api is None:
+            raise Exception("API is not initialized!")
+
+        return self.api.were_addresses_spent_from([address])['states'][0]
