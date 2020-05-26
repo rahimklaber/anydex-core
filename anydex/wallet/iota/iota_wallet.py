@@ -18,18 +18,55 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
     def __init__(self, db_path, testnet, node):
         super().__init__()
         self.seed = None
-        self.address = None
         self.provider = None
         self.node = node
+        self.testnet = testnet
         self.network = 'iota_testnet' if testnet else 'iota'
         self.wallet_name = 'iota testnet' if testnet else 'iota'
         self.database = initialize_db(os.path.join(db_path, 'iota.db'))
-        self.testnet = testnet
         self.created = self.wallet_exists()
+
+    def create_wallet(self):
+        if self.created:
+            return fail(RuntimeError(f'IOTA wallet with name {self.wallet_name} already exists.'))
+
+        # generate random seed and store it in the database as a String instead of TryteString
+        self.seed = Seed.random()
+        self.database.add(DatabaseSeed(name=self.wallet_name, seed=self.seed.as_string()))
+        self.database.commit()
+
+        # initialize connection with API through the provider and get an active non-spent address
+        self.provider = IotaProvider(self.testnet)
+        self.provider.initialize_api(self.seed)
+        self.created = True
+
+    def wallet_exists(self) -> bool:
+        """
+        Checks whether the wallet has been created or not
+        :return: boolean
+        """
+        query = self.database.query(DatabaseSeed)
+        wallet_count = query.filter(DatabaseSeed.name == self.wallet_name).count()
+
+        # return self.database.query(exists().where(DatabaseSeed.name == self.wallet_name)).scalar() ???
+        return wallet_count > 0
+
+    def get_seed(self):  # TODO: is required?
+        """
+        Returns the seed of the wallet or raises an exception if no seed exists
+        :return: the seed
+        """
+        if not self.created:
+            raise Exception('Wallet not created!')
+
+        if self.seed is None:
+            raise Exception('Wallet created, seed missing!')
+
+        return self.seed
 
     def get_address(self):
         """
-        Returns a non-spent address: either old one from the database or generates a new one
+        Returns a non-spent address: either old one from the database or a newly generated one
         :return: a non-spent address
         """
         # fetch all non-spent transactions from the database
@@ -64,46 +101,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         return address
 
-    def get_seed(self):
-        """
-        Returns the seed of the wallet or raises an exception if no seed exists
-        :return: the seed
-        """
-        if not self.created:
-            raise Exception('Wallet not created!')
-
-        if self.seed is None:
-            raise Exception('Wallet created, seed missing!')
-
-        return self.seed
-
-    def wallet_exists(self) -> bool:
-        """
-        Checks whether the wallet has been created or not
-        :return: boolean
-        """
-        query = self.database.query(DatabaseSeed)
-        wallet_count = query.filter(DatabaseSeed.name == self.wallet_name).count()
-
-        # return self.database.query(exists().where(DatabaseSeed.name == self.wallet_name)).scalar() ???
-        return wallet_count > 0
-
-    def create_wallet(self):
-        if self.created:
-            return fail(RuntimeError(f'IOTA wallet with name {self.wallet_name} already exists.'))
-
-        # generate random seed and store it in the database as a String instead of TryteString
-        self.seed = Seed.random()
-        self.database.add(DatabaseSeed(name=self.wallet_name, seed=self.seed.as_string()))
-        self.database.commit()
-
-        # initialize connection with API through the provider and get an active non-spent address
-        self.provider = IotaProvider(self.testnet)
-        self.provider.initialize_api(self.seed)
-        self.address = self.get_address()
-        self.created = True
-
-    def transfer(self, value, address):
+    def transfer(self, value, address):  # TODO: separate transfer and database updating?
         # generate and send a transaction
         transaction = ProposedTransaction(
             address=Address(address),
@@ -150,26 +148,33 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         # if wallet created, fetch needed data
         return succeed({
-            'available': self.provider.get_balance(),
+            'available': self.provider.get_seed_balance(),
             'pending': self.provider.get_pending(),
             'currency': 'IOTA',
             'precision': self.precision()
         })
 
     def get_transactions(self):
-        return self.provider.get_transactions()
+        return self.provider.get_seed_transactions()
+
+    def monitor_transaction(self, tx_id):
+        """
+        Monitor a given transaction ID. Returns a Deferred that fires when the transaction is present.
+        """
+        # TODO: monitor_transaction
+        return
 
     def is_testnet(self):
         return self.testnet
 
     def precision(self):
-        return 6    # or 1, depends if we decide to trade 1 Million IOTAs or 1 IOTA
+        return 6  # or 1, depends if we decide to trade 1 Million IOTAs or 1 IOTA
 
     def min_unit(self):
-        return 0    # valueless and feeless transactions are possible
+        return 0  # valueless and feeless transactions are possible
 
 
-class IotaWallet(AbstractIotaWallet, metaclass=ABCMeta):
+class IotaWallet(AbstractIotaWallet):
     def __init__(self, db_path, node=None):
         super(IotaWallet, self).__init__(db_path, False, node)
 
@@ -180,7 +185,7 @@ class IotaWallet(AbstractIotaWallet, metaclass=ABCMeta):
         return 'IOTA'  # or MIOTA, depends if we decide to trade 1 Million IOTAs or 1 IOTA
 
 
-class IotaTestnetWallet(AbstractIotaWallet, metaclass=ABCMeta):
+class IotaTestnetWallet(AbstractIotaWallet):
     def __init__(self, db_path, node=None):
         super(IotaTestnetWallet, self).__init__(db_path, True, node)
 

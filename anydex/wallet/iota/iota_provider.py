@@ -14,7 +14,7 @@ class IotaProvider(Provider):
         self.testnet = testnet
         self.node = 'https://nodes.devnet.iota.org:443' if node is None else node
 
-    def initialize_api(self, seed):
+    def initialize_api(self, seed=None):  # seed=None allows to still access the tangle
         """
         Initializes API instance
         """
@@ -32,9 +32,24 @@ class IotaProvider(Provider):
 
         return self.api.send_transfer(transfers=[tx])['bundle']
 
-    def get_balance(self, **kwargs):
+    def get_balance(self, address):
         """
         Get the balance of the given address
+        :return: the balance
+        """
+        if self.api is None:
+            raise Exception("API is not initialized!")
+
+        response = self.api.get_balances(addresses=[address])
+
+        if response['balances'][0]:
+            return response['balances'][0]
+        else:
+            raise Exception('No balance found!')
+
+    def get_seed_balance(self):
+        """
+        Get the balance of the given seed
         :return: the balance
         """
         if self.api is None:
@@ -43,9 +58,19 @@ class IotaProvider(Provider):
         account_data = self.api.get_account_data()
         return account_data['balance']
 
-    def get_transactions(self, **kwargs):
+    def get_transactions(self, address):
         """
         Retrieve all the transactions associated with the given address
+        :return: A list of all transactions retrieved
+        """
+        if self.api is None:
+            raise Exception("API is not initialized!")
+
+        # TODO: return all transactions associated with a particular address
+
+    def get_seed_transactions(self):
+        """
+        Retrieve all the transactions associated with the given seed
         :return: A list of all transactions retrieved
         """
         if self.api is None:
