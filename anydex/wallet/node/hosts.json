@@ -8,7 +8,10 @@
     "http://nodes.hashvault.pro:18081",
     "http://node.supportxmr.com:18081"
   ],
-  "ethereum": [],
+  "ethereum": [
+    "https://api.myetherapi.com/eth",
+    "https://main-rpc.linkpool.io/"
+  ],
   "bitcoin": [],
   "iota": [],
   "ripple": [],
