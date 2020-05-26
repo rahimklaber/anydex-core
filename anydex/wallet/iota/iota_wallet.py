@@ -1,5 +1,6 @@
 import os
 from abc import ABCMeta
+from asyncio import Future
 
 from iota.transaction import ProposedTransaction
 from iota.types import Address
@@ -141,12 +142,24 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.update_transactions_database(transactions)
         return transactions
 
-    def monitor_transaction(self, tx_id):
+    def monitor_transaction(self, txid):
         """
         Monitor a given transaction ID. Returns a Deferred that fires when the transaction is present.
         """
-        # TODO: monitor_transaction
-        return
+        monitor_future = Future()
+
+        async def monitor():
+            transactions = await self.get_transactions()
+            for transaction in transactions:
+                if transaction.hash == txid:
+                    self._logger.debug("Found transaction with id %s", txid)
+                    monitor_future.set_result(None)
+                    monitor_task.cancel()
+
+        self._logger.debug("Start polling for transaction %s", txid)
+        monitor_task = self.register_task(f"{self.network}_poll_{txid}", monitor, interval=5)
+
+        return monitor_future
 
     def update_transactions_database(self, transactions):
         # store all the transactions in the database
