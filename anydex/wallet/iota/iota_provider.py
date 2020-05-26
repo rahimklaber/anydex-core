@@ -8,18 +8,18 @@ class IotaProvider(Provider):
     An IOTA provider for interaction with an IOTA ledger.
     """
 
-    def __init__(self, testnet, node=None):
+    def __init__(self, testnet, seed=None, node='https://nodes.devnet.iota.org:443'):
         super().__init__()
-        self.api = None
         self.testnet = testnet
-        self.node = 'https://nodes.devnet.iota.org:443' if node is None else node
+        self.node = node,
+        self.api = self.initialize_api(seed)
 
-    def initialize_api(self, seed=None):  # seed=None allows to still access the tangle
+    def initialize_api(self, seed):
         """
         Initializes API instance
         """
         # TODO get optimal node
-        self.api = Iota(adapter=self.node, seed=seed, testnet=self.testnet)
+        return Iota(adapter=self.node, seed=seed, testnet=self.testnet)
 
     def submit_transaction(self, tx):
         """
@@ -96,7 +96,7 @@ class IotaProvider(Provider):
 
         # iterate through transaction and check whether they are confirmed
         for tx in transactions:
-            if not tx.is_confirmed:
+            if not tx.is_confirmed:  # TODO: check if tx.address is owned
                 pending_balance += tx.value
 
         return pending_balance

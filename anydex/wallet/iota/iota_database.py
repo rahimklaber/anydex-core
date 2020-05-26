@@ -14,7 +14,7 @@ class DatabaseSeed(Base):
     __tablename__ = "seeds"
     id = Column(Integer, primary_key=True)
     name = Column(String(), unique=True)  # TODO: string length
-    seed = Column(String(81), unique=True)  # 90 trytes with a checksum
+    seed = Column(String(81), unique=True)  # TODO: 90 trytes with a checksum
 
 
 class DatabaseTransaction(Base):

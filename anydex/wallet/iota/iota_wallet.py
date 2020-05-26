@@ -51,19 +51,6 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         # return self.database.query(exists().where(DatabaseSeed.name == self.wallet_name)).scalar() ???
         return wallet_count > 0
 
-    def get_seed(self):  # TODO: is required?
-        """
-        Returns the seed of the wallet or raises an exception if no seed exists
-        :return: the seed
-        """
-        if not self.created:
-            raise Exception('Wallet not created!')
-
-        if self.seed is None:
-            raise Exception('Wallet created, seed missing!')
-
-        return self.seed
-
     def get_address(self):
         """
         Returns a non-spent address: either old one from the database or a newly generated one
@@ -134,7 +121,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                 bundle_id=bundle_id
             ))
             # if sending address, mark it as spent in the database
-            if tx.value < 0:
+            if tx.value <= 0:  # TODO: check
                 address_query = self.database.query(DatabaseAddress)
                 address_query.filter(DatabaseAddress.address == tx.address).update({
                     DatabaseAddress.is_spent: True,
@@ -155,6 +142,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         })
 
     def get_transactions(self):
+        # TODO: update database with transactions
         return self.provider.get_seed_transactions()
 
     def monitor_transaction(self, tx_id):
