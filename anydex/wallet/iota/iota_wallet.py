@@ -46,7 +46,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         :return: boolean
         """
         query = self.database.query(DatabaseSeed)
-        wallet_count = query.filter(DatabaseSeed.name == self.wallet_name).count()
+        wallet_count = query.filter(DatabaseSeed.name.__eq__(self.wallet_name)).count()
 
         # return self.database.query(exists().where(DatabaseSeed.name == self.wallet_name)).scalar() ???
         return wallet_count > 0
@@ -63,13 +63,13 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         # update the database: check whether any of non-spent addresses became spent
         for address in non_spent:
             if self.provider.is_spent(address):
-                address_query.filter(DatabaseAddress.address == address.address).update({
+                address_query.filter(DatabaseAddress.address.__eq__(address.address)).update({
                     DatabaseAddress.is_spent: True,
                 })
         self.database.commit()
 
         # if any non spent addresses left in the database, return first one
-        non_spent = self.database.query(DatabaseAddress).filter(not DatabaseAddress.is_spent).all()
+        non_spent = self.database.query(DatabaseAddress).filter(DatabaseAddress.is_spent.is_(False)).all()
         if non_spent.len() > 0:
             return non_spent[0]
 
@@ -79,7 +79,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         # generating address with checksum and fetching seed's id
         address_with_checksum = address.with_valid_checksum()
-        seed_id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed == self.seed.as_string).one()
+        seed_id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed.__eq__(self.seed.as_string)).one()
         # store address in the database
         self.database.add(DatabaseAddress(
             address=address_with_checksum,
@@ -88,7 +88,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         return address
 
-    async def transfer(self, value, address):  # TODO: separate transfer and database updating?
+    async def transfer(self, value, address):
         # generate and send a transaction
         transaction = ProposedTransaction(
             address=Address(address),
@@ -103,30 +103,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
             is_pending=False
         ))
 
-        # fetch seed_id and bundle_id for storing transaction
-        seed_id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed == self.seed.as_string).one()
-        bundle_id = self.database.query(DatabaseBundle).filter(DatabaseBundle.hash == bundle.hash).one()
-
-        # store all the transactions from the bundle in the database
-        for tx in bundle.transactions:
-            self.database.add(DatabaseTransaction(
-                seed_id=seed_id,
-                address=tx.address,
-                value=tx.value,
-                hash=tx.hash,
-                msg_sig=tx.signature_message_fragment,
-                current_index=tx.current_index,
-                date_time=tx.timestamp,
-                is_pending=(not tx.is_confirmed),
-                bundle_id=bundle_id
-            ))
-            # if sending address, mark it as spent in the database
-            if tx.value <= 0:
-                address_query = self.database.query(DatabaseAddress)
-                address_query.filter(DatabaseAddress.address == tx.address).update({
-                    DatabaseAddress.is_spent: True,
-                })
-
+        # store bundle transactions in the database
+        self.update_transactions_database(bundle.transactions)
         self.database.commit()
 
     def get_balance(self):
@@ -151,7 +129,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         # iterate through transaction and check whether they are confirmed
         for tx in transactions:
-            query = self.database.query(DatabaseBundle).filter(DatabaseAddress.address == tx.address).all()
+            query = self.database.query(DatabaseBundle).filter(DatabaseAddress.address.__eq__(tx.address)).all()
             # return self.database.query(exists().where(DatabaseAddress.address == tx.address)).scalar() ???
             if not tx.is_confirmed and query.len() > 0:
                 pending_balance += tx.value
@@ -159,8 +137,9 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         return pending_balance
 
     def get_transactions(self):
-        # TODO: update database with transactions
-        return self.provider.get_seed_transactions()
+        transactions = self.provider.get_seed_transactions()
+        self.update_transactions_database(transactions)
+        return transactions
 
     def monitor_transaction(self, tx_id):
         """
@@ -168,6 +147,37 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         """
         # TODO: monitor_transaction
         return
+
+    def update_transactions_database(self, transactions):
+        # store all the transactions in the database
+        for tx in transactions:
+            # if transaction already exists in the database, update it
+            database_transactions = self.database.query(DatabaseTransaction)
+            query = database_transactions.filter(DatabaseTransaction.hash.__eq__(tx.hash))
+            if query.all().len() > 0:
+                query.update({
+                    DatabaseTransaction.is_pending: tx.is_confirmed,
+                })
+            # if no transaction in the database, create it
+            else:
+                self.database.add(DatabaseTransaction(
+                    seed=self.seed,
+                    address=tx.address,
+                    value=tx.value,
+                    hash=tx.hash,
+                    msg_sig=tx.signature_message_fragment,
+                    current_index=tx.current_index,
+                    date_time=tx.timestamp,
+                    bundle_id=tx.bundle_hash
+                ))
+                # if sending from an address, mark it as spent in the database
+                if tx.value <= 0:
+                    address_query = self.database.query(DatabaseAddress)
+                    address_query.filter(DatabaseAddress.address.__eq__(tx.address)).update({
+                        DatabaseAddress.is_spent: True,
+                    })
+
+        self.database.commit()
 
     def is_testnet(self):
         return self.testnet
