@@ -1,6 +1,6 @@
 from iota.api import Iota
 
-from wallet.provider import Provider
+from anydex.wallet.provider import Provider
 
 
 class IotaProvider(Provider):
@@ -10,8 +10,8 @@ class IotaProvider(Provider):
 
     def __init__(self, testnet, seed=None, node='https://nodes.devnet.iota.org:443'):
         super().__init__()
-        self.testnet = testnet,
-        self.node = node,
+        self.testnet = testnet
+        self.node = node
         self.api = self.initialize_api(seed)
 
     def initialize_api(self, seed):
@@ -20,7 +20,7 @@ class IotaProvider(Provider):
         """
         # TODO: ensure couple of checked nodes / fetch regularly best from site such as https://iota-nodes.net/
         # noinspection PyTypeChecker
-        api = Iota(adapter=self.node, seed=seed, testnet=self.testnet)
+        api = Iota(adapter=self.node, seed=seed, testnet=self.testnet, local_pow=True)
         return api
 
     def submit_transaction(self, tx):

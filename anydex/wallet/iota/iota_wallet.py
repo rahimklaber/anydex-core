@@ -5,12 +5,12 @@ from iota.transaction import ProposedTransaction
 from iota.types import Address
 from iota.crypto.types import Seed
 
-from anydex.wallet.wallet import Wallet
-from ipv8.util import succeed
+from anydex.wallet.wallet import Wallet, InsufficientFunds
+from ipv8.util import succeed, fail
 
-from wallet.cryptocurrency import Cryptocurrency
-from wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction, DatabaseBundle, DatabaseAddress
-from wallet.iota.iota_provider import IotaProvider
+from anydex.wallet.cryptocurrency import Cryptocurrency
+from anydex.wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction, DatabaseBundle, DatabaseAddress
+from anydex.wallet.iota.iota_provider import IotaProvider
 
 
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
@@ -28,16 +28,15 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
     def create_wallet(self):
         if self.created:
-            raise Exception(f'IOTA wallet with name {self.wallet_name} already exists.')
+            return fail(RuntimeError(f'IOTA wallet with name {self.wallet_name} already exists.'))
 
         # generate random seed and store it in the database as a String instead of TryteString
         self.seed = Seed.random()
-        self.database.add(DatabaseSeed(name=self.wallet_name, seed=self.seed.as_string()))
+        self.database.add(DatabaseSeed(name=self.wallet_name, seed=self.seed.__str__()))
         self.database.commit()
 
         # initialize connection with API through the provider and get an active non-spent address
         self.provider = IotaProvider(self.testnet)
-        self.provider.initialize_api(self.seed)
         self.created = True
 
     def wallet_exists(self) -> bool:
@@ -56,6 +55,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         Returns a non-spent address: either old one from the database or a newly generated one
         :return: a non-spent address
         """
+        if not self.created:
+            return succeed([])
         # fetch all non-spent transactions from the database
         address_query = self.database.query(DatabaseAddress)
         non_spent = address_query.filter(DatabaseAddress.is_spent.is_(False)).all()
@@ -70,7 +71,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         # if any non spent addresses left in the database, return first one
         non_spent = self.database.query(DatabaseAddress).filter(not DatabaseAddress.is_spent).all()
-        if non_spent.len() > 0:
+        if len(non_spent) > 0:
             return non_spent[0]
 
         # otherwise generate a new one with the new index
@@ -79,7 +80,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         # generating address with checksum and fetching seed's id
         address_with_checksum = address.with_valid_checksum()
-        seed_id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed == self.seed.as_string).one()
+        seed_id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed == self.seed.__str__()).one()
         # store address in the database
         self.database.add(DatabaseAddress(
             address=address_with_checksum,
@@ -89,6 +90,15 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         return address
 
     async def transfer(self, value, address):  # TODO: separate transfer and database updating?
+        if not self.created:
+            return fail(RuntimeError('The wallet must be created transfers can be made'))
+
+        balance = await self.get_balance()
+
+        if balance['available'] < value:
+            return fail(InsufficientFunds(
+                "Balance %d of the wallet is less than %d", balance['available'], int(value)))
+
         # generate and send a transaction
         transaction = ProposedTransaction(
             address=Address(address),
