@@ -15,7 +15,10 @@ class IotaProvider(Provider):
 
     def initialize_api(self, node, seed):
         """
-        Initializes API instance
+        Initialize an API instance
+        :param node: node to which API should connect
+        :param seed: seed to use for all further API calls
+        :return: initialized API
         """
         if node is None:  # TODO: check whether mainnet node works
             node = 'https://nodes.devnet.iota.org:443' if self.testnet else 'https://nodes.thetangle.org:443'
@@ -25,9 +28,9 @@ class IotaProvider(Provider):
 
     def submit_transaction(self, tx):
         """
-        Submit a signed transaction to the network
-        :param tx: the signed transaction to submit to the network
-        :return: the transaction hash
+        Submit a proposed transaction to the network
+        :param tx: the proposed transaction to submit to the network
+        :return: the bundle containing the transaction
         """
         response = self.api.send_transfer(transfers=[tx])
         return response['bundle']
@@ -35,6 +38,7 @@ class IotaProvider(Provider):
     def get_balance(self, address):
         """
         Get the balance of the given address
+        :param address: address whose balance is being retrieved
         :return: the balance
         """
         response = self.api.get_balances(addresses=[address])
@@ -51,7 +55,8 @@ class IotaProvider(Provider):
     def get_transactions(self, address):
         """
         Retrieve all the transactions associated with the given address
-        :return: A list of all transactions retrieved
+        :param address: address whose transactions are being retrieved
+        :return: a list of all transactions retrieved
         """
         transactions = self.api.find_transaction_objects(addresses=[address])
         return transactions
@@ -59,7 +64,7 @@ class IotaProvider(Provider):
     def get_seed_transactions(self):
         """
         Retrieve all the transactions associated with the given seed
-        :return: A list of all transactions retrieved
+        :return: a list of all transactions retrieved
         """
         # fetch transactions from wallet_addresses from account_data
         account_data = self.api.get_account_data()
@@ -71,6 +76,8 @@ class IotaProvider(Provider):
     def generate_address(self, index=0, security_level=3):
         """
         Get the newly generated address
+        :param index: index from which start fetching a non-spent address
+        :param security_level: factor that affects private key length; from 1 to 3
         :return: the new unspent address
         """
         new_addresses = self.api.get_new_addresses(index=index, count=None, security_level=security_level)
@@ -79,7 +86,8 @@ class IotaProvider(Provider):
     def is_spent(self, address):
         """
         Check whether an address is spent
-        :return: the new unspent address
+        :param address: address to check whether spent
+        :return: boolean
         """
         response = self.api.were_addresses_spent_from([address])
         return response['states'][0]
