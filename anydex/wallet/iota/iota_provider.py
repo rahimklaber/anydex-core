@@ -8,19 +8,18 @@ class IotaProvider(Provider):
     An IOTA provider for interaction with an IOTA ledger.
     """
 
-    def __init__(self, testnet, seed=None, node='https://nodes.devnet.iota.org:443'):
+    def __init__(self, testnet, node='https://nodes.devnet.iota.org:443', seed=None):
         super().__init__()
         self.testnet = testnet
-        self.node = node
-        self.api = self.initialize_api(seed)
+        self.api = self.initialize_api(node, seed)
 
-    def initialize_api(self, seed):
+    def initialize_api(self, node, seed):
         """
         Initializes API instance
         """
         # TODO: ensure couple of checked nodes / fetch regularly best from site such as https://iota-nodes.net/
         # noinspection PyTypeChecker
-        api = Iota(adapter=self.node, seed=seed, testnet=self.testnet, local_pow=True)
+        api = Iota(adapter=node, seed=seed, testnet=self.testnet, local_pow=True)
         return api
 
     def submit_transaction(self, tx):
