@@ -37,8 +37,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.database.commit()
 
         # initialize connection with API through the provider and get an active non-spent address
-        self.provider = IotaProvider(self.testnet)
-        self.provider.initialize_api(self.seed)
+        self.provider = IotaProvider(testnet=self.testnet, seed=self.seed)
         self.created = True
 
     def wallet_exists(self) -> bool:
@@ -103,10 +102,10 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
             count=bundle.transactions.len(),
             is_pending=False
         ))
+        self.database.commit()
 
         # store bundle transactions in the database
         self.update_transactions_database(bundle.transactions)
-        self.database.commit()
 
     def get_balance(self):
         if not self.created:
