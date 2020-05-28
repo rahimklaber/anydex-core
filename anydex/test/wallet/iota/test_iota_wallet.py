@@ -17,7 +17,7 @@ class TestIotaWallet(AbstractServer):
 
     def setUp(self):
         super(TestIotaWallet, self).setUp()
-        self.tx1 = Transaction.from_tryte_string('PCGDSCPCSCGD999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999VETULPZOCVDREKATOFLERUIOSIIG9XTCMMVTDPFFPSDXXPMLRAZXUBLLRMTEWJZPBNJBAMFCJQDSWPTV9OB9999999999999999999999999EINFACHIOTA9999999999999999999999999999999999C99999999NXPJH9TJ99PQGWXYAJKDTNHBWPJURJTIIYSNZH9EUYTDJGAICWTE9LC9KPLVTLIDSJSGRGWAUBFPAPKXAFIFEQNHUHEJNRBARNJYEEVIUPZXMTLTWGOBDLKMGOV9ISJMYPWLMHMXZLQKUMNBIFBEAUJW9CBERPC999JNOBIMVGJEHXXTMMEDOEJFYKIMEFGA9MAITXIBCPCDJSDPMKXFSXRIMBDHUFEYOV9GWAQVXEHWLKMZ999EINFACHIOTA9999999999999999999999999999999999999999999EX99999999CCA99999999999999')
+        self.tx1 = Transaction.from_tryte_string(b'PCGDSCPCSCGD999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999VETULPZOCVDREKATOFLERUIOSIIG9XTCMMVTDPFFPSDXXPMLRAZXUBLLRMTEWJZPBNJBAMFCJQDSWPTV9OB9999999999999999999999999EINFACHIOTA9999999999999999999999999999999999C99999999NXPJH9TJ99PQGWXYAJKDTNHBWPJURJTIIYSNZH9EUYTDJGAICWTE9LC9KPLVTLIDSJSGRGWAUBFPAPKXAFIFEQNHUHEJNRBARNJYEEVIUPZXMTLTWGOBDLKMGOV9ISJMYPWLMHMXZLQKUMNBIFBEAUJW9CBERPC999JNOBIMVGJEHXXTMMEDOEJFYKIMEFGA9MAITXIBCPCDJSDPMKXFSXRIMBDHUFEYOV9GWAQVXEHWLKMZ999EINFACHIOTA9999999999999999999999999999999999999999999EX99999999CCA99999999999999')
 
         self.txn = Transaction.from_tryte_string(
             b'GYPRVHBEZOOFXSHQBLCYW9ICTCISLHDBNMMVYD9JJHQMPQCTIQAQTJNNNJ9IDXLRCC'
@@ -67,6 +67,22 @@ class TestIotaWallet(AbstractServer):
         db_session.close_all_sessions()
         await super().tearDown()
 
+    def test_min_unit(self):
+        """
+        Test the min_unit function
+        """
+        wallet = IotaWallet(self.session_base_dir, True)
+        result = wallet.min_unit()
+        self.assertEqual(0, result)
+
+    def test_is_testnet(self):
+        """
+        Test the is_testnet function
+        """
+        wallet = IotaWallet(self.session_base_dir, True)
+        result = wallet.is_testnet()
+        self.assertEqual(False, result)
+
     def test_get_name(self):
         """
         Test for get_name
@@ -109,6 +125,20 @@ class TestIotaWallet(AbstractServer):
         self.assertIsNotNone(wallet.seed)
         self.assertIsNotNone(wallet.provider)
 
+    def test_double_wallet_instantiation(self):
+        """
+        Tests that parameters of two wallets with the same name
+        Are identical.
+        """
+        # Create a wallet
+        wallet = IotaWallet(self.session_base_dir, True)
+        wallet.create_wallet()
+        # Instantiate another wallet, without creating it
+        new_wallet = IotaWallet(self.session_base_dir, True)
+        # Assert equality of name and seed
+        self.assertEqual(wallet.wallet_name, new_wallet.wallet_name)
+        self.assertEqual(wallet.seed, new_wallet.seed)
+
     def test_wallet_exists(self):
         """
         Tests the good and bad weather cases of wallet_exist
@@ -149,6 +179,39 @@ class TestIotaWallet(AbstractServer):
         self.assertIsNotNone(result)
         self.assertIsInstance(result, Address)
         self.assertEqual(address_length, len(result.__str__()))
+
+    def test_get_address_all_spent(self):
+        """
+        Tests getting a new address when all current addresses are spent
+        """
+        wallet = IotaWallet(self.session_base_dir, True)
+        address_length = 81
+        # Create the wallet
+        wallet.create_wallet()
+        # Add an unspent address to the database
+        old_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
+        wallet.database.add(DatabaseAddress(
+            address=old_address,
+            is_spent=False
+        ))
+        # Mock the api call
+        wallet.provider.is_spent = lambda address: True
+        result = wallet.get_address()
+        # Assert the type and length
+        self.assertIsNotNone(result)
+        self.assertIsInstance(result, Address)
+        self.assertEqual(address_length, len(result.__str__()))
+        # Check correct database storage of the new address
+        non_spent = wallet.database.query(DatabaseAddress)\
+            .filter(DatabaseAddress.seed.__eq__(wallet.seed.__str__()))\
+            .first()
+        previous = wallet.database.query(DatabaseAddress)\
+            .filter(DatabaseAddress.address.__eq__(old_address))\
+            .first()
+        # Check if the new address is unspent
+        self.assertEqual(False, non_spent.is_spent)
+        # Check if the old address has been correctly updated
+        self.assertEqual(True, previous.is_spent)
 
     async def test_transfer_before_creation(self):
         """
@@ -399,8 +462,103 @@ class TestIotaWallet(AbstractServer):
         self.assertIsInstance(result, Future)
         self.assertEqual(expected, result.result())
 
-    # TODO: test_get_address_from_provider ??????????
-    # TODO: test sending multiple transactions
+    def test_bundle_updates_change_one_bundle(self):
+        """
+        Tests updating the confirmation value of a bundle
+        """
+        wallet = IotaWallet(self.session_base_dir, True)
+        wallet.create_wallet()
+        bundle = Bundle([self.tx1])
+        # Make sure the bundle is confirmed
+        bundle.is_confirmed = True
+        # Create DatabaseBundle based on tx1
+        database_bundle = DatabaseBundle(
+            hash=bundle.hash.__str__(),
+            tail_transaction_hash=self.tx1.hash.__str__(),
+            count=1,
+            is_confirmed=False
+        )
+        # Add it to the database
+        wallet.database.add(database_bundle)
+        # Mock API response
+        wallet.provider.get_bundles = lambda tail_hashes: [bundle]
+        wallet.update_bundles_database()
+        # Get the bundle after the method
+        bundle_after = wallet.database.query(DatabaseBundle)\
+            .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__()))\
+            .one()
+        self.assertEqual(bundle_after.is_confirmed, True)
+        self.assertEqual(bundle_after.hash, bundle.hash.__str__())
+
+    def test_bundle_updates_no_bundle(self):
+        """
+        Tests that updating the bundles does incorrectly update confirmation
+        """
+        wallet = IotaWallet(self.session_base_dir, True)
+        wallet.create_wallet()
+        bundle = Bundle([self.tx1])
+        # Make sure the bundle is confirmed
+        bundle.is_confirmed = False
+        # Create DatabaseBundle based on tx1
+        database_bundle = DatabaseBundle(
+            hash=bundle.hash.__str__(),
+            tail_transaction_hash=self.tx1.hash.__str__(),
+            count=1,
+            is_confirmed=False
+        )
+        # Add it to the database
+        wallet.database.add(database_bundle)
+        # Mock API response
+        wallet.provider.get_bundles = lambda tail_hashes: [bundle]
+        wallet.update_bundles_database()
+        # Get the bundle after the method
+        bundle_after = wallet.database.query(DatabaseBundle)\
+            .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__()))\
+            .one()
+        self.assertEqual(bundle_after.is_confirmed, bundle.is_confirmed)
+        self.assertEqual(bundle_after.hash, bundle.hash.__str__())
+
+    def test_bundle_no_tangle_bundles(self):
+        wallet = IotaWallet(self.session_base_dir, True)
+        wallet.create_wallet()
+        # Mock API response
+        wallet.provider.get_bundles = lambda tail_hashes: []
+        wallet.update_bundles_database()
+        bundles_after = wallet.database.query(DatabaseBundle).\
+            all()
+        self.assertEqual(len(bundles_after), 0)
+
+    def test_bundle_add_bundle_to_database(self):
+        """
+        Tests that new bundles are correctly inserted in the database
+        """
+        wallet = IotaWallet(self.session_base_dir, True)
+        wallet.create_wallet()
+        bundle = Bundle([self.tx1])
+        # Create DatabaseBundle based on tx1
+        expected = DatabaseBundle(
+            hash=bundle.hash.__str__(),
+            tail_transaction_hash='9TVXQWXUXFNDVXJI9JG9VPVQLWYLMNQEFHMRIDXXXMZNOHYHVNAUXFVQVSU9FORFJJWYXZVRZKEIETTYN',
+            count=len(bundle.transactions),
+            is_confirmed=False
+        )
+        # Mock API response
+        wallet.provider.get_bundles = lambda tail_hashes: [bundle]
+        wallet.update_bundles_database([bundle])
+        # Get the bundle after the method
+        bundles_after = wallet.database.query(DatabaseBundle)\
+            .all()
+        # Check that exactly one bundle has been added as a result
+        self.assertEqual(1, len(bundles_after))
+        # Get the only bundle
+        bundle_after = bundles_after[0]
+        # Check equivalence with the original
+        self.assertEqual(expected.hash, bundle_after.hash)
+        self.assertEqual(expected.tail_transaction_hash,
+                         bundle_after.tail_transaction_hash)
+        self.assertEqual(expected.count, bundle_after.count)
+        self.assertEqual(expected.is_confirmed, bundle_after.is_confirmed)
+
     # TODO: test_monitor_transaction
     # TODO: test_monitor_transaction_invalid ? invalid transaction id ?
 

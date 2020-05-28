@@ -27,9 +27,10 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.created = self.wallet_exists()
 
         if self.created:
-            self.seed = self.database.query(DatabaseSeed)\
+            db_seed = self.database.query(DatabaseSeed)\
                 .filter(DatabaseSeed.name.__eq__(self.wallet_name))\
-                .all()[0]
+                .one()
+            self.seed = Seed(db_seed.seed)
             self.provider = IotaProvider(testnet=self.testnet, seed=self.seed)
         else:
             self.seed = None
@@ -83,7 +84,11 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.database.commit()
 
         # if any non spent addresses left in the database, return first one
-        non_spent = self.database.query(DatabaseAddress).filter(DatabaseAddress.is_spent.is_(False)).all()
+        non_spent = self.database.query(DatabaseAddress)\
+            .filter(DatabaseAddress.seed.__eq__(self.seed.__str__()))\
+            .filter(DatabaseAddress.is_spent.is_(False))\
+            .all()
+
         if len(non_spent) > 0:
             return non_spent[0]
 
@@ -94,8 +99,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         # store address in the database
         self.database.add(DatabaseAddress(
-            address=address_with_checksum,
-            seed=self.seed,
+            address=address_with_checksum.__str__(),
+            seed=self.seed.__str__(),
         ))
 
         return address
@@ -248,25 +253,37 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         Update the database by updating bundle list
         :param bundles: bundle to be stored
         """
-        database_bundles = self.database.query(DatabaseBundle)
-        pending_bundles = database_bundles.filter(DatabaseBundle.is_confirmed.is_(False)).all()
+        # Get all unconfirmed bundles
+        pending_bundles = self.database.query(DatabaseBundle)\
+            .filter(DatabaseBundle.is_confirmed.is_(False))\
+            .all()
 
+        # Get all tail transactions from the pending bundles
         tail_hashes = [bundle.tail_transaction_hash for bundle in pending_bundles]
+
+        # Get all bundles from the tangle
         tangle_bundles = self.provider.get_bundles(tail_hashes)
 
-        for bun in tangle_bundles:
-            database_bundles.filter(DatabaseBundle.hash.__eq__(bun.hash.__str__())).update({
-                DatabaseBundle.is_confirmed: bun.is_confirmed,
-            })
+        # Update pending bundles
+        for bundle in tangle_bundles:
+            self.database.query(DatabaseBundle)\
+                .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__()))\
+                .update({DatabaseBundle.is_confirmed: bundle.is_confirmed})
 
-        for bundle in bundles:
-            # store bundle in the database
-            self.database.add(DatabaseBundle(
-                hash=bundle.hash.__str__(),
-                tail_transaction_hash=bundle.tail_transaction.hash.__str__(),
-                count=len(bundle.transactions),
-                is_confirmed=False
-            ))
+        all_bundles = self.database.query(DatabaseBundle)\
+            .all()
+
+        if bundles:
+            for bundle in bundles:
+                # If the bundle isn't already in the database
+                if bundle not in all_bundles:
+                    # store bundle in the database
+                    self.database.add(DatabaseBundle(
+                        hash=bundle.hash.__str__(),
+                        tail_transaction_hash=bundle.tail_transaction.hash.__str__(),
+                        count=len(bundle.transactions),
+                        is_confirmed=bundle.is_confirmed
+                    ))
 
         self.database.commit()
 
