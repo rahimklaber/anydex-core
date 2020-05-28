@@ -20,11 +20,10 @@ class IotaProvider(Provider):
         :param seed: seed to use for all further API calls
         :return: initialized API
         """
-        # TODO: ensure couple of checked nodes / fetch regularly best from site such as https://iota-nodes.net/
-        # noinspection PyTypeChecker
         if node is None:  # TODO: check whether mainnet node works
             node = 'https://nodes.devnet.iota.org:443' if self.testnet else 'https://nodes.thetangle.org:443'
-        api = Iota(adapter=node, seed=seed, testnet=self.testnet, local_pow=True)
+
+        api = Iota(adapter=node, seed=seed, devnet=self.testnet, local_pow=True)
         return api
 
     def submit_transaction(self, tx):
@@ -80,7 +79,7 @@ class IotaProvider(Provider):
         :param security_level: factor that affects private key length; from 1 to 3
         :return: the new unspent address
         """
-        new_addresses = self.api.get_new_addresses(index=index, count=None, security_level=security_level)
+        new_addresses = self.api.get_new_addresses(index=index, count=1, security_level=security_level)
         return new_addresses['addresses'][0]
 
     def is_spent(self, address):

@@ -84,7 +84,6 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         spent_count = self.database.query(DatabaseAddress).count()
         address = self.provider.generate_address(index=spent_count)
         address_with_checksum = address.with_valid_checksum()
-        seed_id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed == self.seed.__str__()).one()
 
         # store address in the database
         self.database.add(DatabaseAddress(
@@ -127,13 +126,12 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.database.add(DatabaseBundle(
             hash=bundle.hash.__str__(),
             count=len(bundle.transactions),
-            is_pending=False
+            is_confirmed=False
         ))
         self.database.commit()
 
         # store bundle transactions in the database
         self.update_transactions_database(bundle.transactions)
-        self.database.commit()
         return succeed(bundle)
 
     def get_balance(self):
@@ -142,19 +140,24 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         :return: available balance, pending balance, currency, precision
         """
         if not self.created:
-            return succeed({'available': 0,
-                            'pending': 0,
-                            'currency': 'IOTA',
-                            'precision': self.precision()
-                            })
-        # TODO update database transactions
-        # if wallet created, fetch needed data
-        return succeed({
-            'available': self.provider.get_seed_balance(),
-            'pending': self.get_pending(),
-            'currency': 'IOTA',
-            'precision': self.precision()
-        })
+            response = succeed({
+                'available': 0,
+                'pending': 0,
+                'currency': 'IOTA',
+                'precision': self.precision()
+            })
+        else:
+            response = succeed({
+                'available': self.provider.get_seed_balance(),
+                'pending': self.get_pending(),
+                'currency': 'IOTA',
+                'precision': self.precision()
+            })
+
+        transactions = self.provider.get_seed_transactions()
+        self.update_transactions_database(transactions)
+
+        return response
 
     def get_pending(self):
         """
@@ -165,11 +168,15 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
             return 0
 
         # Get all transactions from the seed
-        transactions = self.provider.get_seed_transactions()
-        pending_balance = 0
+        tangle_transactions = self.provider.get_seed_transactions()
+        self.update_transactions_database(tangle_transactions)
+
+        database_transactions = self.database.query(DatabaseTransaction) \
+            .filter(DatabaseTransaction.seed.__eq__(self.seed.__str__())).all()
 
         # iterate through transaction and check whether they are confirmed
-        for tx in transactions:
+        pending_balance = 0
+        for tx in database_transactions:
             if not tx.is_confirmed:
                 pending_balance += tx.value
 
@@ -183,6 +190,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         transactions = self.provider.get_seed_transactions()
         self.update_transactions_database(transactions)
         return transactions
+        # TODO: fetch from database
+        # TODO: return json
 
     def monitor_transaction(self, txid):
         """
@@ -214,11 +223,10 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         for tx in transactions:
             # if transaction already exists in the database, update it
             query = self.database.query(DatabaseTransaction)\
-                .filter(DatabaseTransaction.hash.__eq__(tx.hash.__str__()))\
-                .all()
+                .filter(DatabaseTransaction.hash.__eq__(tx.hash.__str__())).all()
             if len(query) > 0:
                 query.update({
-                    DatabaseTransaction.is_pending: tx.is_confirmed,
+                    DatabaseTransaction.is_confirmed: tx.is_confirmed,
                 })
             # if no transaction in the database, create it
             else:
