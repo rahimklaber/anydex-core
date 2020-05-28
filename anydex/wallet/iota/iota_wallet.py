@@ -30,6 +30,9 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.created = self.wallet_exists()
 
     def create_wallet(self):
+        """
+        Create wallet by creating seed, storing it and setting up API access
+        """
         if self.created:
             return fail(RuntimeError(f'IOTA wallet with name {self.wallet_name} already exists.'))
 
@@ -39,12 +42,12 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.database.commit()
 
         # initialize connection with API through the provider and get an active non-spent address
-        self.provider = IotaProvider(self.testnet)
+        self.provider = IotaProvider(testnet=self.testnet, seed=self.seed)
         self.created = True
 
     def wallet_exists(self) -> bool:
         """
-        Checks whether the wallet has been created or not
+        Check whether the wallet has been created or not
         :return: boolean
         """
         query = self.database.query(DatabaseSeed)
@@ -55,7 +58,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
     def get_address(self):
         """
-        Returns a non-spent address: either old one from the database or a newly generated one
+        Return a non-spent address: either old one from the database or a newly generated one
         :return: a non-spent address
         """
         if not self.created:
@@ -77,22 +80,26 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         if len(non_spent) > 0:
             return non_spent[0]
 
-        # otherwise generate a new one with the new index
+        # otherwise generate a new one with the new index and append checksum to it
         spent_count = self.database.query(DatabaseAddress).count()
         address = self.provider.generate_address(index=spent_count)
-
-        # generating address with checksum and fetching seed's id
         address_with_checksum = address.with_valid_checksum()
         seed_id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed == self.seed.__str__()).one()
+
         # store address in the database
         self.database.add(DatabaseAddress(
             address=address_with_checksum,
-            seed_id=seed_id,
+            seed=self.seed,
         ))
 
         return address
 
     async def transfer(self, value: int, address: str):
+        """
+        Transfer specified value to a specified address and store the bundle and the transactions
+        :param value: amount of IOTA tokens to be sent
+        :param address: receiving address of the IOTA tokens
+        """
         if not self.created:
             return fail(RuntimeError('The wallet must be created transfers can be made'))
 
@@ -122,6 +129,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
             count=len(bundle.transactions),
             is_pending=False
         ))
+        self.database.commit()
 
         # store bundle transactions in the database
         self.update_transactions_database(bundle.transactions)
@@ -129,6 +137,10 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         return succeed(bundle)
 
     def get_balance(self):
+        """
+        Fetch the balance of the wallet: of all addresses specified for the seed
+        :return: available balance, pending balance, currency, precision
+        """
         if not self.created:
             return succeed({'available': 0,
                             'pending': 0,
@@ -147,7 +159,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
     def get_pending(self):
         """
         Get the pending balance of the given seed
-        :return: the balance
+        :return: the pending balance
         """
         if not self.create_wallet():
             return 0
@@ -164,13 +176,19 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         return pending_balance
 
     def get_transactions(self):
+        """
+        Fetch the transactions related to the seed through the API and store them
+        :return:
+        """
         transactions = self.provider.get_seed_transactions()
         self.update_transactions_database(transactions)
         return transactions
 
     def monitor_transaction(self, txid):
         """
-        Monitor a given transaction ID. Returns a Deferred that fires when the transaction is present.
+        Monitor a given transaction ID
+        :param txid: hash of a transaction that should be monitored
+        :return: Deferred that fires when the transaction is present
         """
         monitor_future = Future()
 
@@ -188,6 +206,10 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         return monitor_future
 
     def update_transactions_database(self, transactions):
+        """
+        Update the database by updating transaction list and spent addresses list
+        :param transactions: transactions to be stored or updated in the database
+        """
         # store all the transactions in the database
         for tx in transactions:
             # if transaction already exists in the database, update it

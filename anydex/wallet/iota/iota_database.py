@@ -9,7 +9,7 @@ Base = declarative_base()
 
 class DatabaseSeed(Base):
     """
-    Database definition for keys table.
+    Database definition for seeds.
     """
     __tablename__ = "seeds"
     id = Column(Integer, primary_key=True)
@@ -58,7 +58,7 @@ class DatabaseAddress(Base):
     __tablename__ = "addresses"
     id = Column(Integer, primary_key=True)
     address = Column(String(90), unique=True)  # 81 (address) + 9 (checksum)
-    seed_id = Column(Integer, ForeignKey('seeds.id'))
+    seed = Column(Integer, ForeignKey('seeds.seed'))
     is_spent = Column(Boolean, default=False)
 
 
