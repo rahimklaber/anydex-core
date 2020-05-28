@@ -1,10 +1,11 @@
 import os
 
-from ipv8.util import fail
+from ipv8.util import fail, succeed
 from stellar_sdk import Keypair
 
 from wallet.cryptocurrency import Cryptocurrency
 from wallet.stellar.xlm_db import initialize_db, Secret
+from wallet.stellar.xlm_provider import StellarProvider
 from wallet.wallet import Wallet
 
 
@@ -14,10 +15,10 @@ class StellarWallet(Wallet):
     """
     TESTNET = False
 
-    def __init__(self, db_path, provider=None):
+    def __init__(self, db_path, provider: StellarProvider = None):
 
         super().__init__()
-
+        self.provider = provider
         self.network = 'testnet' if self.TESTNET else Cryptocurrency.STELLAR.value
         self.min_confirmations = 0
         self.unlocked = True
@@ -46,8 +47,11 @@ class StellarWallet(Wallet):
         self._session.add(Secret(name=self.wallet_name, secret=keypair.secret, address=keypair.public_key))
         self._session.commit()
 
+        return succeed(None)
+
     def get_balance(self):
-        pass
+        return int(float(self.provider.get_balance(
+            address=self.keypair.public_key)) * 1e7)  # balance is not in smallest denomination
 
     async def transfer(self, *args, **kwargs):
         pass
@@ -59,10 +63,10 @@ class StellarWallet(Wallet):
         pass
 
     def min_unit(self):
-        pass
+        return 1
 
     def precision(self):
-        pass
+        return 7
 
     def monitor_transaction(self, txid):
         pass
