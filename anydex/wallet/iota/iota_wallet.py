@@ -130,7 +130,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         bundle = self.provider.submit_transaction(transaction)
 
         # store bundle and its transactions in the database
-        self.update_bundles_database(bundle)
+        self.update_bundles_database([bundle])
         self.update_transactions_database(bundle.transactions)
 
         return succeed(bundle)
@@ -141,16 +141,9 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         :return: available balance, pending balance, currency, precision
         """
         if not self.created:
-            response = succeed({
+            return succeed({
                 'available': 0,
                 'pending': 0,
-                'currency': 'IOTA',
-                'precision': self.precision()
-            })
-        else:
-            response = succeed({
-                'available': self.provider.get_seed_balance(),
-                'pending': self.get_pending(),
                 'currency': 'IOTA',
                 'precision': self.precision()
             })
@@ -159,6 +152,13 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         transactions = self.provider.get_seed_transactions()
         self.update_transactions_database(transactions)
         self.update_bundles_database()
+
+        response = succeed({
+            'available': self.provider.get_seed_balance(),
+            'pending': self.get_pending(),
+            'currency': 'IOTA',
+            'precision': self.precision()
+        })
 
         return response
 
@@ -176,7 +176,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.update_bundles_database()
 
         database_transactions = self.database.query(DatabaseTransaction) \
-            .filter(DatabaseTransaction.seed.__eq__(self.seed.__str__())).all()
+            .filter(DatabaseTransaction.seed.__eq__(self.seed.__str__()))\
+            .all()
 
         # iterate through transaction and check whether they are confirmed
         pending_balance = 0
@@ -216,7 +217,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                 'currency': self.get_identifier(),
                 'timestamp': db_tx.timestamp,
                 'bundle': self.database.query(DatabaseBundle)
-                    .filter(DatabaseBundle.hash == db_tx.bundle_id)
+                    .filter(DatabaseBundle.hash == db_tx.bundle)
                     .one_or_none().hash
             })
         return succeed(transactions)
@@ -242,10 +243,10 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         return monitor_future
 
-    def update_bundles_database(self, bundle=None):
+    def update_bundles_database(self, bundles=None):
         """
         Update the database by updating bundle list
-        :param bundle: bundle to be stored
+        :param bundles: bundle to be stored
         """
         database_bundles = self.database.query(DatabaseBundle)
         pending_bundles = database_bundles.filter(DatabaseBundle.is_confirmed.is_(False)).all()
@@ -254,15 +255,15 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         tangle_bundles = self.provider.get_bundles(tail_hashes)
 
         for bun in tangle_bundles:
-            database_bundles.filter(DatabaseBundle.hash.__eq__(bun.hash)).update({
+            database_bundles.filter(DatabaseBundle.hash.__eq__(bun.hash.__str__())).update({
                 DatabaseBundle.is_confirmed: bun.is_confirmed,
             })
 
-        if bundle is not None:
+        for bundle in bundles:
             # store bundle in the database
             self.database.add(DatabaseBundle(
                 hash=bundle.hash.__str__(),
-                tail_transaction_hash=bundle.tail_transaction.hash,
+                tail_transaction_hash=bundle.tail_transaction.hash.__str__(),
                 count=len(bundle.transactions),
                 is_confirmed=False
             ))
@@ -293,6 +294,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                     msg_sig=tx.signature_message_fragment.__str__(),
                     current_index=tx.current_index,
                     timestamp=tx.timestamp,
+                    is_confirmed=tx.is_confirmed,
                     bundle=tx.bundle_hash.__str__()
                 ))
                 # if sending from an address, mark it as spent in the database

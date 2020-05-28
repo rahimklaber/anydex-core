@@ -228,6 +228,7 @@ class TestIotaWallet(AbstractServer):
         wallet.get_balance = lambda: succeed({'available': 42, 'pending': 0,
                                               'currency': 'IOTA', 'precision': 6})
         wallet.provider.submit_transaction = lambda *_: bundle
+        wallet.provider.get_bundles = lambda tail_hashes: [bundle]
         # Send a correct transfer
         result = await wallet.transfer(1, self.txn.address.__str__())
 
@@ -286,6 +287,9 @@ class TestIotaWallet(AbstractServer):
         # Set up other wallet variables
         wallet.get_pending = lambda: 0
         wallet.provider.get_seed_balance = lambda: 42
+        wallet.provider.get_seed_transactions = lambda: []
+        wallet.update_transactions_database = lambda transactions: None
+        wallet.update_bundles_database = lambda: None
         # Get the balance of the uncreated wallet
         result = wallet.get_balance()
         self.assertIsInstance(result, Future)
@@ -305,7 +309,9 @@ class TestIotaWallet(AbstractServer):
         wallet = IotaWallet(self.session_base_dir, True)
         wallet.create_wallet()
         wallet.provider.get_seed_transactions = lambda: []
-        self.assertEqual(0, wallet.get_pending())
+        wallet.update_bundles_database = lambda: None
+        result = wallet.get_pending()
+        self.assertEqual(0, result)
 
     def test_get_pending_confirmed_transaction(self):
         """
@@ -315,10 +321,11 @@ class TestIotaWallet(AbstractServer):
         wallet.create_wallet()
         # Inject the valued transaction
         self.tx1.is_confirmed = True
-        wallet.database.query(DatabaseBundle).filter(DatabaseAddress.address.__eq__(self.tx1.address)).all = lambda: [self.tx1]
+        wallet.update_bundles_database = lambda: None
         wallet.provider.get_seed_transactions = lambda: [self.tx1]
+        result = wallet.get_pending()
         # Since the transaction is confirmed, no value should be added
-        self.assertEqual(0, wallet.get_pending())
+        self.assertEqual(0, result)
 
     def test_get_pending_multiple(self):
         """
@@ -328,12 +335,13 @@ class TestIotaWallet(AbstractServer):
         wallet.create_wallet()
         # Inject the valued transaction
         self.tx1.is_confirmed = False
-        wallet.database.query(DatabaseBundle).\
-            filter(DatabaseAddress.address.__eq__(self.tx1.address))\
-            .all = lambda: [self.tx1]
-        wallet.provider.get_seed_transactions = lambda: [self.tx1, self.tx1]
+        self.txn.is_confirmed = False
+        self.txn.value = 1
+        wallet.update_bundles_database = lambda: None
+        wallet.provider.get_seed_transactions = lambda: [self.tx1, self.txn]
         # Since the transaction is confirmed, no value should be added
-        self.assertEqual(2 * self.tx1.value, wallet.get_pending())
+        self.assertEqual(self.txn.value + self.tx1.value,
+                         wallet.get_pending())
 
     def test_get_transactions_before_creation(self):
         """
