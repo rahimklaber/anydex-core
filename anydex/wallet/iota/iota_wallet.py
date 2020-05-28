@@ -3,7 +3,7 @@ import re
 from abc import ABCMeta
 from asyncio import Future
 
-from iota.transaction import ProposedTransaction, Transaction
+from iota.transaction import ProposedTransaction
 from iota.types import Address
 from iota.crypto.types import Seed
 
@@ -13,7 +13,6 @@ from ipv8.util import succeed, fail
 from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction, DatabaseBundle, DatabaseAddress
 from anydex.wallet.iota.iota_provider import IotaProvider
-
 
 
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
@@ -130,17 +129,10 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         )
         bundle = self.provider.submit_transaction(transaction)
 
-        # store bundle in the database
-        self.database.add(DatabaseBundle(
-            hash=bundle.hash.__str__(),
-            count=len(bundle.transactions),
-            is_pending=False
-        ))
-        self.database.commit()
-
-        # store bundle transactions in the database
+        # store bundle and its transactions in the database
+        self.update_bundles_database(bundle)
         self.update_transactions_database(bundle.transactions)
-        self.database.commit()
+
         return succeed(bundle)
 
     def get_balance(self):
@@ -149,19 +141,26 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         :return: available balance, pending balance, currency, precision
         """
         if not self.created:
-            return succeed({'available': 0,
-                            'pending': 0,
-                            'currency': 'IOTA',
-                            'precision': self.precision()
-                            })
-        # TODO update database transactions
-        # if wallet created, fetch needed data
-        return succeed({
-            'available': self.provider.get_seed_balance(),
-            'pending': self.get_pending(),
-            'currency': 'IOTA',
-            'precision': self.precision()
-        })
+            response = succeed({
+                'available': 0,
+                'pending': 0,
+                'currency': 'IOTA',
+                'precision': self.precision()
+            })
+        else:
+            response = succeed({
+                'available': self.provider.get_seed_balance(),
+                'pending': self.get_pending(),
+                'currency': 'IOTA',
+                'precision': self.precision()
+            })
+
+        # update transactions and bundles database
+        transactions = self.provider.get_seed_transactions()
+        self.update_transactions_database(transactions)
+        self.update_bundles_database()
+
+        return response
 
     def get_pending(self):
         """
@@ -172,11 +171,16 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
             return 0
 
         # Get all transactions from the seed
-        transactions = self.provider.get_seed_transactions()
-        pending_balance = 0
+        tangle_transactions = self.provider.get_seed_transactions()
+        self.update_transactions_database(tangle_transactions)
+        self.update_bundles_database()
+
+        database_transactions = self.database.query(DatabaseTransaction) \
+            .filter(DatabaseTransaction.seed.__eq__(self.seed.__str__())).all()
 
         # iterate through transaction and check whether they are confirmed
-        for tx in transactions:
+        pending_balance = 0
+        for tx in database_transactions:
             if not tx.is_confirmed:
                 pending_balance += tx.value
 
@@ -238,6 +242,33 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         return monitor_future
 
+    def update_bundles_database(self, bundle=None):
+        """
+        Update the database by updating bundle list
+        :param bundle: bundle to be stored
+        """
+        database_bundles = self.database.query(DatabaseBundle)
+        pending_bundles = database_bundles.filter(DatabaseBundle.is_confirmed.is_(False)).all()
+
+        tail_hashes = [bundle.tail_transaction_hash for bundle in pending_bundles]
+        tangle_bundles = self.provider.get_bundles(tail_hashes)
+
+        for bun in tangle_bundles:
+            database_bundles.filter(DatabaseBundle.hash.__eq__(bun.hash)).update({
+                DatabaseBundle.is_confirmed: bun.is_confirmed,
+            })
+
+        if bundle is not None:
+            # store bundle in the database
+            self.database.add(DatabaseBundle(
+                hash=bundle.hash.__str__(),
+                tail_transaction_hash=bundle.tail_transaction.hash,
+                count=len(bundle.transactions),
+                is_confirmed=False
+            ))
+
+        self.database.commit()
+
     def update_transactions_database(self, transactions):
         """
         Update the database by updating transaction list and spent addresses list
@@ -247,11 +278,10 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         for tx in transactions:
             # if transaction already exists in the database, update it
             query = self.database.query(DatabaseTransaction)\
-                .filter(DatabaseTransaction.hash.__eq__(tx.hash.__str__()))\
-                .all()
+                .filter(DatabaseTransaction.hash.__eq__(tx.hash.__str__())).all()
             if len(query) > 0:
                 query.update({
-                    DatabaseTransaction.is_pending: tx.is_confirmed,
+                    DatabaseTransaction.is_confirmed: tx.is_confirmed,
                 })
             # if no transaction in the database, create it
             else:
@@ -263,7 +293,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                     msg_sig=tx.signature_message_fragment.__str__(),
                     current_index=tx.current_index,
                     timestamp=tx.timestamp,
-                    bundle_id=tx.bundle_hash.__str__()
+                    bundle=tx.bundle_hash.__str__()
                 ))
                 # if sending from an address, mark it as spent in the database
                 if tx.value <= 0:
