@@ -2,11 +2,13 @@ import unittest
 from asyncio import Future
 
 from iota import Address, Transaction, Bundle
+from iota.crypto.types import Seed
 from ipv8.util import succeed
 from sqlalchemy.orm import session as db_session
 
 from anydex.test.base import AbstractServer
-from anydex.wallet.iota.iota_database import DatabaseBundle, DatabaseAddress, DatabaseTransaction
+from anydex.wallet.iota.iota_database import DatabaseBundle, DatabaseAddress, DatabaseTransaction, DatabaseSeed
+from anydex.wallet.iota.iota_provider import IotaProvider
 from anydex.wallet.iota.iota_wallet import IotaWallet, IotaTestnetWallet
 from anydex.wallet.wallet import InsufficientFunds
 
@@ -333,9 +335,64 @@ class TestIotaWallet(AbstractServer):
         # Since the transaction is confirmed, no value should be added
         self.assertEqual(2 * self.tx1.value, wallet.get_pending())
 
+    def test_get_transactions_before_creation(self):
+        """
+        Tests the get transaction method for a wallet not yet created
+        """
+        wallet = IotaWallet(self.session_base_dir, True)
+        result = wallet.get_transactions()
+        expected = []
+        self.assertIsInstance(result, Future)
+        self.assertEqual(expected, result.result())
+
+    def test_get_transactions_zero_transactions(self):
+        """
+        Tests the get transaction method no transactions
+        """
+        wallet = IotaWallet(self.session_base_dir, True)
+        wallet.create_wallet()
+        wallet.provider.get_seed_transactions = lambda: []
+        result = wallet.get_transactions()
+        expected = []
+        self.assertIsInstance(result, Future)
+        self.assertEqual(expected, result.result())
+
+    def test_get_transactions_one_transaction(self):
+        """
+        Tests the get_transactions method for one transaction
+        :return:
+        """
+        wallet = IotaWallet(self.session_base_dir, True)
+        # Circumvent wallet creation
+        # In order to control the seed
+        wallet.seed = Seed('WKRHZILTMDEHELZCVZJSHWTLVGZBVDHEQQMG9LENEOMVRWGTJLSNWAMNF9HMPRTMGIONXXNDHUNRENDPX')
+        wallet.created = True
+        # Instantiate API
+        wallet.provider = IotaProvider(testnet=wallet.testnet, seed=wallet.seed)
+        # Mock the API call return
+        wallet.provider.get_seed_transactions = lambda: [self.tx1]
+        # Add the seed and the bundle to the database
+        wallet.database.add(DatabaseSeed(name=wallet.wallet_name, seed=wallet.seed.__str__()))
+        wallet.database.add(DatabaseBundle(hash=self.tx1.bundle_hash.__str__()))
+        # Commit changes
+        wallet.database.commit()
+        # Call the tested function
+        result = wallet.get_transactions()
+        # Construct expected response based on the values of tx1
+        expected = [{
+            'hash': self.tx1.hash.__str__(),
+            'outgoing': False,
+            'address': self.tx1.address.__str__(),
+            'amount': self.tx1.value,
+            'currency': 'IOTA',
+            'timestamp': self.tx1.timestamp,
+            'bundle': self.tx1.bundle_hash.__str__()
+        }]
+        self.assertIsInstance(result, Future)
+        self.assertEqual(expected, result.result())
+
     # TODO: test_get_address_from_provider ??????????
     # TODO: test sending multiple transactions
-    # TODO: test_get_transactions
     # TODO: test_monitor_transaction
     # TODO: test_monitor_transaction_invalid ? invalid transaction id ?
 

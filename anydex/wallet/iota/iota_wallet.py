@@ -20,14 +20,21 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
     def __init__(self, db_path, testnet, node):
         super().__init__()
-        self.seed = None
-        self.provider = None
         self.node = node
         self.testnet = testnet
         self.network = 'iota_testnet' if testnet else 'iota'
         self.wallet_name = 'iota testnet' if testnet else 'iota'
         self.database = initialize_db(os.path.join(db_path, 'iota.db'))
         self.created = self.wallet_exists()
+
+        if self.created:
+            self.seed = self.database.query(DatabaseSeed)\
+                .filter(DatabaseSeed.name.__eq__(self.wallet_name))\
+                .all()[0]
+            self.provider = IotaProvider(testnet=self.testnet, seed=self.seed)
+        else:
+            self.seed = None
+            self.provider = None
 
     def create_wallet(self):
         """
@@ -50,8 +57,9 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         Check whether the wallet has been created or not
         :return: boolean
         """
-        query = self.database.query(DatabaseSeed)
-        wallet_count = query.filter(DatabaseSeed.name.__eq__(self.wallet_name)).count()
+        wallet_count = self.database.query(DatabaseSeed)\
+            .filter(DatabaseSeed.name.__eq__(self.wallet_name))\
+            .count()
 
         # return self.database.query(exists().where(DatabaseSeed.name == self.wallet_name)).scalar() ???
         return wallet_count > 0
@@ -84,7 +92,6 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         spent_count = self.database.query(DatabaseAddress).count()
         address = self.provider.generate_address(index=spent_count)
         address_with_checksum = address.with_valid_checksum()
-        seed_id = self.database.query(DatabaseSeed).filter(DatabaseSeed.seed == self.seed.__str__()).one()
 
         # store address in the database
         self.database.add(DatabaseAddress(
@@ -180,9 +187,35 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         Fetch the transactions related to the seed through the API and store them
         :return:
         """
-        transactions = self.provider.get_seed_transactions()
-        self.update_transactions_database(transactions)
-        return transactions
+        if not self.created:
+            return succeed([])
+        # Get transactions from the tangle
+        transactions_from_node = self.provider.get_seed_transactions()
+        # Update the database transactions
+        self.update_transactions_database(transactions_from_node)
+        # Get the ID of the wallet seed
+        # Get all transactions of this seed
+        transactions_from_db = self.database.query(DatabaseTransaction)\
+            .filter(DatabaseTransaction.seed.__eq__(self.seed.__str__()))\
+            .all()
+
+        transactions = []
+        # Parse transactions
+        for db_tx in transactions_from_db:
+            transactions.append({
+                'hash': db_tx.hash,
+                'outgoing': db_tx.address in self.database.query(DatabaseAddress)
+                    .filter(DatabaseAddress.seed == self.seed.__str__())
+                    .all(),
+                'address': db_tx.address,
+                'amount': db_tx.value,
+                'currency': self.get_identifier(),
+                'timestamp': db_tx.timestamp,
+                'bundle': self.database.query(DatabaseBundle)
+                    .filter(DatabaseBundle.hash == db_tx.bundle_id)
+                    .one_or_none().hash
+            })
+        return succeed(transactions)
 
     def monitor_transaction(self, txid):
         """
