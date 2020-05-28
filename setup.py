@@ -27,7 +27,6 @@ setup(
         "sqlalchemy",
         "responses",
         'pyota',
-        "iota",
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
