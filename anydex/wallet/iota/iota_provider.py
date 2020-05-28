@@ -23,7 +23,7 @@ class IotaProvider(Provider):
         if node is None:  # TODO: check whether mainnet node works
             node = 'https://nodes.devnet.iota.org:443' if self.testnet else 'https://nodes.thetangle.org:443'
 
-        api = Iota(adapter=node, seed=seed, testnet=self.testnet, local_pow=True)
+        api = Iota(adapter=node, seed=seed, devnet=self.testnet, local_pow=True)
         return api
 
     def submit_transaction(self, tx):
