@@ -26,7 +26,7 @@ setup(
         "web3",
         "sqlalchemy",
         "responses",
-        'pyota',
+        'pyota==3.0.0b2',
         "iota",
     ],
     classifiers=[
