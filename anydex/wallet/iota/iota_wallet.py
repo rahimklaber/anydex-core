@@ -3,7 +3,7 @@ import re
 from abc import ABCMeta
 from asyncio import Future
 
-from iota.transaction import ProposedTransaction
+from iota.transaction import ProposedTransaction, Transaction
 from iota.types import Address
 from iota.crypto.types import Seed
 
@@ -135,7 +135,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                             'currency': 'IOTA',
                             'precision': self.precision()
                             })
-
+        # TODO update database transactions
         # if wallet created, fetch needed data
         return succeed({
             'available': self.provider.get_seed_balance(),
@@ -158,9 +158,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         # iterate through transaction and check whether they are confirmed
         for tx in transactions:
-            query = self.database.query(DatabaseBundle).filter(DatabaseAddress.address.__eq__(tx.address.__str__())).all()
-            # return self.database.query(exists().where(DatabaseAddress.address == tx.address)).scalar() ???
-            if not tx.is_confirmed and len(query) > 0:
+            if not tx.is_confirmed:
                 pending_balance += tx.value
 
         return pending_balance

@@ -64,7 +64,6 @@ class IotaProvider(Provider):
         account_data = self.api.get_account_data()
         wallet_addresses = account_data['addresses']
         transactions = Iota.find_transaction_objects(wallet_addresses)
-
         return transactions
 
     def generate_address(self, index=0, security_level=3):
