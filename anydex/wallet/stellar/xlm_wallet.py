@@ -31,7 +31,7 @@ class StellarWallet(Wallet):
             self.created = True
 
     def get_identifier(self):
-        pass
+        return 'XLM'
 
     def get_name(self):
         return Cryptocurrency.STELLAR.value
@@ -50,14 +50,31 @@ class StellarWallet(Wallet):
         return succeed(None)
 
     def get_balance(self):
-        return int(float(self.provider.get_balance(
-            address=self.keypair.public_key)) * 1e7)  # balance is not in smallest denomination
+
+        if not self.created:
+            return succeed({
+                'available': 0,
+                'pending': 0,
+                'currency': 'XLM',
+                'precision': self.precision()
+            })
+        xlm_balance = int(float(self.provider.get_balance(
+            address=self.get_address())) * 1e7)  # balance is not in smallest denomination
+        balance = {
+            'available': xlm_balance,
+            'pending': 0,
+            'currency': 'XLM',
+            'precision': self.precision()
+        }
+        return succeed(balance)
 
     async def transfer(self, *args, **kwargs):
         pass
 
     def get_address(self):
-        pass
+        if not self.created:
+            return ''
+        return self.keypair.public_key
 
     def get_transactions(self):
         pass

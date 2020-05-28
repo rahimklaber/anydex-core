@@ -27,4 +27,4 @@ class HorizonProvider(StellarProvider):
         return self.server.accounts().account_id(address).call()["balances"][0]["balance"]
 
     def get_transactions(self, address):
-        pass
+        return self.server.transactions().for_account(address).call()
