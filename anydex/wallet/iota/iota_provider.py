@@ -56,7 +56,7 @@ class IotaProvider(Provider):
         """
         Retrieve all the transactions associated with the given address
         :param address: address whose transactions are being retrieved
-        :return: a list of all transactions retrieved
+        :return: a list of all fetched transactions
         """
         transactions = self.api.find_transaction_objects(addresses=[address])
         return transactions
@@ -64,13 +64,22 @@ class IotaProvider(Provider):
     def get_seed_transactions(self):
         """
         Retrieve all the transactions associated with the given seed
-        :return: a list of all transactions retrieved
+        :return: a list of all fetched transactions
         """
         # fetch transactions from wallet_addresses from account_data
         account_data = self.api.get_account_data()
         wallet_addresses = account_data['addresses']
         transactions = Iota.find_transaction_objects(wallet_addresses)
         return transactions
+
+    def get_bundles(self, tail_tx_hashes: list):
+        """
+        Retrieve all the bundles associated with the given tail transaction hashes
+        :param tail_tx_hashes: tail transaction hash using which bundle can be fetched
+        :return: a list of all fetched bundles
+        """
+        bundles = self.api.get_bundles(tail_tx_hashes)
+        return bundles
 
     def generate_address(self, index=0, security_level=3):
         """
