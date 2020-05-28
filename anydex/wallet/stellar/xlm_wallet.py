@@ -77,7 +77,14 @@ class StellarWallet(Wallet):
         return self.keypair.public_key
 
     def get_transactions(self):
-        pass
+        """
+        Transactions in stellar is different from etheruem or bitcoin.
+        A payment in stellar is the same as a transactions in ethereum or bitcoin.
+        Even though this method is called get_transactions (for compat with the wallet api) it returns the `payments`
+        related to this wallet.
+        :return: list of payments related to the wallet.
+        """
+        
 
     def min_unit(self):
         return 1
