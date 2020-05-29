@@ -81,10 +81,7 @@ class IotaProvider(Provider):
         :param tail_tx_hashes: tail transaction hash using which bundle can be fetched
         :return: a list of all fetched bundles
         """
-        bundles = []
-        for tx_hash in tail_tx_hashes:
-            # Get the bundle for each hash
-            bundles.append(self.api.get_bundles(tx_hash))
+        bundles = self.api.get_bundles(tail_tx_hashes)['bundles']
         return bundles
 
     def generate_address(self, index=0, security_level=3):
