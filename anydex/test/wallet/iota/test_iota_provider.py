@@ -159,8 +159,6 @@ class TestIotaProvider(unittest.TestCase):
         provider.api.get_account_data = lambda: {'balance': 0}
         self.assertEqual(provider.get_seed_balance(), 0)
 
-    # TODO: test_initialize_api_invalid_seed ?
-
     def test_submit_transaction(self):
         bundle = Bundle([Transaction.from_tryte_string(self.get_transactions_tryte[0])])
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
