@@ -311,7 +311,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                     current_index=tx.current_index,
                     timestamp=tx.timestamp,
                     is_confirmed=tx.is_confirmed,
-                    bundle=tx.bundle_hash.__str__()
+                    bundle_hash=tx.bundle_hash.__str__()
                 ))
                 # if sending from an address, mark it as spent in the database
                 if tx.value <= 0:
