@@ -1,7 +1,7 @@
 import unittest
 from anydex.wallet.iota.iota_provider import IotaProvider
 from iota.crypto.types import Seed
-from iota.transaction import ProposedTransaction, Bundle
+from iota.transaction import ProposedTransaction, Bundle, Transaction
 from iota.types import Address
 from iota.api import Iota
 
@@ -51,8 +51,6 @@ class TestIotaProvider(unittest.TestCase):
     def tearDown(self):
         pass
 
-    # TODO: test_initialize_api_anonymously ?
-
     def test_initialize_api_correct_seed(self):
         seed = Seed.random()
         provider = IotaProvider(testnet=True, node=self.node, seed=seed)
@@ -61,16 +59,12 @@ class TestIotaProvider(unittest.TestCase):
 
     # TODO: test_initialize_api_invalid_seed ?
 
-    # TODO: it never ends??
     def test_submit_transaction(self):
-        transaction1 = ProposedTransaction(
-            address=Address(self.seed_2_address_1),
-            value=0
-        )
+        bundle = Bundle([Transaction.from_tryte_string(self.get_transactions_tryte[0])])
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
-        provider.api.send_transfer = lambda transfers: {'bundle': Bundle.from_tryte_strings(self.submit_response_tryte)}
-        self.assertEqual(Bundle.from_tryte_strings(self.submit_response_tryte),
-                         provider.submit_transaction(tx=[transaction1]))
+        provider.api.send_transfer = lambda transfers: {'bundle': bundle}
+        self.assertEqual(Bundle.as_tryte_strings(bundle), Bundle.as_tryte_strings(
+            provider.submit_transaction(tx=[Transaction.from_tryte_string(self.get_transactions_tryte[0])])))
 
     def test_submit_transaction_invalid_tx(self):
         transaction1 = ProposedTransaction(
