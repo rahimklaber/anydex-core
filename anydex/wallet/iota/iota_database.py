@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, create_engine, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, create_engine, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -30,12 +30,7 @@ class DatabaseTransaction(Base):
     current_index = Column(Integer)
     timestamp = Column(Integer)
     is_confirmed = Column(Boolean, default=False)
-    bundle = Column(Integer, ForeignKey('bundles.hash'))
-
-    # transaction_index = Column(Integer)
-
-    def __eq__(self, other):
-        return self.hash == other.hash
+    bundle_hash = Column(Integer, ForeignKey('bundles.hash'))
 
 
 class DatabaseBundle(Base):

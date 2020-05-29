@@ -21,9 +21,12 @@ class IotaProvider(Provider):
         :return: initialized API
         """
         if node is None:  # TODO: check whether mainnet node works
-            node = 'https://nodes.devnet.iota.org:443' if self.testnet else 'https://nodes.thetangle.org:443'
+            if self.testnet:
+                node = 'https://nodes.devnet.iota.org:443'
+            else:
+                node = 'https://nodes.thetangle.org:443'
 
-        api = Iota(adapter=node, seed=seed, testnet=self.testnet, local_pow=True)
+        api = Iota(adapter=node, seed=seed, devnet=self.testnet, local_pow=True)
         return api
 
     def submit_transaction(self, tx):
@@ -69,7 +72,7 @@ class IotaProvider(Provider):
         # fetch transactions from wallet_addresses from account_data
         account_data = self.api.get_account_data()
         wallet_addresses = account_data['addresses']
-        transactions = Iota.find_transaction_objects(wallet_addresses)
+        transactions = self.api.find_transaction_objects(addresses=wallet_addresses)
         return transactions
 
     def get_bundles(self, tail_tx_hashes: list):
@@ -78,10 +81,7 @@ class IotaProvider(Provider):
         :param tail_tx_hashes: tail transaction hash using which bundle can be fetched
         :return: a list of all fetched bundles
         """
-        bundles = []
-        for tx_hash in tail_tx_hashes:
-            # Get the bundle for each hash
-            bundles.append(self.api.get_bundles(tx_hash))
+        bundles = self.api.get_bundles(tail_tx_hashes)['bundles']
         return bundles
 
     def generate_address(self, index=0, security_level=3):
