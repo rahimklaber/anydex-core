@@ -24,7 +24,7 @@ class IotaProvider(Provider):
             if self.testnet:
                 node = 'https://nodes.devnet.iota.org:443'
             else:
-                'https://nodes.thetangle.org:443'
+                node = 'https://nodes.thetangle.org:443'
 
         api = Iota(adapter=node, seed=seed, devnet=self.testnet, local_pow=True)
         return api

@@ -210,17 +210,23 @@ class TestIotaProvider(unittest.TestCase):
         self.assertEqual(provider.get_seed_transactions(), self.get_seed_transactions_tryte)
 
     # TODO: test_get_pending
-    # TODO: test_generate_address
+
+    def test_generate_address(self):
+        provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
+        provider.api.get_new_addresses = lambda index, count, security_level: \
+            {'addresses': [Address(self.seed_1_address_1)]}
+        new_address = provider.generate_address()
+        self.assertEqual(new_address, self.seed_1_address_1)
 
     def test_is_spent_true(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
-        provider.api.were_addresses_spent_from = lambda addresses: {'states': [True], 'duration': 0}
+        provider.api.were_addresses_spent_from = lambda *_: {'states': [True], 'duration': 0}
         is_spent = provider.is_spent(Address(self.seed_1_address_1))
         self.assertTrue(is_spent)
 
     def test_is_spent_false(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
-        provider.api.were_addresses_spent_from = lambda addresses: {'states': [False], 'duration': 0}
+        provider.api.were_addresses_spent_from = lambda *_: {'states': [False], 'duration': 0}
         is_spent = provider.is_spent(Address(self.seed_1_address_1))
         self.assertFalse(is_spent)
 
