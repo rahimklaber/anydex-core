@@ -42,6 +42,21 @@ class Payment(Base):
         return self.payment_id == other.payment_id
 
 
+class Transaction:
+    __tablename__ = 'transactions'
+    id = Column(Integer, primary_key=True)
+    hash = Column(String, unique=True)
+    date_time = Column(DateTime)
+    fee = Column(Integer)
+    source_account = Column(String)
+    operation_count = Column(Integer)
+    succeeded = Column(Boolean, default=True)
+    sequence_number = Column(Integer)
+    transaction_envelope = Column(String)  # base64 encode xdr
+    min_time_bound = Column(DateTime)  # unix time stamp
+    max_time_bound = Column(DateTime)  # unix time stamp
+
+
 def initialize_db(db_path):
     engine = create_engine(f'sqlite:///{db_path}', echo=False)
     Base.metadata.create_all(engine)
