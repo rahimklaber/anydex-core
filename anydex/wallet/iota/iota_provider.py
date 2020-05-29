@@ -69,7 +69,7 @@ class IotaProvider(Provider):
         # fetch transactions from wallet_addresses from account_data
         account_data = self.api.get_account_data()
         wallet_addresses = account_data['addresses']
-        transactions = Iota.find_transaction_objects(wallet_addresses)
+        transactions = self.api.find_transaction_objects(addresses=wallet_addresses)
         return transactions
 
     def get_bundles(self, tail_tx_hashes: list):
