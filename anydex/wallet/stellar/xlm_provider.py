@@ -6,6 +6,7 @@ from wallet.provider import Provider
 from wallet.stellar.xlm_db import Payment
 from datetime import datetime
 
+
 class StellarProvider(Provider, metaclass=abc.ABCMeta):
     """
     Abstract class defining all method a stellar provider needs to have
@@ -49,7 +50,7 @@ class HorizonProvider(StellarProvider):
         :param payment: create account payment from api
         :return: Payment object
         """
-        return Payment(payment_id=payment['id'],
+        return Payment(payment_id=int(payment['id']),
                        from_=payment['funder'],
                        to=payment['account'],
                        amount=int(float(payment['starting_balance']) * 1e7),  # todo make this not use a literal
@@ -64,7 +65,7 @@ class HorizonProvider(StellarProvider):
         :param payment: Payment from the api
         :return: A list of payment objects
         """
-        return Payment(payment_id=payment['id'],
+        return Payment(payment_id=int(payment['id']),
                        from_=payment['from'],
                        to=payment['to'],
                        amount=int(float(payment['amount']) * 1e7),  # todo make this not use a literal

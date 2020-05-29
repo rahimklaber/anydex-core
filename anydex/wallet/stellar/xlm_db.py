@@ -23,17 +23,23 @@ class Payment(Base):
     """
     __tablename__ = 'payments'
     id = Column(Integer, primary_key=True)
-    payment_id = Column(Integer)
+    payment_id = Column(Integer, unique=True)
     succeeded = Column(Boolean)
     from_ = Column(String)
     to = Column(String)
     transaction_hash = Column(String)  # tx this payment is a part of
     amount = Column(Integer)
     asset_type = Column(String)  # we might support more assets
-    date_time = Column(DateTime)
+    date_time = Column(DateTime)  # this is in utc
+    is_pending = Column(Boolean, default=False)
 
     def __repr__(self):
         return f"xlm_db.Payment({self.payment_id}, {self.from_}, {self.to}, {self.asset_type}, {self.amount} )"
+
+    def __eq__(self, other):
+        if not isinstance(other, Payment):
+            raise NotImplementedError(f'cannot compare equality between{self} and {other}')
+        return self.payment_id == other.payment_id
 
 
 def initialize_db(db_path):

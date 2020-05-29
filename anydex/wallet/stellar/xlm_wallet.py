@@ -1,10 +1,12 @@
 import os
+import time
 
 from ipv8.util import fail, succeed
+from sqlalchemy import func
 from stellar_sdk import Keypair
 
 from wallet.cryptocurrency import Cryptocurrency
-from wallet.stellar.xlm_db import initialize_db, Secret
+from wallet.stellar.xlm_db import initialize_db, Secret, Payment
 from wallet.stellar.xlm_provider import StellarProvider
 from wallet.wallet import Wallet
 
@@ -60,9 +62,10 @@ class StellarWallet(Wallet):
             })
         xlm_balance = int(float(self.provider.get_balance(
             address=self.get_address())) * 1e7)  # balance is not in smallest denomination
+        pending_outgoing = self.get_outgoing_amount()
         balance = {
-            'available': xlm_balance,
-            'pending': 0,
+            'available': xlm_balance - pending_outgoing,
+            'pending': 0,  # transactions are confirmed every 5 secs, so is this worth doing?
             'currency': 'XLM',
             'precision': self.precision()
         }
@@ -76,6 +79,16 @@ class StellarWallet(Wallet):
             return ''
         return self.keypair.public_key
 
+    def get_outgoing_amount(self):
+        """
+        Get the amount of lumens we are sending but is not yet confirmed.
+        :return:
+        """
+        pending_outgoing = self._session.query(func.sum(Payment.amount)).filter(Payment.is_pending.is_(True)).filter(
+            Payment.from_ == self.get_address()).first()[0]
+
+        return pending_outgoing if pending_outgoing else 0
+
     def get_transactions(self):
         """
         Transactions in stellar is different from etheruem or bitcoin.
@@ -84,7 +97,44 @@ class StellarWallet(Wallet):
         related to this wallet.
         :return: list of payments related to the wallet.
         """
-        
+        if not self.created:
+            return succeed(None)
+
+        payments = self.provider.get_transactions(self.get_address())
+
+        self._update_db(payments)
+
+        payments_to_return = []
+        for payment in payments:
+            payments_to_return.append({
+                'id': payment.payment_id,
+                'outgoing': payment.from_ == self.get_address(),
+                'from': payment.from_,
+                'to': payment.to,
+                'amount': payment.amount,
+                'fee_amount': 0,  # placeholder
+                'currency': self.get_identifier(),
+                'timestamp': time.mktime(payment.date_time.timetuple()),
+                'description': f'memo:  '
+            })
+
+        return succeed(payments_to_return)
+
+    def _update_db(self, payments):
+        """
+        Update the payments table with the specified payments.
+        """
+        pending_payments = self._session.query(Payment).filter(Payment.is_pending.is_(True)).all()
+        confirmed_payments = self._session.query(Payment).filter(Payment.is_pending.is_(False)).all()
+        for payment in payments:
+            if payment in pending_payments:
+                self._session.query(Payment).filter(Payment.payment_id == payment.payment_id).update({
+                    Payment.is_pending: False,
+                    Payment.succeeded: payment.succeeded
+                })
+            elif payment not in confirmed_payments:
+                self._session.add(payment)
+        self._session.commit()
 
     def min_unit(self):
         return 1
