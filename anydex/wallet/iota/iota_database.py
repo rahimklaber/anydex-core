@@ -30,7 +30,7 @@ class DatabaseTransaction(Base):
     current_index = Column(Integer)
     timestamp = Column(Integer)
     is_confirmed = Column(Boolean, default=False)
-    bundle = Column(Integer, ForeignKey('bundles.hash'))
+    bundle_hash = Column(Integer, ForeignKey('bundles.hash'))
 
     # transaction_index = Column(Integer)
 

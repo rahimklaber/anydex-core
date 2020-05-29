@@ -21,7 +21,10 @@ class IotaProvider(Provider):
         :return: initialized API
         """
         if node is None:  # TODO: check whether mainnet node works
-            node = 'https://nodes.devnet.iota.org:443' if self.testnet else 'https://nodes.thetangle.org:443'
+            if self.testnet:
+                node = 'https://nodes.devnet.iota.org:443'
+            else:
+                'https://nodes.thetangle.org:443'
 
         api = Iota(adapter=node, seed=seed, devnet=self.testnet, local_pow=True)
         return api
