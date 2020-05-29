@@ -209,7 +209,16 @@ class TestIotaProvider(unittest.TestCase):
         provider.api.find_transaction_objects = lambda addresses: self.get_seed_transactions_tryte
         self.assertEqual(provider.get_seed_transactions(), self.get_seed_transactions_tryte)
 
-    # TODO: test_get_pending
+    def test_get_bundles(self):
+        bundle1 = Bundle([self.get_seed_transactions_tryte[0]])
+        bundle2 = Bundle([self.get_seed_transactions_tryte[1]])
+        provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
+        transaction_hash1 = self.get_seed_transactions_tryte[0].hash
+        transaction_hash2 = self.get_seed_transactions_tryte[1].hash
+        bundles = [bundle1, bundle2]
+        provider.api.get_bundles = lambda transactions: {'bundles': bundles}
+        transaction_hashes = [transaction_hash1, transaction_hash2]
+        self.assertListEqual(bundles, provider.get_bundles(tail_tx_hashes=transaction_hashes))
 
     def test_generate_address(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
