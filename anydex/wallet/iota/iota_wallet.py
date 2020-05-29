@@ -222,8 +222,9 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                 'currency': self.get_identifier(),
                 'timestamp': db_tx.timestamp,
                 'bundle': self.database.query(DatabaseBundle)
-                    .filter(DatabaseBundle.hash == db_tx.bundle)
-                    .one_or_none().hash
+                    .filter(DatabaseBundle.hash.__eq__(db_tx.bundle.__str__()))
+                    .one()
+                    .hash
             })
         return succeed(transactions)
 
@@ -238,7 +239,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         async def monitor():
             transactions = await self.get_transactions()
             for transaction in transactions:
-                if transaction.hash == txid:
+                if transaction.hash.__str__().__eq__(txid):
                     self._logger.debug("Found transaction with id %s", txid)
                     monitor_future.set_result(None)
                     monitor_task.cancel()
