@@ -109,11 +109,23 @@ class TestIotaWallet(AbstractServer):
         db_session.close_all_sessions()
         await super().tearDown()
 
+    def new_wallet(self):
+        return IotaWallet(self.session_base_dir, True)
+
+    def name(self):
+        return 'iota'
+
+    def identifier(self):
+        return 'IOTA'
+
+    def testnet(self):
+        return False
+
     def test_min_unit(self):
         """
         Test the min_unit function
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         result = wallet.min_unit()
         self.assertEqual(0, result)
 
@@ -121,31 +133,31 @@ class TestIotaWallet(AbstractServer):
         """
         Test the is_testnet function
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         result = wallet.is_testnet()
-        self.assertEqual(False, result)
+        self.assertEqual(self.testnet(), result)
 
     def test_get_name(self):
         """
         Test for get_name
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         result = wallet.get_name()
-        self.assertEqual('iota', result)
+        self.assertEqual(self.name(), result)
 
     def test_get_identifier(self):
         """
         Test for get identifier
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         result = wallet.get_identifier()
-        self.assertEqual('IOTA', result)
+        self.assertEqual(self.identifier(), result)
 
     def test_create_wallet(self):
         """
         Test wallet creation and side effects
         """
-        wallet = IotaWallet(self.session_base_dir, None)
+        wallet = self.new_wallet()
         # Check that wallet is not automatically created
         self.assertFalse(wallet.created)
         # Create the wallet
@@ -159,7 +171,7 @@ class TestIotaWallet(AbstractServer):
         """
         Tests creating an already created wallet
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()  # Create the wallet once
         response = wallet.create_wallet()
         # Check that an exception is returned when a wallet is created again
@@ -175,10 +187,10 @@ class TestIotaWallet(AbstractServer):
         Are identical.
         """
         # Create a wallet
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         # Instantiate another wallet, without creating it
-        new_wallet = IotaWallet(self.session_base_dir, True)
+        new_wallet = self.new_wallet()
         # Assert equality of name and seed
         self.assertEqual(wallet.wallet_name, new_wallet.wallet_name)
         self.assertEqual(wallet.seed, new_wallet.seed)
@@ -187,7 +199,7 @@ class TestIotaWallet(AbstractServer):
         """
         Tests the good and bad weather cases of wallet_exist
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         # Wallet is instantiated, but not created
         self.assertFalse(wallet.wallet_exists())
         # Create the wallet
@@ -199,7 +211,7 @@ class TestIotaWallet(AbstractServer):
         """
         Bad weather test case for getting an address
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         # Prepare the expected result
         future = Future()
         future.set_result([])
@@ -213,7 +225,7 @@ class TestIotaWallet(AbstractServer):
         """
         Tests correct address retrieval from the database.
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         address_length = 81
         # Create the wallet
         wallet.create_wallet()
@@ -228,7 +240,7 @@ class TestIotaWallet(AbstractServer):
         """
         Tests getting a new address when all current addresses are spent
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         address_length = 81
         # Create the wallet
         wallet.create_wallet()
@@ -261,7 +273,7 @@ class TestIotaWallet(AbstractServer):
         """
         Tests the bad weather case of transfering before wallet creation.
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         # Address taken from IOTA documentation.
         to_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9' \
                      'KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
@@ -275,14 +287,14 @@ class TestIotaWallet(AbstractServer):
         """
         Tests the transfer when the balance of the wallet is insufficient
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         # Address taken from IOTA documentation.
         to_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9' \
                      'KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
         # Set up mocks.
         wallet.get_balance = lambda: succeed({'available': 0, 'pending': 0,
-                                              'currency': 'IOTA', 'precision': 6})
+                                              'currency': self.identifier(), 'precision': 6})
         # Try sending a transfer with a value higher than the
         # Available amount.
         result = await wallet.transfer(1, to_address)
@@ -294,13 +306,13 @@ class TestIotaWallet(AbstractServer):
         """
         Test the transfer of a negative amount of IOTA
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         # Address taken from IOTA documentation.
         to_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9' \
                      'KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
         wallet.get_balance = lambda: succeed({'available': 42, 'pending': 0,
-                                              'currency': 'IOTA', 'precision': 6})
+                                              'currency': self.identifier(), 'precision': 6})
         # Try sending the invalid amount
         result = await wallet.transfer(-1, to_address)
         # Assert type and contents.
@@ -311,13 +323,13 @@ class TestIotaWallet(AbstractServer):
         """
         Test the transfer of a negative amount of IOTA
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         # Address contains a random lower case letter
         to_address = 'ZLGVEQ9JUZZWCZXLWVaTHBDX9G9' \
                      'KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
         wallet.get_balance = lambda: succeed({'available': 42, 'pending': 0,
-                                              'currency': 'IOTA', 'precision': 6})
+                                              'currency': self.identifier(), 'precision': 6})
         # Try sending the invalid amount
         result = await wallet.transfer(0, to_address)
         # Assert type and contents.
@@ -329,11 +341,11 @@ class TestIotaWallet(AbstractServer):
         Tests the good weather case for transfers
         """
         bundle = Bundle([self.txn])
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         # Set up mocks.
         wallet.get_balance = lambda: succeed({'available': 42, 'pending': 0,
-                                              'currency': 'IOTA', 'precision': 6})
+                                              'currency': self.identifier(), 'precision': 6})
         wallet.provider.submit_transaction = lambda *_: bundle
         wallet.provider.get_bundles = lambda tail_hashes: [bundle]
         # Send a correct transfer
@@ -367,11 +379,11 @@ class TestIotaWallet(AbstractServer):
         """
         Tests getting a balance before a wallet is created
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         expected = {
             'available': 0,
             'pending': 0,
-            'currency': 'IOTA',
+            'currency': self.identifier(),
             'precision': 6
         }
         # Get the balance of the uncreated wallet
@@ -383,12 +395,12 @@ class TestIotaWallet(AbstractServer):
         """
         Tests getting a balance before a wallet is created
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         expected = {
             'available': 42,
             'pending': 0,
-            'currency': 'IOTA',
+            'currency': self.identifier(),
             'precision': 6
         }
         # Set up other wallet variables
@@ -406,14 +418,15 @@ class TestIotaWallet(AbstractServer):
         """
         Tests the pending balance of an uncreated wallet
         """
-        wallet = IotaWallet(self.session_base_dir, True)
-        self.assertEqual(0, wallet.get_pending())
+        wallet = self.new_wallet()
+        result = wallet.get_pending()
+        self.assertEqual(0, result)
 
     def test_get_pending_no_transactions(self):
         """
         Tests the pending balance with no transactions
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         wallet.provider.get_seed_transactions = lambda: []
         wallet.update_bundles_database = lambda: None
@@ -424,7 +437,7 @@ class TestIotaWallet(AbstractServer):
         """
         Tests the pending balance with no transactions
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         # Inject the valued transaction
         self.tx1.is_confirmed = True
@@ -438,7 +451,7 @@ class TestIotaWallet(AbstractServer):
         """
         Tests the pending balance with no transactions
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         # Inject the valued transaction
         self.tx1.is_confirmed = False
@@ -454,7 +467,7 @@ class TestIotaWallet(AbstractServer):
         """
         Tests the get transaction method for a wallet not yet created
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         result = wallet.get_transactions()
         expected = []
         self.assertIsInstance(result, Future)
@@ -464,7 +477,7 @@ class TestIotaWallet(AbstractServer):
         """
         Tests the get transaction method no transactions
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         wallet.provider.get_seed_transactions = lambda: []
         result = wallet.get_transactions()
@@ -477,7 +490,7 @@ class TestIotaWallet(AbstractServer):
         Tests the get_transactions method for one transaction
         :return:
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         # Circumvent wallet creation
         # In order to control the seed
         wallet.seed = Seed('WKRHZILTMDEHELZCVZJSHWTLVGZBVDHEQQMG9LENEOMVRWGTJLSNWAMNF9HMPRTMGIONXXNDHUNRENDPX')
@@ -499,7 +512,7 @@ class TestIotaWallet(AbstractServer):
             'outgoing': False,
             'address': self.tx1.address.__str__(),
             'amount': self.tx1.value,
-            'currency': 'IOTA',
+            'currency': self.identifier(),
             'timestamp': self.tx1.timestamp,
             'bundle': self.tx1.bundle_hash.__str__()
         }]
@@ -510,7 +523,7 @@ class TestIotaWallet(AbstractServer):
         """
         Tests updating the confirmation value of a bundle
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         bundle = Bundle([self.tx1])
         # Make sure the bundle is confirmed
@@ -538,7 +551,7 @@ class TestIotaWallet(AbstractServer):
         """
         Tests that updating the bundles does incorrectly update confirmation
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         bundle = Bundle([self.tx1])
         # Make sure the bundle is confirmed
@@ -563,7 +576,7 @@ class TestIotaWallet(AbstractServer):
         self.assertEqual(bundle_after.hash, bundle.hash.__str__())
 
     def test_bundle_no_tangle_bundles(self):
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         # Mock API response
         wallet.provider.get_bundles = lambda tail_hashes: []
@@ -576,7 +589,7 @@ class TestIotaWallet(AbstractServer):
         """
         Tests that new bundles are correctly inserted in the database
         """
-        wallet = IotaWallet(self.session_base_dir, True)
+        wallet = self.new_wallet()
         wallet.create_wallet()
         bundle = Bundle([self.tx1])
         # Create DatabaseBundle based on tx1
@@ -603,27 +616,21 @@ class TestIotaWallet(AbstractServer):
         self.assertEqual(expected.count, bundle_after.count)
         self.assertEqual(expected.is_confirmed, bundle_after.is_confirmed)
 
-# class TestIotaTestnetWallet(AbstractServer):
-#     def setUp(self):
-#         pass
-#
-#     def tearDown(self):
-#         pass
-#
-#     def test_get_name(self):
-#         """
-#         Test for get_name
-#         """
-#         wallet = IotaTestnetWallet(self.session_base_dir, True)
-#         self.assertEqual('Testnet IOTA', wallet.get_name())
-#
-#     def test_get_identifier(self):
-#         """
-#         Test for get identifier
-#         """
-#         wallet = IotaTestnetWallet(self.session_base_dir, True)
-#         self.assertEqual('TIOTA', wallet.get_identifier())
-#
-#
-# if __name__ == '__main__':
-#     unittest.main()
+
+class TestIotaTestnetWallet(TestIotaWallet):
+
+    def new_wallet(self):
+        return IotaTestnetWallet(self.session_base_dir, True)
+
+    def identifier(self):
+        return 'TIOTA'
+
+    def name(self):
+        return 'Testnet IOTA'
+
+    def testnet(self):
+        return True
+
+
+if __name__ == '__main__':
+    unittest.main()

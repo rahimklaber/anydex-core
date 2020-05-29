@@ -42,7 +42,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         Create wallet by creating seed, storing it and setting up API access
         """
         if self.created:
-            return fail(RuntimeError(f'IOTA wallet with name {self.wallet_name} already exists.'))
+            return fail(RuntimeError('%s wallet with name %s already exists.',
+                                     self.get_identifier(), self.wallet_name))
 
         # generate random seed and store it in the database as a String instead of TryteString
         self.seed = Seed.random()
@@ -150,7 +151,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
             return succeed({
                 'available': 0,
                 'pending': 0,
-                'currency': 'IOTA',
+                'currency': self.get_identifier(),
                 'precision': self.precision()
             })
 
@@ -162,7 +163,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         response = succeed({
             'available': self.provider.get_seed_balance(),
             'pending': self.get_pending(),
-            'currency': 'IOTA',
+            'currency': self.get_identifier(),
             'precision': self.precision()
         })
 
