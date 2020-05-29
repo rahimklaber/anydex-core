@@ -11,7 +11,8 @@ from anydex.wallet.wallet import Wallet, InsufficientFunds
 from ipv8.util import succeed, fail
 
 from anydex.wallet.cryptocurrency import Cryptocurrency
-from anydex.wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction, DatabaseBundle, DatabaseAddress
+from anydex.wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction, DatabaseBundle, \
+    DatabaseAddress
 from anydex.wallet.iota.iota_provider import IotaProvider
 
 
@@ -27,8 +28,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.created = self.wallet_exists()
 
         if self.created:
-            db_seed = self.database.query(DatabaseSeed)\
-                .filter(DatabaseSeed.name.__eq__(self.wallet_name))\
+            db_seed = self.database.query(DatabaseSeed) \
+                .filter(DatabaseSeed.name.__eq__(self.wallet_name)) \
                 .one()
             self.seed = Seed(db_seed.seed)
             self.provider = IotaProvider(testnet=self.testnet, seed=self.seed)
@@ -57,11 +58,11 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         Check whether the wallet has been created or not
         :return: boolean
         """
-        wallet_count = self.database.query(DatabaseSeed)\
-            .filter(DatabaseSeed.name.__eq__(self.wallet_name))\
+        wallet_count = self.database.query(DatabaseSeed) \
+            .filter(DatabaseSeed.name.__eq__(self.wallet_name)) \
             .count()
 
-        # return self.database.query(exists().where(DatabaseSeed.name == self.wallet_name)).scalar() ???
+        # TODO: return self.database.query(exists().where(DatabaseSeed.name == self.wallet_name)).scalar()
         return wallet_count > 0
 
     def get_address(self):
@@ -84,9 +85,9 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.database.commit()
 
         # if any non spent addresses left in the database, return first one
-        non_spent = self.database.query(DatabaseAddress)\
-            .filter(DatabaseAddress.seed.__eq__(self.seed.__str__()))\
-            .filter(DatabaseAddress.is_spent.is_(False))\
+        non_spent = self.database.query(DatabaseAddress) \
+            .filter(DatabaseAddress.seed.__eq__(self.seed.__str__())) \
+            .filter(DatabaseAddress.is_spent.is_(False)) \
             .all()
 
         if len(non_spent) > 0:
@@ -181,7 +182,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.update_bundles_database()
 
         database_transactions = self.database.query(DatabaseTransaction) \
-            .filter(DatabaseTransaction.seed.__eq__(self.seed.__str__()))\
+            .filter(DatabaseTransaction.seed.__eq__(self.seed.__str__())) \
             .all()
 
         # iterate through transaction and check whether they are confirmed
@@ -205,8 +206,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.update_transactions_database(transactions_from_node)
         # Get the ID of the wallet seed
         # Get all transactions of this seed
-        transactions_from_db = self.database.query(DatabaseTransaction)\
-            .filter(DatabaseTransaction.seed.__eq__(self.seed.__str__()))\
+        transactions_from_db = self.database.query(DatabaseTransaction) \
+            .filter(DatabaseTransaction.seed.__eq__(self.seed.__str__())) \
             .all()
 
         transactions = []
@@ -215,15 +216,13 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
             transactions.append({
                 'hash': db_tx.hash,
                 'outgoing': db_tx.address in self.database.query(DatabaseAddress)
-                    .filter(DatabaseAddress.seed == self.seed.__str__())
-                    .all(),
+                        .filter(DatabaseAddress.seed == self.seed.__str__())
+                        .all(),
                 'address': db_tx.address,
                 'amount': db_tx.value,
                 'currency': self.get_identifier(),
                 'timestamp': db_tx.timestamp,
-                'bundle': self.database.query(DatabaseBundle)
-                    .filter(DatabaseBundle.hash == db_tx.bundle)
-                    .one_or_none().hash
+                'bundle': db_tx.bundle_hash
             })
         return succeed(transactions)
 
@@ -254,8 +253,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         :param bundles: bundle to be stored
         """
         # Get all unconfirmed bundles
-        pending_bundles = self.database.query(DatabaseBundle)\
-            .filter(DatabaseBundle.is_confirmed.is_(False))\
+        pending_bundles = self.database.query(DatabaseBundle) \
+            .filter(DatabaseBundle.is_confirmed.is_(False)) \
             .all()
 
         # Get all tail transactions from the pending bundles
@@ -266,11 +265,11 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         # Update pending bundles
         for bundle in tangle_bundles:
-            self.database.query(DatabaseBundle)\
-                .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__()))\
+            self.database.query(DatabaseBundle) \
+                .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__())) \
                 .update({DatabaseBundle.is_confirmed: bundle.is_confirmed})
 
-        all_bundles = self.database.query(DatabaseBundle)\
+        all_bundles = self.database.query(DatabaseBundle) \
             .all()
 
         if bundles:
@@ -295,7 +294,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         # store all the transactions in the database
         for tx in transactions:
             # if transaction already exists in the database, update it
-            query = self.database.query(DatabaseTransaction)\
+            query = self.database.query(DatabaseTransaction) \
                 .filter(DatabaseTransaction.hash.__eq__(tx.hash.__str__())).all()
             if len(query) > 0:
                 query.update({
