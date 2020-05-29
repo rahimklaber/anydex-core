@@ -226,13 +226,13 @@ class TestIotaProvider(unittest.TestCase):
         self.assertEqual(new_address, self.seed_1_address_1)
 
     def test_is_spent_true(self):
-        provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
+        provider = IotaProvider(seed=self.own_seed_1)
         provider.api.were_addresses_spent_from = lambda *_: {'states': [True], 'duration': 0}
         is_spent = provider.is_spent(Address(self.seed_1_address_1))
         self.assertTrue(is_spent)
 
     def test_is_spent_false(self):
-        provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
+        provider = IotaProvider(seed=self.own_seed_1)
         provider.api.were_addresses_spent_from = lambda *_: {'states': [False], 'duration': 0}
         is_spent = provider.is_spent(Address(self.seed_1_address_1))
         self.assertFalse(is_spent)
