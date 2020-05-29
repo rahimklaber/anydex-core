@@ -11,6 +11,7 @@ class MoneroWallet(Wallet):
     A Tribler specific account is created in the wallet, storing its address in database.
     Anytime AnyDEX is started up, the address is retrieved to select the appropriate account.
     """
+
     TESTNET = False
 
     def __init__(self, provider):
@@ -97,6 +98,9 @@ class MoneroWallet(Wallet):
         return 'XMR'
 
     def update_database(self, transactions):
+        pass
+
+    def monitor_transaction(self, txid):
         pass
 
 
