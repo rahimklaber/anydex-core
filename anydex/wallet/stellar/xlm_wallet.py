@@ -3,13 +3,13 @@ import time
 
 from ipv8.util import fail, succeed
 from sqlalchemy import func
-from stellar_sdk import Keypair
+from stellar_sdk import Keypair, TransactionBuilder, Account
 
 from wallet.cryptocurrency import Cryptocurrency
-from wallet.stellar.xlm_db import initialize_db, Secret, Payment
+from wallet.stellar.xlm_db import initialize_db, Secret, Payment, Transaction
 from wallet.stellar.xlm_provider import StellarProvider
 from wallet.wallet import Wallet
-
+from stellar_sdk.xdr.StellarXDR_pack import StellarXDRUnpacker
 
 class StellarWallet(Wallet):
     """
@@ -30,6 +30,7 @@ class StellarWallet(Wallet):
         row = self._session.query(Secret).filter(Secret.name == self.wallet_name).first()
         if row:
             self.keypair = Keypair.from_secret(row.secret)
+            self.account = Account(self.get_address(), )
             self.created = True
 
     def get_identifier(self):
@@ -71,8 +72,13 @@ class StellarWallet(Wallet):
         }
         return succeed(balance)
 
-    async def transfer(self, *args, **kwargs):
-        pass
+    def get_sequence_number(self):
+        latest_sent_payment_sequence = self._session.query(Payment).filter(Payment.from_ == self.get_address()).filter(
+
+        )
+
+    async def transfer(self, amount, address, asset='XLM'):
+        tx = TransactionBuilder()
 
     def get_address(self):
         if not self.created:
@@ -120,21 +126,41 @@ class StellarWallet(Wallet):
 
         return succeed(payments_to_return)
 
-    def _update_db(self, payments):
+    def _update_db(self, transactions: Transaction):
         """
-        Update the payments table with the specified payments.
+        Update the transactions and payments table with the specified transactions.
+        The payments are derived from the transaction envelope.
         """
-        pending_payments = self._session.query(Payment).filter(Payment.is_pending.is_(True)).all()
-        confirmed_payments = self._session.query(Payment).filter(Payment.is_pending.is_(False)).all()
-        for payment in payments:
-            if payment in pending_payments:
-                self._session.query(Payment).filter(Payment.payment_id == payment.payment_id).update({
-                    Payment.is_pending: False,
-                    Payment.succeeded: payment.succeeded
-                })
-            elif payment not in confirmed_payments:
-                self._session.add(payment)
-        self._session.commit()
+        pending_txs = self._session.query(Transaction).filter(Transaction.is_pending.is_(True)).all()
+        confirmed_txs = self._session.query(Transaction).filter(Transaction.is_pending.is_(False)).all()
+        for transaction in transactions:
+            if transaction in pending_txs:
+                self._update_transaction(transaction)
+        # pending_payments = self._session.query(Payment).filter(Payment.is_pending.is_(True)).all()
+        # confirmed_payments = self._session.query(Payment).filter(Payment.is_pending.is_(False)).all()
+        # for payment in payments:
+        #     if payment in pending_payments:
+        #         self._session.query(Payment).filter(Payment.payment_id == payment.payment_id).update({
+        #             Payment.is_pending: False,
+        #             Payment.succeeded: payment.succeeded
+        #         })
+        #     elif payment not in confirmed_payments:
+        #         self._session.add(payment)
+        # self._session.commit()
+
+    def _update_transaction(self, transaction):
+        """
+        Update a pending transaction and it's corresponding payments
+        :param transaction: transaction to update
+        """
+        self._session.query(Transaction).filter(Transaction.hash == transaction.hash).update({
+            Transaction.is_pending: False,
+            Transaction.succeeded: transaction.succeeded
+        })
+        from base64 import b64decode
+        xdr_unpacker = StellarXDRUnpacker(b64decode(transaction.transaction_envelope))
+        xdr_unpacker.unpack_TransactionEnvelope()
+
 
     def min_unit(self):
         return 1

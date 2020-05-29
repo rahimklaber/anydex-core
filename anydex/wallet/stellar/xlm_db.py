@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import Column, Integer, String, create_engine, Boolean, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -31,7 +33,6 @@ class Payment(Base):
     amount = Column(Integer)
     asset_type = Column(String)  # we might support more assets
     date_time = Column(DateTime)  # this is in utc
-    is_pending = Column(Boolean, default=False)
 
     def __repr__(self):
         return f"xlm_db.Payment({self.payment_id}, {self.from_}, {self.to}, {self.asset_type}, {self.amount} )"
@@ -42,7 +43,7 @@ class Payment(Base):
         return self.payment_id == other.payment_id
 
 
-class Transaction:
+class Transaction(Base):
     __tablename__ = 'transactions'
     id = Column(Integer, primary_key=True)
     hash = Column(String, unique=True)
@@ -55,6 +56,14 @@ class Transaction:
     transaction_envelope = Column(String)  # base64 encode xdr
     min_time_bound = Column(DateTime)  # unix time stamp
     max_time_bound = Column(DateTime)  # unix time stamp
+    ledger_nr = Column(Integer)  # ledger is kinde of like a block
+    is_pending = Column(Boolean, default=False)
+
+    def __eq__(self, other):
+        if not isinstance(other, Transaction):
+            raise NotImplementedError(f'cannot compare equality between{self} and {other}')
+        return self.hash == other.hash
+
 
 
 def initialize_db(db_path):
