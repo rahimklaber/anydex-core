@@ -21,18 +21,17 @@ class Secret(Base):
 class Payment(Base):
     """
     Database definition for payments table.
-    In stellar there are multiple types of transactions and payment is one of them.
+    In stellar there are multiple types of operations and payment is one of them.
+    This table will hold info about normal payments and about the create account operation.
     """
     __tablename__ = 'payments'
     id = Column(Integer, primary_key=True)
-    payment_id = Column(Integer, unique=True)
-    succeeded = Column(Boolean)
+    # payment_id = Column(Integer, unique=True)
     from_ = Column(String)
     to = Column(String)
     transaction_hash = Column(String)  # tx this payment is a part of
     amount = Column(Integer)
     asset_type = Column(String)  # we might support more assets
-    date_time = Column(DateTime)  # this is in utc
 
     def __repr__(self):
         return f"xlm_db.Payment({self.payment_id}, {self.from_}, {self.to}, {self.asset_type}, {self.amount} )"
@@ -44,6 +43,10 @@ class Payment(Base):
 
 
 class Transaction(Base):
+    """
+       Database definition for transactions table.
+       In stellar multiple operations can be a part of a transaction
+       """
     __tablename__ = 'transactions'
     id = Column(Integer, primary_key=True)
     hash = Column(String, unique=True)

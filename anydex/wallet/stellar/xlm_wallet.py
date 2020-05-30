@@ -1,15 +1,17 @@
 import os
 import time
+from typing import List
 
 from ipv8.util import fail, succeed
 from sqlalchemy import func
 from stellar_sdk import Keypair, TransactionBuilder, Account
+from stellar_sdk.xdr.StellarXDR_pack import StellarXDRUnpacker
 
 from wallet.cryptocurrency import Cryptocurrency
 from wallet.stellar.xlm_db import initialize_db, Secret, Payment, Transaction
 from wallet.stellar.xlm_provider import StellarProvider
 from wallet.wallet import Wallet
-from stellar_sdk.xdr.StellarXDR_pack import StellarXDRUnpacker
+
 
 class StellarWallet(Wallet):
     """
@@ -30,7 +32,7 @@ class StellarWallet(Wallet):
         row = self._session.query(Secret).filter(Secret.name == self.wallet_name).first()
         if row:
             self.keypair = Keypair.from_secret(row.secret)
-            self.account = Account(self.get_address(), )
+            # self.account = Account(self.get_address(), )
             self.created = True
 
     def get_identifier(self):
@@ -106,27 +108,28 @@ class StellarWallet(Wallet):
         if not self.created:
             return succeed(None)
 
-        payments = self.provider.get_transactions(self.get_address())
+        transactions = self.provider.get_transactions(self.get_address())
 
-        self._update_db(payments)
-
+        self._update_db(transactions)
+        self._session.commit()
+        payments = self._session.query(Payment).all() # todo change this
         payments_to_return = []
         for payment in payments:
             payments_to_return.append({
-                'id': payment.payment_id,
+                'id': 'none',
                 'outgoing': payment.from_ == self.get_address(),
                 'from': payment.from_,
                 'to': payment.to,
                 'amount': payment.amount,
                 'fee_amount': 0,  # placeholder
                 'currency': self.get_identifier(),
-                'timestamp': time.mktime(payment.date_time.timetuple()),
+                'timestamp': 'none',
                 'description': f'memo:  '
             })
 
         return succeed(payments_to_return)
 
-    def _update_db(self, transactions: Transaction):
+    def _update_db(self, transactions: List[Transaction]):
         """
         Update the transactions and payments table with the specified transactions.
         The payments are derived from the transaction envelope.
@@ -136,6 +139,8 @@ class StellarWallet(Wallet):
         for transaction in transactions:
             if transaction in pending_txs:
                 self._update_transaction(transaction)
+            elif transaction not in confirmed_txs:
+                self._insert_transaction(transaction)
         # pending_payments = self._session.query(Payment).filter(Payment.is_pending.is_(True)).all()
         # confirmed_payments = self._session.query(Payment).filter(Payment.is_pending.is_(False)).all()
         # for payment in payments:
@@ -157,10 +162,6 @@ class StellarWallet(Wallet):
             Transaction.is_pending: False,
             Transaction.succeeded: transaction.succeeded
         })
-        from base64 import b64decode
-        xdr_unpacker = StellarXDRUnpacker(b64decode(transaction.transaction_envelope))
-        xdr_unpacker.unpack_TransactionEnvelope()
-
 
     def min_unit(self):
         return 1
@@ -170,3 +171,40 @@ class StellarWallet(Wallet):
 
     def monitor_transaction(self, txid):
         pass
+
+    def _insert_transaction(self, transaction):
+        """
+                Update a pending transaction and it's corresponding payments
+                :param transaction: transaction to update
+                """
+        self._session.add(transaction)
+        from base64 import b64decode
+        xdr_unpacker = StellarXDRUnpacker(b64decode(transaction.transaction_envelope))
+        operations = xdr_unpacker.unpack_TransactionEnvelope().tx.operations
+
+        for operation in operations:
+            source_account = operation.sourceAccount
+            # check if the operation has a source account
+            if not source_account:
+                source_account = transaction.source_account
+
+            else:
+                source_account = Keypair.from_raw_ed25519_public_key(source_account[0].ed25519).public_key
+            body = operation.body
+            if body.type == 0:  # create account
+                create_account_op = body.createAccountOp
+                payment = Payment(
+                    amount=create_account_op.startingBalance,
+                    asset_type="native",
+                    transaction_hash=transaction.hash,
+                    to=Keypair.from_raw_ed25519_public_key(create_account_op.destination.ed25519).public_key,
+                    from_=source_account
+                )
+            elif body.type == 1:  # payment
+                payment_op = body.paymentOp
+                payment = Payment(amount=payment_op.amount,
+                                  asset_type="native",
+                                  transaction_hash=transaction.hash,
+                                  to=Keypair.from_raw_ed25519_public_key(payment_op.destination.ed25519).public_key,
+                                  from_=source_account)
+            self._session.add(payment)
