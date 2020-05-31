@@ -12,6 +12,13 @@ class StellarProvider(Provider, metaclass=abc.ABCMeta):
     Abstract class defining all method a stellar provider needs to have
     """
 
+    @abc.abstractmethod
+    def get_ledger_height(self):
+        """
+        Get the latest ledger nr.
+        :return: latest ledger nr.
+        """
+
 
 class HorizonProvider(StellarProvider):
     """
@@ -123,3 +130,6 @@ class HorizonProvider(StellarProvider):
             min_time_bound=min_time_bound,
             max_time_bound=max_time_bound
         )
+
+    def get_ledger_height(self):
+        return self.server.ledgers().limit(1).order().call()['_embedded']['records'][0]['sequence']

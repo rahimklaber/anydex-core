@@ -1,10 +1,11 @@
 import os
 import time
+from base64 import b64decode
 from typing import List
 
 from ipv8.util import fail, succeed
-from sqlalchemy import func
-from stellar_sdk import Keypair, TransactionBuilder, Account
+from sqlalchemy import func, or_
+from stellar_sdk import Keypair, TransactionBuilder
 from stellar_sdk.xdr.StellarXDR_pack import StellarXDRUnpacker
 
 from wallet.cryptocurrency import Cryptocurrency
@@ -92,7 +93,9 @@ class StellarWallet(Wallet):
         Get the amount of lumens we are sending but is not yet confirmed.
         :return:
         """
-        pending_outgoing = self._session.query(func.sum(Payment.amount)).filter(Payment.is_pending.is_(True)).filter(
+        pending_outgoing = self._session.query(func.sum(Payment.amount)).join(Transaction,
+                                                                              Payment.transaction_hash == Transaction.hash).filter(
+            Transaction .is_pending.is_(True)).filter(
             Payment.from_ == self.get_address()).first()[0]
 
         return pending_outgoing if pending_outgoing else 0
@@ -112,19 +115,26 @@ class StellarWallet(Wallet):
 
         self._update_db(transactions)
         self._session.commit()
-        payments = self._session.query(Payment).all() # todo change this
+
+        # list of tuples with payment and transaction
+        payments = self._session.query(Payment, Transaction).join(Transaction,
+                                                                  Payment.transaction_hash == Transaction.hash).filter(
+            Transaction.succeeded.is_(True)).filter(
+            or_(Payment.from_ == self.get_address(), Payment.to == self.get_address())).all()
+        latest_ledger_height = self.provider.get_ledger_height()
         payments_to_return = []
         for payment in payments:
+            confirmations = latest_ledger_height-payment[1].ledger_nr +1 if payment[1].ledger_nr else 0
             payments_to_return.append({
-                'id': 'none',
-                'outgoing': payment.from_ == self.get_address(),
-                'from': payment.from_,
-                'to': payment.to,
-                'amount': payment.amount,
-                'fee_amount': 0,  # placeholder
+                'id': payment[1].hash,  # use tx hash for now
+                'outgoing': payment[0].from_ == self.get_address(),
+                'from': payment[0].from_,
+                'to': payment[0].to,
+                'amount': payment[0].amount,
+                'fee_amount': payment[1].fee,
                 'currency': self.get_identifier(),
-                'timestamp': 'none',
-                'description': f'memo:  '
+                'timestamp': time.mktime(payment[1].date_time.timetuple()),
+                'description': f'confirmations: {confirmations}'
             })
 
         return succeed(payments_to_return)
@@ -174,11 +184,11 @@ class StellarWallet(Wallet):
 
     def _insert_transaction(self, transaction):
         """
-                Update a pending transaction and it's corresponding payments
-                :param transaction: transaction to update
-                """
+        Update a pending transaction and it's corresponding payments
+        :param transaction: transaction to update
+        """
         self._session.add(transaction)
-        from base64 import b64decode
+
         xdr_unpacker = StellarXDRUnpacker(b64decode(transaction.transaction_envelope))
         operations = xdr_unpacker.unpack_TransactionEnvelope().tx.operations
 
@@ -191,6 +201,7 @@ class StellarWallet(Wallet):
             else:
                 source_account = Keypair.from_raw_ed25519_public_key(source_account[0].ed25519).public_key
             body = operation.body
+            # we only care about create account and payment for the time being
             if body.type == 0:  # create account
                 create_account_op = body.createAccountOp
                 payment = Payment(

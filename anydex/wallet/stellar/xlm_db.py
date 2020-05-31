@@ -1,6 +1,4 @@
-from datetime import datetime
-
-from sqlalchemy import Column, Integer, String, create_engine, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, create_engine, Boolean, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -29,12 +27,12 @@ class Payment(Base):
     # payment_id = Column(Integer, unique=True)
     from_ = Column(String)
     to = Column(String)
-    transaction_hash = Column(String)  # tx this payment is a part of
+    transaction_hash = Column(String, ForeignKey('transactions.hash'))  # tx this payment is a part of
     amount = Column(Integer)
     asset_type = Column(String)  # we might support more assets
 
     def __repr__(self):
-        return f"xlm_db.Payment({self.payment_id}, {self.from_}, {self.to}, {self.asset_type}, {self.amount} )"
+        return f"xlm_db.Payment( {self.from_}, {self.to}, {self.asset_type}, {self.amount} )"
 
     def __eq__(self, other):
         if not isinstance(other, Payment):
@@ -66,7 +64,6 @@ class Transaction(Base):
         if not isinstance(other, Transaction):
             raise NotImplementedError(f'cannot compare equality between{self} and {other}')
         return self.hash == other.hash
-
 
 
 def initialize_db(db_path):
