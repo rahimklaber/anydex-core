@@ -1,8 +1,10 @@
 import unittest
+
+from iota.api import Iota
 from iota.crypto.types import Seed
 from iota.transaction import ProposedTransaction, Bundle, Transaction
 from iota.types import Address
-from iota.api import Iota
+
 from anydex.wallet.iota.iota_provider import IotaProvider
 
 

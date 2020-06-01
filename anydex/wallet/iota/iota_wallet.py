@@ -2,18 +2,18 @@ import os
 import re
 from abc import ABCMeta
 from asyncio import Future
+from sqlalchemy import exists
 
+from iota.crypto.types import Seed
 from iota.transaction import ProposedTransaction
 from iota.types import Address
-from iota.crypto.types import Seed
-
-from anydex.wallet.wallet import Wallet, InsufficientFunds
 from ipv8.util import succeed, fail
 
 from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction, DatabaseBundle, \
     DatabaseAddress
 from anydex.wallet.iota.iota_provider import IotaProvider
+from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
@@ -59,12 +59,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         Check whether the wallet has been created or not
         :return: boolean
         """
-        wallet_count = self.database.query(DatabaseSeed) \
-            .filter(DatabaseSeed.name.__eq__(self.wallet_name)) \
-            .count()
-
-        # TODO: return self.database.query(exists().where(DatabaseSeed.name == self.wallet_name)).scalar()
-        return wallet_count > 0
+        return self.database.query(exists().where(DatabaseSeed.name == self.wallet_name)).scalar()
 
     def get_address(self):
         """
@@ -217,8 +212,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
             transactions.append({
                 'hash': db_tx.hash,
                 'outgoing': db_tx.address in self.database.query(DatabaseAddress)
-                        .filter(DatabaseAddress.seed == self.seed.__str__())
-                        .all(),
+                            .filter(DatabaseAddress.seed == self.seed.__str__())
+                            .all(),
                 'address': db_tx.address,
                 'amount': db_tx.value,
                 'currency': self.get_identifier(),
