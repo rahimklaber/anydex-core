@@ -236,7 +236,3 @@ class TestIotaProvider(unittest.TestCase):
         provider.api.were_addresses_spent_from = lambda *_: {'states': [False], 'duration': 0}
         is_spent = provider.is_spent(Address(self.seed_1_address_1))
         self.assertFalse(is_spent)
-
-
-if __name__ == '__main__':
-    unittest.main()
