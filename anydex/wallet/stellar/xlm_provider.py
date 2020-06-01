@@ -19,6 +19,31 @@ class StellarProvider(Provider, metaclass=abc.ABCMeta):
         :return: latest ledger nr.
         """
 
+    @abc.abstractmethod
+    def get_base_fee(self):
+        """
+        Get the base fee of the stellar network.
+        :return:
+        """
+
+    @abc.abstractmethod
+    def get_account_sequence(self, address):
+        """
+        Get the sequence number of an address
+
+        :param address: address to get the sequence number of
+        :return: sequence number
+        """
+
+    @abc.abstractmethod
+    def submit_transaction(self, tx):
+        """
+        submit a transaction to the stellar netowrk.
+
+        :param tx: base64 xdr encoded transactions
+        :return: the transactin hash
+        """
+
 
 class HorizonProvider(StellarProvider):
     """
@@ -29,7 +54,7 @@ class HorizonProvider(StellarProvider):
         self.server = Server(horizon_url=horizon_url)
 
     def submit_transaction(self, tx):
-        pass
+        return self.server.submit_transaction(tx)
 
     def get_balance(self, address):
         # We only care about the native token right now.
@@ -131,5 +156,11 @@ class HorizonProvider(StellarProvider):
             max_time_bound=max_time_bound
         )
 
+    def get_base_fee(self):
+        return self.server.fetch_base_fee()
+
     def get_ledger_height(self):
         return self.server.ledgers().limit(1).order().call()['_embedded']['records'][0]['sequence']
+
+    def get_account_sequence(self, address):
+        return int(self.server.accounts().account_id(address).call()["sequence"])
