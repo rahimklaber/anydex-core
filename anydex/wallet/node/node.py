@@ -6,6 +6,8 @@ from ipaddress import ip_address, IPv4Address
 from time import time
 from urllib.parse import urlparse
 
+from ipv8.util import fail
+
 from anydex.config import get_anydex_configuration
 from anydex.wallet.cryptocurrency import Cryptocurrency
 
@@ -57,7 +59,7 @@ def create_node(network: Cryptocurrency) -> Node:
     Constructs a Node from user-provided parameters if key is present in `config.py`-dictionary.
     Else: constructs Node picked from set of default nodes provided by AnyDex.
 
-    Raise MissingParameterException if required parameters miss from user Node-config: host, port
+    Return CannotCreateNodeException if required parameters miss from user Node-config: host, port
 
     :param network: instance of Cryptocurrency enum
     :return: Node
@@ -76,13 +78,12 @@ def create_node(network: Cryptocurrency) -> Node:
         try:
             params['host'] = node_config['host']
         except KeyError:
-            raise CannotCreateNodeException('Missing key `host` from node config')
+            return fail(CannotCreateNodeException('Missing key `host` from node config'))
 
         try:
             params['port'] = node_config['port']
         except KeyError:
-            # TODO don't raise bare exceptions
-            raise CannotCreateNodeException('Missing key `port` from node config')
+            return fail(CannotCreateNodeException('Missing key `port` from node config'))
 
         params['protocol'] = node_config.get('protocol', 'http')
         params['username'] = node_config.get('username', '')
@@ -100,8 +101,7 @@ def create_node(network: Cryptocurrency) -> Node:
         try:
             network_hosts = default_hosts[network.value]
         except KeyError:
-            # TODO don't raise bare exceptions
-            raise CannotCreateNodeException(f'Missing default nodes for {network.value}')
+            return fail(CannotCreateNodeException(f'Missing default nodes for {network.value}'))
 
         # host format: protocol://username:password@domain
         selected_host, latency = select_best_host(network_hosts)
