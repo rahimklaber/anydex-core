@@ -2,11 +2,12 @@ import time
 from decimal import Decimal
 
 from ipv8.util import fail, succeed
+from monero.backends.jsonrpc import JSONRPCWallet
 from monero.transaction import OutgoingPayment, Payment
+from monero.wallet import Wallet
 
 from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.wallet import Wallet, InsufficientFunds
-from anydex.wallet.monero.xmr_provider import WalletConnectionError, NotSupportedOperationException
 
 
 class MoneroWallet(Wallet):
@@ -19,15 +20,33 @@ class MoneroWallet(Wallet):
 
     TESTNET = False
 
-    def __init__(self, provider):
+    def __init__(self, host: str = '127.0.0.1', port: int = 18081):
         super().__init__()
-        self.provider = provider
+
+        try:
+            self._logger.info(f'Connect to wallet-rpc-server on {host} at {port}')
+            self.wallet = Wallet(JSONRPCWallet(host=host, port=port))
+        except ConnectionError as err:
+            self._logger.error(f'Cannot connect to wallet-rpc-server on {host} at {port}: {err}')
+            self.wallet = None
 
         self.network = 'testnet' if self.TESTNET else Cryptocurrency.MONERO.value
         self.min_confirmations = 0
         self.unlocked = True
         # set internal name, irrelevant with regards to actual wallet name
         self.wallet_name = 'tribler_testnet' if self.TESTNET else 'tribler'
+
+    def _wallet_connection_alive(self) -> bool:
+        """
+        Verify connection to wallet is still alive.
+
+        :return: True if alive, else False
+        """
+        try:
+            self.wallet.refresh()
+        except ConnectionError:
+            return False
+        return True
 
     def get_name(self):
         return Cryptocurrency.MONERO.value
@@ -47,8 +66,8 @@ class MoneroWallet(Wallet):
 
         :return: dictionary of available balance, pending balance, currency and precision.
         """
-        unlocked_balance = self.provider.wallet.balance(unlocked=True)
-        total_balance = self.provider.wallet.balance(unlocked=False)
+        unlocked_balance = self.wallet.balance(unlocked=True)
+        total_balance = self.wallet.balance(unlocked=False)
 
         balance = {
             'available': unlocked_balance,
@@ -79,7 +98,7 @@ class MoneroWallet(Wallet):
             return fail(InsufficientFunds('Insufficient funds found in Monero wallet'))
 
         self._logger.info(f'Transfer {amount} to {address}')
-        transaction = self.provider.wallet.transfer(address, Decimal(str(amount)), **kwargs)
+        transaction = self.wallet.transfer(address, Decimal(str(amount)), **kwargs)
         return transaction.hash
 
     async def transfer_multiple(self, transfers: list, **kwargs) -> list:
@@ -98,14 +117,14 @@ class MoneroWallet(Wallet):
         if balance['available'] < total_amount:
             return fail(InsufficientFunds('Insufficient funds found in Monero wallet for all transfers'))
 
-        if self.provider.wallet_connection_alive():
-            results = self.provider.wallet.transfer_multiple(transfers, **kwargs)
+        if self._wallet_connection_alive():
+            results = self.wallet.transfer_multiple(transfers, **kwargs)
             hashes = [result[0].hash for result in results]
             return succeed(hashes)
         return fail([])
 
     def get_address(self):
-        return self.provider.wallet.address()
+        return self.wallet.address()
 
     def get_transactions(self):
         """
@@ -164,8 +183,8 @@ class MoneroWallet(Wallet):
         :param: if set to True return only confirmed payments, else only mempool payments
         :return: list of payments
         """
-        if self.provider.wallet_connection_alive():
-            return succeed(self.provider.wallet.incoming(confirmed=confirmed, unconfirmed=(not confirmed)))
+        if self._wallet_connection_alive():
+            return succeed(self.wallet.incoming(confirmed=confirmed, unconfirmed=(not confirmed)))
         return fail(WalletConnectionError())
 
     def get_outgoing_payments(self, confirmed=True):
@@ -175,8 +194,8 @@ class MoneroWallet(Wallet):
         :param: if True return only confirmed outgoing payments, else mempool payments
         :return: list of payments
         """
-        if self.provider.wallet_connection_alive():
-            return succeed(self.provider.wallet.outgoing(confirmed=confirmed, unconfirmed=(not confirmed)))
+        if self._wallet_connection_alive():
+            return succeed(self.wallet.outgoing(confirmed=confirmed, unconfirmed=(not confirmed)))
         return fail(WalletConnectionError())
 
     def min_unit(self):
@@ -196,8 +215,8 @@ class MoneroWallet(Wallet):
         :param transaction: Payment object from monero-python library
         :return: integer count
         """
-        if self.provider.wallet_connection_alive:
-            return succeed(self.provider.wallet.confirmations(transaction))
+        if self._wallet_connection_alive:
+            return succeed(self.wallet.confirmations(transaction))
         return fail(WalletConnectionError())
 
     def monitor_transaction(self, txid):
@@ -222,3 +241,17 @@ class MoneroTestnetWallet(MoneroWallet):
 
     def get_identifier(self):
         return 'TXMR'
+
+
+class NotSupportedOperationException(Exception):
+    """
+    Raise exception if operation is not supported.
+    """
+    pass
+
+
+class WalletConnectionError(Exception):
+    """
+    Raise in case connection to wallet is no longer alive.
+    """
+    pass
