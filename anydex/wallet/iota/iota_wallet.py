@@ -200,7 +200,6 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         transactions_from_node = self.provider.get_seed_transactions()
         # Update the database transactions
         self.update_transactions_database(transactions_from_node)
-        # Get the ID of the wallet seed
         # Get all transactions of this seed
         transactions_from_db = self.database.query(DatabaseTransaction) \
             .filter(DatabaseTransaction.seed.__eq__(self.seed.__str__())) \
@@ -322,7 +321,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         return self.testnet
 
     def precision(self):
-        return 6  # or 1, depends if we decide to trade 1 Million IOTAs or 1 IOTA
+        return 0  # or 6, depends if we decide to trade 1 Million IOTAs or 1 IOTA
 
     def min_unit(self):
         return 0  # valueless and feeless transactions are possible
