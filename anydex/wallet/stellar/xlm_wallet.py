@@ -1,5 +1,6 @@
 import os
 import time
+from asyncio import Future
 from base64 import b64decode
 from decimal import Decimal
 from typing import List
@@ -237,7 +238,20 @@ class StellarWallet(Wallet):
         return 7
 
     def monitor_transaction(self, txid):
-        pass
+        monitor_future = Future()
+
+        async def monitor():
+            transactions = await self.get_transactions()
+            for transaction in transactions:
+                if transaction['id'] == txid:
+                    self._logger.debug("Found transaction with id %s", txid)
+                    monitor_future.set_result(None)
+                    monitor_task.cancel()
+
+        self._logger.debug("Start polling for transaction %s", txid)
+        monitor_task = self.register_task(f"{self.name}_poll_{txid}", monitor, interval=5)
+
+        return monitor_future
 
     def _insert_transaction(self, transaction):
         """
