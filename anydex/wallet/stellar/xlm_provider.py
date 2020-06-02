@@ -4,8 +4,8 @@ from datetime import datetime
 from stellar_sdk import Server
 from stellar_sdk.exceptions import NotFoundError
 
-from wallet.provider import Provider
-from wallet.stellar.xlm_db import Transaction
+from anydex.wallet.provider import Provider
+from anydex.wallet.stellar.xlm_db import Transaction
 
 
 class StellarProvider(Provider, metaclass=abc.ABCMeta):
@@ -87,61 +87,6 @@ class HorizonProvider(StellarProvider):
             transactions_to_return.append(self._normalize_transaction(tx))
         return transactions_to_return
 
-    # def _normalize_payments_all_types(self, payments):
-    #     """
-    #     Transform a list of payments (of all types) from the api to the format used in this project
-    #     :param payments: List of payments from the api
-    #     :return: A list of payment objects
-    #     """
-    #     transformed_payments = []
-    #     for payment in payments:
-    #         transformed_payments.append(self._normalize_payment_all_type(payment))
-    # return transformed_payments
-
-    # def _normalize_create_account(self, payment) -> Payment:
-    #     """
-    #     Transform a creat account operation into a payment object
-    #     :param payment: create account payment from api
-    #     :return: Payment object
-    #     """
-    #     return Payment(payment_id=int(payment['id']),
-    #                    from_=payment['funder'],
-    #                    to=payment['account'],
-    #                    amount=int(float(payment['starting_balance']) * 1e7),  # todo make this not use a literal
-    #                    asset_type='native',
-    #                    transaction_hash=payment['transaction_hash'],
-    #                    date_time=datetime.fromisoformat(payment['created_at'][:-1]),
-    #                    succeeded=payment['transaction_successful'])
-
-    # def _normalize_payment(self, payment) -> Payment:
-    #     """
-    #     Transform a payment (operation type == 'payment') from the api to the format used in this project
-    #     :param payment: Payment from the api
-    #     :return: A list of payment objects
-    #     """
-    #     return Payment(payment_id=int(payment['id']),
-    #                    from_=payment['from'],
-    #                    to=payment['to'],
-    #                    amount=int(float(payment['amount']) * 1e7),  # todo make this not use a literal
-    #                    asset_type=payment['asset_type'],
-    #                    transaction_hash=payment['transaction_hash'],
-    #                    date_time=datetime.fromisoformat(payment['created_at'][:-1]),
-    #                    succeeded=payment['transaction_successful'])
-    #
-    # def _normalize_payment_all_type(self, payment) -> Payment:
-    #     """
-    #     Transform a any type of payment payment from the api in the format we use
-    #
-    #     :param payment: Payment from api
-    #     :return: Payment object-
-    #     """
-    #     if payment['type'] == 'create_account':
-    #         return self._normalize_create_account(payment)
-    #     elif payment['type'] == 'payment':
-    #         return self._normalize_payment(payment)
-    #     else:
-    #         raise RuntimeError("Payment type not supported")
-
     def _normalize_transaction(self, tx) -> Transaction:
         """
         Transform a transaction from the api into a transaction object this project uses.
@@ -149,6 +94,7 @@ class HorizonProvider(StellarProvider):
         :return: Transaction object
         """
         max_time_bound_string = tx.get('valid_before')
+        # the date we get from the api ends with z to indicate utc we have to remove this to parse it
         max_time_bound = None if max_time_bound_string is None else datetime.fromisoformat(max_time_bound_string[:-1])
         min_time_bound_string = tx.get('valid_after')
         min_time_bound = None if min_time_bound_string is None else datetime.fromisoformat(min_time_bound_string[:-1])

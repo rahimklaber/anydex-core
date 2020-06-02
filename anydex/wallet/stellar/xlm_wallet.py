@@ -9,10 +9,10 @@ from sqlalchemy import func, or_
 from stellar_sdk import Keypair, TransactionBuilder, Account, Network
 from stellar_sdk.xdr.StellarXDR_pack import StellarXDRUnpacker
 
-from wallet.cryptocurrency import Cryptocurrency
-from wallet.stellar.xlm_db import initialize_db, Secret, Payment, Transaction
-from wallet.stellar.xlm_provider import StellarProvider
-from wallet.wallet import Wallet, InsufficientFunds
+from anydex.wallet.cryptocurrency import Cryptocurrency
+from anydex.wallet.stellar.xlm_db import initialize_db, Secret, Payment, Transaction
+from anydex.wallet.stellar.xlm_provider import StellarProvider
+from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 
 class StellarWallet(Wallet):
@@ -107,10 +107,11 @@ class StellarWallet(Wallet):
             raise InsufficientFunds('Insufficient funds')
 
         self._logger.info(f"Creating Stellar Lumens payment with amount {address} to address {address}")
+        network = Network.PUBLIC_NETWORK_PASSPHRASE if not self.TESTNET else Network.TESTNET_NETWORK_PASSPHRASE
         tx_builder = TransactionBuilder(
             source_account=self.account,
             base_fee=self.provider.get_base_fee(),
-            network_passphrase=Network.PUBLIC_NETWORK_PASSPHRASE if not self.TESTNET else Network.TESTNET_NETWORK_PASSPHRASE,
+            network_passphrase=network,
         )
         amount_in_xlm = Decimal(amount / 1e7)  # amount in xlm instead of stroop (0.0000001 xlm)
         if self.provider.check_account_created(address):
@@ -147,8 +148,9 @@ class StellarWallet(Wallet):
         Get the amount of lumens we are sending but is not yet confirmed.
         :return:
         """
-        pending_outgoing = self._session.query(func.sum(Payment.amount)).join(Transaction,
-                                                                              Payment.transaction_hash == Transaction.hash).filter(
+        pending_outgoing = self._session.query(func.sum(Payment.amount)) \
+            .join(Transaction,
+                  Payment.transaction_hash == Transaction.hash).filter(
             Transaction.is_pending.is_(True)).filter(
             Payment.from_ == self.get_address()).first()[0]
 
