@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import Column, Integer, String, create_engine, Boolean, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -48,7 +50,7 @@ class Transaction(Base):
     __tablename__ = 'transactions'
     id = Column(Integer, primary_key=True)
     hash = Column(String, unique=True)
-    date_time = Column(DateTime)
+    date_time = Column(DateTime,default=datetime.utcnow())
     fee = Column(Integer)
     source_account = Column(String)
     operation_count = Column(Integer)

@@ -2,6 +2,7 @@ import abc
 from datetime import datetime
 
 from stellar_sdk import Server
+from stellar_sdk.exceptions import NotFoundError
 
 from wallet.provider import Provider
 from wallet.stellar.xlm_db import Transaction
@@ -44,6 +45,15 @@ class StellarProvider(Provider, metaclass=abc.ABCMeta):
         :return: the transactin hash
         """
 
+    @abc.abstractmethod
+    def check_account_created(self, address) -> bool:
+        """
+        check if an account is created or not.
+
+        :param address: address of account to check
+        :return: true or false if account is created or not
+        """
+
 
 class HorizonProvider(StellarProvider):
     """
@@ -54,7 +64,7 @@ class HorizonProvider(StellarProvider):
         self.server = Server(horizon_url=horizon_url)
 
     def submit_transaction(self, tx):
-        return self.server.submit_transaction(tx)
+        return self.server.submit_transaction(tx)['hash']
 
     def get_balance(self, address):
         # We only care about the native token right now.
@@ -164,3 +174,10 @@ class HorizonProvider(StellarProvider):
 
     def get_account_sequence(self, address):
         return int(self.server.accounts().account_id(address).call()["sequence"])
+
+    def check_account_created(self, address) -> bool:
+        try:
+            self.server.load_account(address)
+        except NotFoundError:
+            return False
+        return True

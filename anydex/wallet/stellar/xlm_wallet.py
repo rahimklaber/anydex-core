@@ -78,29 +78,64 @@ class StellarWallet(Wallet):
         return succeed(balance)
 
     def get_sequence_number(self):
-        latest_sent_payment_sequence = self._session.query(Transaction.sequence_number).filter(Transaction.source_account == self.get_address()).order_by(
+        latest_sent_payment_sequence = self._session.query(Transaction.sequence_number).filter(
+            Transaction.source_account == self.get_address()).order_by(
             Transaction.sequence_number.desc()
         ).first()
         return latest_sent_payment_sequence[0] if latest_sent_payment_sequence else self.provider.get_account_sequence(
             self.get_address())
 
-    async def transfer(self, amount, address, asset='XLM'):
+    async def transfer(self, amount, address, memo_id: int = None, asset='XLM'):
+        """
+        Transfer stellar lumens to the specified address.
+        In the future sending other assets might also be possible.
+
+        Normally a payment operation is used, but if the account is not created
+        then an account create operation will be done.
+
+        if you wish to send all of your balance then a merge account operation is used.
+
+        :param amount: amount of lumens to send, in stroop (0.0000001 XLM)
+        :param address: address to sent lumens to. Should be a normal encoded public key.
+        :param memo_id: memo id for sending lumens to exchanges.
+        :param asset: asset type. only XLM is currently supported.
+        :return: Transaction hash
+        """
         balance = await self.get_balance()
 
         if balance['available'] < int(amount):
             raise InsufficientFunds('Insufficient funds')
 
-        self._logger.info(f"Creating lumens payment with amount {address} to address {address}")
-        tx = TransactionBuilder(
+        self._logger.info(f"Creating Stellar Lumens payment with amount {address} to address {address}")
+        tx_builder = TransactionBuilder(
             source_account=self.account,
             base_fee=self.provider.get_base_fee(),
             network_passphrase=Network.PUBLIC_NETWORK_PASSPHRASE if not self.TESTNET else Network.TESTNET_NETWORK_PASSPHRASE,
-        ).append_payment_op(address, Decimal(amount / 1e7), asset).build()
-
+        )
+        amount_in_xlm = Decimal(amount / 1e7)  # amount in xlm instead of stroop (0.0000001 xlm)
+        if self.provider.check_account_created(address):
+            tx_builder.append_payment_op(address, amount_in_xlm, asset)
+        else:
+            tx_builder.append_create_account_op(address, amount_in_xlm)
+        if memo_id:
+            tx_builder.add_id_memo(memo_id)
+        tx = tx_builder.build()
         tx.sign(self.keypair)
         xdr_tx_envelope = tx.to_xdr()
-        #todo add tx to databaese
-        return self.provider.submit_transaction(xdr_tx_envelope)
+        # todo add tx to databaese
+        tx_hash = self.provider.submit_transaction(xdr_tx_envelope)
+        tx_db = Transaction(hash=tx_hash,
+                            source_account=self.get_address(),
+                            operation_count=len(tx.transaction.operations),
+                            sequence_number=tx.transaction.sequence,
+                            succeeded=False,
+                            transaction_envelope=xdr_tx_envelope,
+                            is_pending=True,
+                            fee=tx.transaction.fee,
+                            )
+        self._insert_transaction(tx_db)
+        self._session.commit()
+        return tx_hash
 
     def get_address(self):
         if not self.created:
@@ -170,6 +205,7 @@ class StellarWallet(Wallet):
                 self._update_transaction(transaction)
             elif transaction not in confirmed_txs:
                 self._insert_transaction(transaction)
+        self._session.commit()
         # pending_payments = self._session.query(Payment).filter(Payment.is_pending.is_(True)).all()
         # confirmed_payments = self._session.query(Payment).filter(Payment.is_pending.is_(False)).all()
         # for payment in payments:
