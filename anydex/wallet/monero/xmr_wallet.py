@@ -1,10 +1,12 @@
 import time
+from asyncio.futures import Future
 from decimal import Decimal
 
+import monero.wallet
 from ipv8.util import fail, succeed
 from monero.backends.jsonrpc import JSONRPCWallet
 from monero.transaction import OutgoingPayment, Payment
-from monero.wallet import Wallet
+from requests.exceptions import ConnectionError
 
 from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.wallet import Wallet, InsufficientFunds
@@ -23,18 +25,17 @@ class MoneroWallet(Wallet):
     def __init__(self, host: str = '127.0.0.1', port: int = 18081):
         super().__init__()
 
-        try:
-            self._logger.info(f'Connect to wallet-rpc-server on {host} at {port}')
-            self.wallet = Wallet(JSONRPCWallet(host=host, port=port))
-        except ConnectionError as err:
-            self._logger.error(f'Cannot connect to wallet-rpc-server on {host} at {port}: {err}')
-            self.wallet = None
-
         self.network = 'testnet' if self.TESTNET else Cryptocurrency.MONERO.value
         self.min_confirmations = 0
         self.unlocked = True
         # set internal name, irrelevant with regards to actual wallet name
         self.wallet_name = 'tribler_testnet' if self.TESTNET else 'tribler'
+
+        self.host = host
+        self.port = port
+
+        self.wallet = None
+        self.created = False
 
     def _wallet_connection_alive(self) -> bool:
         """
@@ -42,11 +43,13 @@ class MoneroWallet(Wallet):
 
         :return: True if alive, else False
         """
-        try:
-            self.wallet.refresh()
-        except ConnectionError:
-            return False
-        return True
+        if self.wallet:
+            try:
+                self.wallet.refresh()
+                return True
+            except ConnectionError:
+                pass
+        return False
 
     def get_name(self):
         return Cryptocurrency.MONERO.value
@@ -54,8 +57,17 @@ class MoneroWallet(Wallet):
     def create_wallet(self):
         """
         Anydex operates on existing wallet with corresponding `wallet-rpc-server`.
+        Creates instance of `monero-python` Wallet instance.
         """
-        return fail(NotSupportedOperationException('Anydex is using `wallet-rpc-server` wallet'))
+        self._logger.info(f'Connect to wallet-rpc-server on {self.host} at {self.port}')
+        try:
+            self.wallet = monero.wallet.Wallet(JSONRPCWallet(host=self.host, port=self.port))
+            self.created = True
+            self._logger.info(f'Connection to wallet-rpc-server established')
+            return succeed(None)
+        except ConnectionError:
+            # TODO re-attempt connection
+            return fail(WalletConnectionError(f'Cannot connect to wallet-rpc-server on {self.host} at {self.port}'))
 
     def get_balance(self):
         """
@@ -65,19 +77,27 @@ class MoneroWallet(Wallet):
         See: https://monero.stackexchange.com/questions/3262/whats-the-difference-between-balance-and-unlocked-balance
 
         :return: dictionary of available balance, pending balance, currency and precision.
+                    In case wallet does not exist yet, return balance of 0.
         """
-        unlocked_balance = self.wallet.balance(unlocked=True)
-        total_balance = self.wallet.balance(unlocked=False)
+        if self._wallet_connection_alive():
+            unlocked_balance = self.wallet.balance(unlocked=True)
+            total_balance = self.wallet.balance(unlocked=False)
 
-        balance = {
-            'available': unlocked_balance,
-            'pending': total_balance - unlocked_balance,
+            balance = {
+                'available': unlocked_balance,
+                'pending': total_balance - unlocked_balance,
+                'currency': 'XMR',
+                'precision': self.precision()
+            }
+            return succeed(balance)
+        return succeed({
+            'available': 0,
+            'pending': 0,
             'currency': 'XMR',
             'precision': self.precision()
-        }
-        return succeed(balance)
+        })
 
-    async def transfer(self, amount: float, address, **kwargs) -> str:
+    async def transfer(self, amount: float, address, **kwargs) -> Future:
         """
         Transfer Monero to another wallet.
         If the amount exceeds the available balance, an `InsufficientFunds` exception is raised.
@@ -92,14 +112,17 @@ class MoneroWallet(Wallet):
         :param address: the receiver address
         :return: transfer hash
         """
-        balance = await self.get_balance()
+        if self._wallet_connection_alive():
+            balance = await self.get_balance()
 
-        if balance['available'] < int(amount):
-            return fail(InsufficientFunds('Insufficient funds found in Monero wallet'))
+            if balance['available'] < int(amount):
+                return fail(InsufficientFunds('Insufficient funds found in Monero wallet'))
 
-        self._logger.info(f'Transfer {amount} to {address}')
-        transaction = self.wallet.transfer(address, Decimal(str(amount)), **kwargs)
-        return transaction.hash
+            self._logger.info(f'Transfer {amount} to {address}')
+            transaction = self.wallet.transfer(address, Decimal(str(amount)), **kwargs)
+            # TODO verify correct return method
+            return succeed(transaction.hash)
+        return succeed(None)
 
     async def transfer_multiple(self, transfers: list, **kwargs) -> list:
         """
