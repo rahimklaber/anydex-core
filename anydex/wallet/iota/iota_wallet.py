@@ -128,7 +128,6 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         transaction = ProposedTransaction(
             address=Address(address),
             value=value
-
         )
         bundle = await self.provider.submit_transaction(transaction)
 
@@ -171,8 +170,9 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         if not self.created:
             return 0
 
-        # Get all transactions from the seed
+        # get all transactions from the seed
         tangle_transactions = await self.provider.get_seed_transactions()
+        # update database
         self.update_transactions_database(tangle_transactions['transactions'])
         await self.update_bundles_database()
 
@@ -310,10 +310,20 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                 # if sending from an address, mark it as spent in the database
                 if tx.value <= 0:
                     self.database.query(DatabaseAddress)\
-                        .filter(DatabaseAddress.address.__eq__(tx.address.__str__()))\
-                        .update({
-                            DatabaseAddress.is_spent: True,
-                        })
+                        .filter(DatabaseAddress.address.__eq__(tx.address.__str__())) \
+                        .update({DatabaseAddress.is_spent: True})
+            else:  # TODO: has to be tested
+                bundle_hash = self.database.query(DatabaseTransaction.bundle_hash) \
+                    .filter(DatabaseTransaction.hash.__eq__(tx.hash.__str__())) \
+                    .one()
+
+                is_confirmed = self.database.query(DatabaseBundle.is_confirmed) \
+                    .filter(DatabaseBundle.hash.__eq__(bundle_hash.__str__())) \
+                    .one()
+
+                self.database.query(DatabaseTransaction) \
+                    .filter(DatabaseTransaction.hash.__eq__(tx.hash.__str__())) \
+                    .update({DatabaseTransaction.is_confirmed: is_confirmed})
 
         self.database.commit()
 

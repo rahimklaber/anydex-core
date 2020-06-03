@@ -12,7 +12,7 @@ class DatabaseSeed(Base):
     __tablename__ = "seeds"
     id = Column(Integer, primary_key=True)
     name = Column(String(50), unique=True)
-    seed = Column(String(81), unique=True)  # 84 with checksum - not supported by pyota
+    seed = Column(String(81), unique=True)
 
 
 class DatabaseTransaction(Base):
@@ -51,7 +51,7 @@ class DatabaseAddress(Base):
     """
     __tablename__ = "addresses"
     id = Column(Integer, primary_key=True)
-    address = Column(String(90), unique=True)  # 81 (address) + 9 (checksum)
+    address = Column(String(81), unique=True)
     seed = Column(Integer, ForeignKey('seeds.seed'))
     is_spent = Column(Boolean, default=False)
 
