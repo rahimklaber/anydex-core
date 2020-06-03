@@ -375,7 +375,7 @@ class TestIotaWallet(AbstractServer):
         self.assertIsInstance(result, Future)
         self.assertEqual(result.result(), bundle)
 
-    def test_get_balance_before_creation(self):
+    async def test_get_balance_before_creation(self):
         """
         Tests getting a balance before a wallet is created
         """
@@ -387,11 +387,11 @@ class TestIotaWallet(AbstractServer):
             'precision': 6
         }
         # Get the balance of the uncreated wallet
-        result = wallet.get_balance()
+        result = await wallet.get_balance()
         self.assertIsInstance(result, Future)
         self.assertDictEqual(expected, result.result())
 
-    def test_get_balance_correct(self):
+    async def test_get_balance_correct(self):
         """
         Tests getting a balance before a wallet is created
         """
@@ -410,7 +410,7 @@ class TestIotaWallet(AbstractServer):
         wallet.update_transactions_database = lambda transactions: None
         wallet.update_bundles_database = lambda: None
         # Get the balance of the uncreated wallet
-        result = wallet.get_balance()
+        result = await wallet.get_balance()
         self.assertIsInstance(result, Future)
         self.assertDictEqual(expected, result.result())
 
