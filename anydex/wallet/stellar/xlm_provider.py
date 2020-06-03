@@ -19,6 +19,7 @@ class StellarProvider(Provider, metaclass=abc.ABCMeta):
     def get_ledger_height(self):
         """
         Get the latest ledger nr.
+
         :return: latest ledger nr.
         """
 
@@ -26,7 +27,8 @@ class StellarProvider(Provider, metaclass=abc.ABCMeta):
     def get_base_fee(self):
         """
         Get the base fee of the stellar network.
-        :return:
+
+        :return: base fee
         """
 
     @abc.abstractmethod
