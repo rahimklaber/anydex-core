@@ -26,7 +26,7 @@ class IotaProvider(Provider):
         :param seed: seed to use for all further API calls
         :return: initialized API
         """
-        if node is None:  # TODO: check whether mainnet node works
+        if node is None:
             if self.testnet:
                 node = 'https://nodes.comnet.thetangle.org:443'
             else:

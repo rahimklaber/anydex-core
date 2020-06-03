@@ -1,10 +1,9 @@
-import unittest
 from asyncio import Future
+from sqlalchemy.orm import session as db_session
 
 from iota import Address, Transaction, Bundle
 from iota.crypto.types import Seed
 from ipv8.util import succeed
-from sqlalchemy.orm import session as db_session
 
 from anydex.test.base import AbstractServer
 from anydex.wallet.iota.iota_database import DatabaseBundle, DatabaseAddress, DatabaseTransaction, DatabaseSeed
@@ -167,7 +166,7 @@ class TestIotaWallet(AbstractServer):
         self.assertIsNotNone(wallet.seed)
         self.assertIsNotNone(wallet.provider)
 
-    def test_erronous_wallet_creation(self):
+    def test_erroneous_wallet_creation(self):
         """
         Tests creating an already created wallet
         """
@@ -258,11 +257,11 @@ class TestIotaWallet(AbstractServer):
         self.assertIsInstance(result, Address)
         self.assertEqual(address_length, len(result.__str__()))
         # Check correct database storage of the new address
-        non_spent = wallet.database.query(DatabaseAddress)\
-            .filter(DatabaseAddress.seed.__eq__(wallet.seed.__str__()))\
+        non_spent = wallet.database.query(DatabaseAddress) \
+            .filter(DatabaseAddress.seed.__eq__(wallet.seed.__str__())) \
             .first()
-        previous = wallet.database.query(DatabaseAddress)\
-            .filter(DatabaseAddress.address.__eq__(old_address))\
+        previous = wallet.database.query(DatabaseAddress) \
+            .filter(DatabaseAddress.address.__eq__(old_address)) \
             .first()
         # Check if the new address is unspent
         self.assertEqual(False, non_spent.is_spent)
@@ -275,8 +274,7 @@ class TestIotaWallet(AbstractServer):
         """
         wallet = self.new_wallet()
         # Address taken from IOTA documentation.
-        to_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9' \
-                     'KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
+        to_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
         # Try sending a transfer
         result = await wallet.transfer(0, to_address)
         # Assert tpye and contents.
@@ -290,8 +288,7 @@ class TestIotaWallet(AbstractServer):
         wallet = self.new_wallet()
         wallet.create_wallet()
         # Address taken from IOTA documentation.
-        to_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9' \
-                     'KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
+        to_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
         # Set up mocks.
         wallet.get_balance = lambda: succeed({'available': 0, 'pending': 0,
                                               'currency': self.identifier(), 'precision': 6})
@@ -309,8 +306,7 @@ class TestIotaWallet(AbstractServer):
         wallet = self.new_wallet()
         wallet.create_wallet()
         # Address taken from IOTA documentation.
-        to_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9' \
-                     'KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
+        to_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
         wallet.get_balance = lambda: succeed({'available': 42, 'pending': 0,
                                               'currency': self.identifier(), 'precision': 6})
         # Try sending the invalid amount
@@ -326,8 +322,7 @@ class TestIotaWallet(AbstractServer):
         wallet = self.new_wallet()
         wallet.create_wallet()
         # Address contains a random lower case letter
-        to_address = 'ZLGVEQ9JUZZWCZXLWVaTHBDX9G9' \
-                     'KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
+        to_address = 'ZLGVEQ9JUZZWCZXLWVaTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
         wallet.get_balance = lambda: succeed({'available': 42, 'pending': 0,
                                               'currency': self.identifier(), 'precision': 6})
         # Try sending the invalid amount
@@ -352,21 +347,21 @@ class TestIotaWallet(AbstractServer):
         result = await wallet.transfer(1, self.txn.address.__str__())
 
         # Check correct bundle storage
-        all_bundles = wallet.database.query(DatabaseBundle)\
+        all_bundles = wallet.database.query(DatabaseBundle) \
             .all()
         # Get the bundle sent in the transaction
-        bundle_query = wallet.database.query(DatabaseBundle)\
-            .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__()))\
+        bundle_query = wallet.database.query(DatabaseBundle) \
+            .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__())) \
             .all()
         self.assertEqual(len(all_bundles), 1)
         self.assertEqual(bundle_query, all_bundles)
 
         # Check correct transaction storage
-        all_txs = wallet.database.query(DatabaseTransaction)\
+        all_txs = wallet.database.query(DatabaseTransaction) \
             .all()
         # Get the transaction that's part of the bundle
-        tx_query = wallet.database.query(DatabaseTransaction)\
-            .filter(DatabaseTransaction.hash.__eq__(self.txn.hash.__str__()))\
+        tx_query = wallet.database.query(DatabaseTransaction) \
+            .filter(DatabaseTransaction.hash.__eq__(self.txn.hash.__str__())) \
             .all()
         self.assertEqual(len(all_txs), 1)
         self.assertEqual(all_txs, tx_query)
@@ -541,8 +536,8 @@ class TestIotaWallet(AbstractServer):
         wallet.provider.get_bundles = lambda tail_hashes: [bundle]
         wallet.update_bundles_database()
         # Get the bundle after the method
-        bundle_after = wallet.database.query(DatabaseBundle)\
-            .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__()))\
+        bundle_after = wallet.database.query(DatabaseBundle) \
+            .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__())) \
             .one()
         self.assertEqual(bundle_after.is_confirmed, True)
         self.assertEqual(bundle_after.hash, bundle.hash.__str__())
@@ -569,8 +564,8 @@ class TestIotaWallet(AbstractServer):
         wallet.provider.get_bundles = lambda tail_hashes: [bundle]
         wallet.update_bundles_database()
         # Get the bundle after the method
-        bundle_after = wallet.database.query(DatabaseBundle)\
-            .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__()))\
+        bundle_after = wallet.database.query(DatabaseBundle) \
+            .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__())) \
             .one()
         self.assertEqual(bundle_after.is_confirmed, bundle.is_confirmed)
         self.assertEqual(bundle_after.hash, bundle.hash.__str__())
@@ -581,7 +576,7 @@ class TestIotaWallet(AbstractServer):
         # Mock API response
         wallet.provider.get_bundles = lambda tail_hashes: []
         wallet.update_bundles_database()
-        bundles_after = wallet.database.query(DatabaseBundle).\
+        bundles_after = wallet.database.query(DatabaseBundle). \
             all()
         self.assertEqual(len(bundles_after), 0)
 
@@ -603,7 +598,7 @@ class TestIotaWallet(AbstractServer):
         wallet.provider.get_bundles = lambda tail_hashes: [bundle]
         wallet.update_bundles_database([bundle])
         # Get the bundle after the method
-        bundles_after = wallet.database.query(DatabaseBundle)\
+        bundles_after = wallet.database.query(DatabaseBundle) \
             .all()
         # Check that exactly one bundle has been added as a result
         self.assertEqual(1, len(bundles_after))
@@ -630,7 +625,3 @@ class TestIotaTestnetWallet(TestIotaWallet):
 
     def testnet(self):
         return True
-
-
-if __name__ == '__main__':
-    unittest.main()

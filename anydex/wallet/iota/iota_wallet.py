@@ -2,18 +2,18 @@ import os
 import re
 from abc import ABCMeta
 from asyncio import Future
+from sqlalchemy import exists
 
+from iota.crypto.types import Seed
 from iota.transaction import ProposedTransaction
 from iota.types import Address
-from iota.crypto.types import Seed
-
-from anydex.wallet.wallet import Wallet, InsufficientFunds
 from ipv8.util import succeed, fail
 
 from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction, DatabaseBundle, \
     DatabaseAddress
 from anydex.wallet.iota.iota_provider import IotaProvider
+from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 from sqlalchemy import update
 
@@ -62,12 +62,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         Check whether the wallet has been created or not
         :return: boolean
         """
-        wallet_count = self.database.query(DatabaseSeed) \
-            .filter(DatabaseSeed.name.__eq__(self.wallet_name)) \
-            .count()
-
-        # TODO: return self.database.query(exists().where(DatabaseSeed.name == self.wallet_name)).scalar()
-        return wallet_count > 0
+        return self.database.query(exists().where(DatabaseSeed.name == self.wallet_name)).scalar()
 
     async def get_address(self):
         """
@@ -205,7 +200,6 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         transactions_from_node = transactions_from_node['transactions']
         # Update the database transactions
         self.update_transactions_database(transactions_from_node)
-        # Get the ID of the wallet seed
         # Get all transactions of this seed
         transactions_from_db = self.database.query(DatabaseTransaction) \
             .all()
@@ -327,7 +321,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         return self.testnet
 
     def precision(self):
-        return 6  # or 1, depends if we decide to trade 1 Million IOTAs or 1 IOTA
+        return 0  # or 6, depends if we decide to trade 1 Million IOTAs or 1 IOTA
 
     def min_unit(self):
         return 0  # valueless and feeless transactions are possible

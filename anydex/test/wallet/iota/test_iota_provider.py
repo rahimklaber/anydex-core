@@ -1,8 +1,10 @@
 import unittest
+
+from iota.api import Iota
 from iota.crypto.types import Seed
 from iota.transaction import ProposedTransaction, Bundle, Transaction
 from iota.types import Address
-from iota.api import Iota
+
 from anydex.wallet.iota.iota_provider import IotaProvider
 
 
@@ -236,7 +238,3 @@ class TestIotaProvider(unittest.TestCase):
         provider.asyncapi.were_addresses_spent_from = lambda *_: {'states': [False], 'duration': 0}
         is_spent = provider.is_spent(Address(self.seed_1_address_1))
         self.assertFalse(is_spent)
-
-
-if __name__ == '__main__':
-    unittest.main()
