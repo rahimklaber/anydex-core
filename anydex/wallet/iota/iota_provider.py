@@ -90,10 +90,9 @@ class IotaProvider(Provider):
         transactions = await self.async_api.find_transaction_objects(addresses=wallet_addresses)
         return transactions
 
-    async def get_bundles(self, tail_tx_hashes: list):
+    async def get_all_bundles(self):
         """
-        Retrieve all the bundles associated with the given tail transaction hashes
-        :param tail_tx_hashes: tail transaction hash using which bundle can be fetched
+        Retrieve all the bundles associated with the seed
         :return: a list of all fetched bundles
         """
         await self.update_account_data()
