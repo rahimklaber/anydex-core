@@ -1,3 +1,4 @@
+import abc
 import os
 import time
 from asyncio import Future
@@ -16,21 +17,21 @@ from anydex.wallet.stellar.xlm_provider import StellarProvider
 from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 
-class StellarWallet(Wallet):
+class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
     """
     Wallet provider support for the native stellar token: lumen.
     """
-    TESTNET = True
 
-    def __init__(self, db_path, provider: StellarProvider = None):
+    def __init__(self, db_path, testnet=False, provider: StellarProvider = None):
 
         super().__init__()
+        self.testnet = testnet
         self.provider = provider
-        self.network = 'testnet' if self.TESTNET else Cryptocurrency.STELLAR.value
+        self.network = 'testnet' if self.testnet else Cryptocurrency.STELLAR.value
         self.min_confirmations = 0
         self.unlocked = True
         self._session = initialize_db(os.path.join(db_path, 'stellar.db'))
-        self.wallet_name = 'stellar_tribler_testnet' if self.TESTNET else 'stellar_tribler'
+        self.wallet_name = 'stellar_tribler_testnet' if self.testnet else 'stellar_tribler'
 
         row = self._session.query(Secret).filter(Secret.name == self.wallet_name).first()
         if row:
@@ -108,7 +109,7 @@ class StellarWallet(Wallet):
             raise InsufficientFunds('Insufficient funds')
 
         self._logger.info(f"Creating Stellar Lumens payment with amount {address} to address {address}")
-        network = Network.PUBLIC_NETWORK_PASSPHRASE if not self.TESTNET else Network.TESTNET_NETWORK_PASSPHRASE
+        network = Network.PUBLIC_NETWORK_PASSPHRASE if not self.testnet else Network.TESTNET_NETWORK_PASSPHRASE
         tx_builder = TransactionBuilder(
             source_account=self.account,
             base_fee=self.provider.get_base_fee(),
@@ -290,3 +291,13 @@ class StellarWallet(Wallet):
                                   to=Keypair.from_raw_ed25519_public_key(payment_op.destination.ed25519).public_key,
                                   from_=source_account)
             self._session.add(payment)
+
+
+class StellarWallet(AbstractStellarWallet):
+
+    def __init__(self, db_path, provider: StellarProvider = None):
+        super().__init__(db_path, False, provider)
+
+class StellarTestnetWallet(AbstractStellarWallet):
+    def __init__(self, db_path, provider: StellarProvider = None):
+        super().__init__(db_path, True, provider)
