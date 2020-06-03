@@ -342,7 +342,7 @@ class TestIotaWallet(AbstractServer):
         wallet.get_balance = lambda: succeed({'available': 42, 'pending': 0,
                                               'currency': self.identifier(), 'precision': 6})
         wallet.provider.submit_transaction = lambda *_: bundle
-        wallet.provider.get_bundles = lambda tail_hashes: [bundle]
+        wallet.provider.get_all_bundles = lambda tail_hashes: [bundle]
         # Send a correct transfer
         result = await wallet.transfer(1, self.txn.address.__str__())
 
@@ -533,7 +533,7 @@ class TestIotaWallet(AbstractServer):
         # Add it to the database
         wallet.database.add(database_bundle)
         # Mock API response
-        wallet.provider.get_bundles = lambda tail_hashes: [bundle]
+        wallet.provider.get_all_bundles = lambda tail_hashes: [bundle]
         wallet.update_bundles_database()
         # Get the bundle after the method
         bundle_after = wallet.database.query(DatabaseBundle) \
@@ -561,7 +561,7 @@ class TestIotaWallet(AbstractServer):
         # Add it to the database
         wallet.database.add(database_bundle)
         # Mock API response
-        wallet.provider.get_bundles = lambda tail_hashes: [bundle]
+        wallet.provider.get_all_bundles = lambda tail_hashes: [bundle]
         wallet.update_bundles_database()
         # Get the bundle after the method
         bundle_after = wallet.database.query(DatabaseBundle) \
@@ -574,7 +574,7 @@ class TestIotaWallet(AbstractServer):
         wallet = self.new_wallet()
         wallet.create_wallet()
         # Mock API response
-        wallet.provider.get_bundles = lambda tail_hashes: []
+        wallet.provider.get_all_bundles = lambda tail_hashes: []
         wallet.update_bundles_database()
         bundles_after = wallet.database.query(DatabaseBundle). \
             all()
@@ -595,7 +595,7 @@ class TestIotaWallet(AbstractServer):
             is_confirmed=False
         )
         # Mock API response
-        wallet.provider.get_bundles = lambda tail_hashes: [bundle]
+        wallet.provider.get_all_bundles = lambda tail_hashes: [bundle]
         wallet.update_bundles_database([bundle])
         # Get the bundle after the method
         bundles_after = wallet.database.query(DatabaseBundle) \

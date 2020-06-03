@@ -260,7 +260,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         tail_hashes = [bundle.tail_transaction_hash for bundle in pending_bundles]
 
         # Get all bundles from the tangle
-        tangle_bundles = await self.provider.get_bundles(tail_hashes)
+        tangle_bundles = await self.provider.get_all_bundles(tail_hashes)
         # Update pending bundles
         for bundle in tangle_bundles:
             self.database.query(DatabaseBundle) \
