@@ -92,7 +92,7 @@ class HorizonProvider(StellarProvider):
 
     def get_balance(self, address):
         # We only care about the native token right now.
-        return self.server.accounts().account_id(address).call()['balances'][0]['balance']
+        return self._make_request(self.server.accounts().account_id(address).call)['balances'][0]['balance']
 
     def get_transactions(self, address):
         response = self._make_request(self.server.transactions().for_account(address).include_failed(True).call)
