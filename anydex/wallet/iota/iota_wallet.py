@@ -262,10 +262,11 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         # Get all bundles from the tangle
         tangle_bundles = await self.provider.get_all_bundles(tail_hashes)
         # Update pending bundles
-        for bundle in tangle_bundles:
-            self.database.query(DatabaseBundle) \
-                .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__())) \
-                .update({DatabaseBundle.is_confirmed: bundle.is_confirmed})
+        if tangle_bundles:
+            for bundle in tangle_bundles:
+                self.database.query(DatabaseBundle) \
+                    .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__())) \
+                    .update({DatabaseBundle.is_confirmed: bundle.is_confirmed})
 
         all_bundles = self.database.query(DatabaseBundle) \
             .all()
