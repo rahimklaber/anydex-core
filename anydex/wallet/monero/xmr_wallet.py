@@ -37,6 +37,20 @@ class MoneroWallet(Wallet):
         self.wallet = None
         self.created = False
 
+    def __eq__(self, other):
+        """
+        Equality operator.
+
+        :param other: compared object
+        :return: boolean
+        """
+        if isinstance(other, MoneroWallet):
+            return (self.network == other.network and
+                    self.wallet_name == other.wallet_name and
+                    self.host == other.host and
+                    self.port == other.port and
+                    self.wallet == other.wallet)
+
     def _wallet_connection_alive(self) -> bool:
         """
         Verify connection to wallet is still alive.
@@ -83,6 +97,7 @@ class MoneroWallet(Wallet):
             unlocked_balance = self.wallet.balance(unlocked=True)
             total_balance = self.wallet.balance(unlocked=False)
 
+            # TODO convert Decimal to float
             balance = {
                 'available': unlocked_balance,
                 'pending': total_balance - unlocked_balance,
@@ -116,6 +131,7 @@ class MoneroWallet(Wallet):
             balance = await self.get_balance()
 
             if balance['available'] < int(amount):
+                # TODO accounting for fees?
                 return fail(InsufficientFunds('Insufficient funds found in Monero wallet'))
 
             self._logger.info(f'Transfer {amount} to {address}')
@@ -144,29 +160,35 @@ class MoneroWallet(Wallet):
             results = self.wallet.transfer_multiple(transfers, **kwargs)
             hashes = [result[0].hash for result in results]
             return succeed(hashes)
-        return fail([])
+        return fail(WalletConnectionError('No connection to wallet for making transfers'))
 
     def get_address(self):
-        return self.wallet.address()
+        if self._wallet_connection_alive():
+            return self.wallet.address()
+        else:
+            return ''
 
-    def get_transactions(self):
+    async def get_transactions(self):
         """
         Retrieve all transactions associated with this Monero wallet.
 
         :return: list of dictionary representations of transactions
         """
-        payments = self._get_payments()
-        transactions = [self._normalize_transaction(payment) for payment in payments]
-        return succeed(transactions)
+        if self._wallet_connection_alive():
+            payments = await self._get_payments()
+            transactions = [self._normalize_transaction(payment) for payment in payments]
+            return succeed(transactions)
+        return fail(WalletConnectionError('No connection to wallet for retrieving transactions'))
 
-    def _get_payments(self) -> list:
+    async def _get_payments(self) -> list:
         """
         Retrieve all payments.
 
         :return: list of Payment instances: [Payment, ... ]
         """
-        incoming_payments = self.get_incoming_payments()
-        outgoing_payments = self.get_outgoing_payments()
+        # TODO return type for payments
+        incoming_payments = await self.get_incoming_payments()
+        outgoing_payments = await self.get_outgoing_payments()
         payments = incoming_payments + outgoing_payments
         return payments
 
@@ -238,7 +260,7 @@ class MoneroWallet(Wallet):
         :param transaction: Payment object from monero-python library
         :return: integer count
         """
-        if self._wallet_connection_alive:
+        if self._wallet_connection_alive():
             return succeed(self.wallet.confirmations(transaction))
         return fail(WalletConnectionError())
 
@@ -249,7 +271,7 @@ class MoneroWallet(Wallet):
 
         :param txid: transaction id
         """
-        pass
+        super().monitor_transaction(txid)
 
 
 class MoneroTestnetWallet(MoneroWallet):

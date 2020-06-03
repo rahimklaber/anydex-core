@@ -1,10 +1,23 @@
+from datetime import datetime
+from decimal import Decimal
+from time import mktime
+
 import monero.backends.jsonrpc
+from monero.transaction import Payment, OutgoingPayment, IncomingPayment, Transaction
 from requests.exceptions import ConnectionError
 
 from anydex.test.base import AbstractServer
 from anydex.test.util import MockObject
 from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.monero.xmr_wallet import MoneroWallet, MoneroTestnetWallet, WalletConnectionError
+from anydex.wallet.wallet import InsufficientFunds
+
+TEST_HASH = 'test_transaction_hash'
+# see https://monerodocs.org/public-address/standard-address/ for source and explanation
+TEST_ADDRESS = '4AdUndXHHZ6cfufTMvppY6JwXNouMBzSkbLYfpAV5Usx3skxNgYeYTRj5UzqtReoS44qo9mtmXCqY45DJ852K5Jv2684Rge'
+# retrieved from https://monero-python.readthedocs.io/en/latest/transactions.html
+TEST_TXID = 'e9a71c01875bec20812f71d155bfabf42024fde3ec82475562b817dcc8cbf8dc'
+TEST_PID = 'test_paymentid'
 
 
 def succeed_backend():
@@ -137,16 +150,372 @@ class TestMoneroWallet(AbstractServer):
                                   unlock_time=0)
         self.assertIsNone(result.result())
 
-    async def test_transfer_wallet(self):
+    async def test_transfer_wallet_enough(self):
         """
-        Attempt XMR transfer in case wallet exists.
+        Attempt XMR transfer in case wallet exists and enough XMR available.
         """
         w = MoneroWallet()
-        result = await w.transfer(20.2, 'test_address',
+        succeed_backend()
+        await w.create_wallet()
+
+        mock_wallet = MockObject()
+        mock_wallet.refresh = lambda *_: None
+        mock_wallet.balance = lambda unlocked: 20.2
+
+        mock_transaction = MockObject()
+        mock_transaction.hash = TEST_HASH
+
+        mock_wallet.transfer = lambda *_, **__: mock_transaction
+
+        w.wallet = mock_wallet
+
+        result = await w.transfer(20.1, 'test_address',
                                   payment_id='test_id',
                                   priority=1,
                                   unlock_time=0)
-        self.assertIsNone(result.result())
+        self.assertEquals(TEST_HASH, result.result())
+
+    async def test_transfer_wallet_not_enough(self):
+        """
+        Attempt XMR transfer in case not enough XMR available.
+        """
+        w = MoneroWallet()
+        succeed_backend()
+        await w.create_wallet()
+
+        mock_wallet = MockObject()
+        mock_wallet.refresh = lambda *_: None
+        mock_wallet.balance = lambda unlocked: 20.2
+
+        w.wallet = mock_wallet
+
+        self.assertAsyncRaises(InsufficientFunds, w.transfer(47.8, 'test_address',
+                                                             payment_id='test_id',
+                                                             priority=1,
+                                                             unlock_time=0))
+
+    async def test_transfer_multiple_no_wallet(self):
+        """
+        Make multiple transfers, but no wallet initialized.
+        """
+        w = MoneroWallet()
+
+        transfers = [
+            (TEST_ADDRESS, Decimal('20.2')),
+            (TEST_ADDRESS, Decimal('7.8'))
+        ]
+
+        self.assertAsyncRaises(WalletConnectionError, w.transfer_multiple(transfers, priority=3))
+
+    async def test_transfer_multiple_wallet(self):
+        """
+        Make multiple transfers at once, enough balance.
+        """
+        w = MoneroWallet()
+
+        transfers = [
+            (TEST_ADDRESS, Decimal('20.2')),
+            (TEST_ADDRESS, Decimal('7.8'))
+        ]
+
+        mock_wallet = MockObject()
+        mock_wallet.refresh = lambda: None
+        mock_wallet.balance = lambda **_: 57.3
+        mock_wallet.transfer_multiple = \
+            lambda *_, **__: [(Transaction(hash=TEST_HASH), Decimal('20.2')),
+                              (Transaction(hash=TEST_HASH), Decimal('7.8'))]
+
+        w.wallet = mock_wallet
+
+        hashes = await w.transfer_multiple(transfers, priority=3)
+        self.assertEquals(2, len(hashes.result()))
+
+    async def test_transfer_multiple_wallet_not_enough(self):
+        """
+        Make multiple transfers at once, but not enough balance.
+        """
+        w = MoneroWallet()
+
+        transfers = [
+            (TEST_ADDRESS, Decimal('20.2')),
+            (TEST_ADDRESS, Decimal('7.8'))
+        ]
+
+        mock_wallet = MockObject()
+        mock_wallet.refresh = lambda: None
+        mock_wallet.balance = lambda **_: 21.3
+        w.wallet = mock_wallet
+
+        self.assertAsyncRaises(InsufficientFunds, w.transfer_multiple(transfers, priority=3))
+
+    def test_get_address_no_wallet(self):
+        """
+        Get Monero wallet address without wallet initialized.
+        """
+        w = MoneroWallet()
+        addr = w.get_address()
+        self.assertEquals('', addr)
+
+    def test_get_address_wallet(self):
+        """
+        Get Monero wallet address with wallet initialized.
+        """
+        w = MoneroWallet()
+        mock_wallet = MockObject()
+        mock_wallet.refresh = lambda: None
+        mock_wallet.address = lambda: TEST_ADDRESS
+        w.wallet = mock_wallet
+        addr = w.get_address()
+        self.assertEquals(TEST_ADDRESS, addr)
+
+    def test_get_transactions_no_wallet(self):
+        """
+        Attempt retrieval of transactions from Monero wallet in case wallet does not exist.
+        """
+        w = MoneroWallet()
+        self.assertAsyncRaises(WalletConnectionError, w.get_transactions())
+
+    async def test_get_transactions_wallet(self):
+        """
+        Test retrieval of transactions from Monero wallet in case wallet does exist.
+        """
+        w = MoneroWallet()
+
+        timestamp = datetime.now()
+
+        p1 = IncomingPayment(amount=30.3, payment_id=TEST_PID, local_address=TEST_ADDRESS)
+        p1.transaction = Transaction(hash=TEST_HASH, height=120909, fee=1, timestamp=timestamp,
+                                     confirmations=21)
+
+        p2 = IncomingPayment(amount=12.7, payment_id=TEST_PID, local_address=TEST_ADDRESS)
+        p2.transaction = Transaction(hash=TEST_HASH, height=118909, fee=1, timestamp=timestamp,
+                                     confirmations=17)
+
+        ts = mktime(timestamp.timetuple())
+
+        mock_wallet = MockObject()
+        mock_wallet.refresh = lambda: None
+        mock_wallet.incoming = lambda **_: [p1]
+        mock_wallet.outgoing = lambda **_: [p2]
+        w.wallet = mock_wallet
+
+        transactions = await w.get_transactions()
+
+        self.assertDictEqual({
+            'id': TEST_HASH,
+            'outgoing': False,
+            'from': '',
+            'to': TEST_ADDRESS,
+            'amount': 30.3,
+            'fee_amount': 1,
+            'currency': 'XMR',
+            'timestamp': ts,
+            'description': 'Confirmations: 21'
+        }, transactions.result()[0])
+
+        self.assertDictEqual({
+            'id': TEST_HASH,
+            'outgoing': False,
+            'from': '',
+            'to': TEST_ADDRESS,
+            'amount': 12.7,
+            'fee_amount': 1,
+            'currency': 'XMR',
+            'timestamp': ts,
+            'description': 'Confirmations: 17'
+        }, transactions.result()[1])
+
+    async def test_get_payments(self):
+        """
+        Get all payments (incoming and outgoing) corresponding to the wallet.
+        """
+        w = MoneroWallet()
+        succeed_backend()
+        await w.create_wallet()
+
+        mock_wallet = MockObject()
+        mock_wallet.refresh = lambda *_: None
+
+        p1 = Payment(amount=30.3, payment_id=TEST_PID)
+        p1.transaction = Transaction(hash=TEST_HASH, height=120909)
+
+        p2 = Payment(amount=12.7, payment_id=TEST_PID)
+        p2.transaction = Transaction(has=TEST_HASH, height=118909)
+
+        mock_wallet.incoming = lambda **_: [p1]
+        mock_wallet.outgoing = lambda **_: [p2]
+
+        w.wallet = mock_wallet
+
+        payments = await w._get_payments()
+        self.assertEquals(2, len(payments))
+
+    def test_normalize_transaction_incoming_payment(self):
+        """
+        Test for Payment instance being IncomingPayment.
+        Verify monero.transaction.Transaction instances are correctly formatted.
+        """
+        w = MoneroWallet()
+        payment = IncomingPayment()
+        payment.local_address = TEST_ADDRESS
+        payment.amount = 9.2
+
+        timestamp = datetime.now()
+
+        mock_transaction = MockObject()
+        mock_transaction.hash = TEST_HASH
+        mock_transaction.fee = 0.78
+        ts = mktime(timestamp.timetuple())
+        mock_transaction.timestamp = timestamp
+        mock_transaction.confirmations = 12
+
+        payment.transaction = mock_transaction
+
+        self.assertDictEqual({
+            'id': TEST_HASH,
+            'outgoing': False,
+            'from': '',
+            'to': TEST_ADDRESS,
+            'amount': 9.2,
+            'fee_amount': 0.78,
+            'currency': 'XMR',
+            'timestamp': ts,
+            'description': 'Confirmations: 12'
+        }, w._normalize_transaction(payment))
+
+    def test_normalize_transaction_outgoing_payment(self):
+        """
+        Verify monero.transaction.Transaction instances are correctly formatted.
+        """
+        w = MoneroWallet()
+        payment = OutgoingPayment()
+        payment.local_address = TEST_ADDRESS
+        payment.amount = 11.8
+
+        timestamp = datetime.now()
+
+        mock_transaction = MockObject()
+        mock_transaction.hash = TEST_HASH
+        mock_transaction.fee = 0.3
+        ts = mktime(timestamp.timetuple())
+        mock_transaction.timestamp = timestamp
+        mock_transaction.confirmations = 23
+
+        payment.transaction = mock_transaction
+
+        self.assertDictEqual({
+            'id': TEST_HASH,
+            'outgoing': True,
+            'from': TEST_ADDRESS,
+            'to': '',
+            'amount': 11.8,
+            'fee_amount': 0.3,
+            'currency': 'XMR',
+            'timestamp': ts,
+            'description': 'Confirmations: 23'
+        }, w._normalize_transaction(payment))
+
+    def test_get_incoming_payments_no_wallet(self):
+        """
+        Get incoming payments for Monero wallet in case no wallet exists.
+        """
+        w = MoneroWallet()
+        self.assertAsyncRaises(WalletConnectionError, w.get_incoming_payments())
+
+    async def test_get_incoming_payments_wallet(self):
+        """
+        Get incoming payments for Monero wallet in case wallet exists.
+        """
+        w = MoneroWallet()
+
+        mock_wallet = MockObject()
+        mock_wallet.refresh = lambda *_: None
+        mock_wallet.incoming = lambda **_: [Payment()]
+        w.wallet = mock_wallet
+
+        result = await w.get_incoming_payments()
+
+        self.assertIsNotNone(result)
+        self.assertTrue(isinstance(result[0], Payment))
+
+    def test_get_outgoing_payments_no_wallet(self):
+        """
+        Get outgoing payments for Monero wallet in case no wallet exists.
+        """
+        w = MoneroWallet()
+        self.assertAsyncRaises(WalletConnectionError, w.get_outgoing_payments())
+
+    async def test_get_outgoing_payments_wallet(self):
+        """
+        Get outgoing payments for Monero wallet in case wallet exists.
+        """
+        w = MoneroWallet()
+
+        mock_wallet = MockObject()
+        mock_wallet.refresh = lambda *_: None
+        mock_wallet.outgoing = lambda **_: [Payment()]
+        w.wallet = mock_wallet
+
+        result = await w.get_outgoing_payments(False)
+
+        self.assertIsNotNone(result)
+        self.assertTrue(isinstance(result[0], Payment))
+
+    def test_min_unit(self):
+        """
+        Verify minimal transfer unit.
+        """
+        w = MoneroWallet()
+        self.assertEquals(1, w.min_unit())  # 1 piconero
+
+    def test_precision(self):
+        """
+        Verify Monero default precision.
+        """
+        w = MoneroWallet()
+        self.assertEquals(12, w.precision())
+
+    def test_get_identifier(self):
+        """
+        Verify correct identifier is returned.
+        """
+        w = MoneroWallet()
+        self.assertEquals('XMR', w.get_identifier())
+
+    def test_get_confirmations_no_wallet(self):
+        """
+        Verify number of confirmations returned in case wallet does not exist.
+        """
+        w = MoneroWallet()
+        self.assertIsNone(w.wallet)
+        p = Payment()
+        self.assertAsyncRaises(WalletConnectionError, w.get_confirmations(p))
+
+    async def test_get_confirmations_wallet(self):
+        """
+        Verify number of confirmations returned in case wallet does exist.
+        """
+        w = MoneroWallet()
+        self.assertIsNone(w.wallet)
+        succeed_backend()
+        await w.create_wallet()
+        self.assertIsNotNone(w.wallet)
+
+        mock_wallet = MockObject()
+        mock_wallet.refresh = lambda *_: None
+        mock_wallet.confirmations = lambda *_: 4
+        w.wallet = mock_wallet
+
+        p = Payment()
+        self.assertEquals(4, await w.get_confirmations(p))
+
+    def test_monitor_transaction(self):
+        """
+        Test method `monitor_transaction` which simply returns on call.
+        """
+        w = MoneroWallet()
+        self.assertIsNone(w.monitor_transaction(TEST_TXID))  # return None-method
+        self.assertEquals(w, MoneroWallet())  # verify no state change takes place
 
 
 class TestTestnetMoneroWallet(AbstractServer):
@@ -155,8 +524,7 @@ class TestTestnetMoneroWallet(AbstractServer):
         """
         Verify Testnet Wallet-specific values for wallet fields.
         """
-        MoneroWallet.TESTNET = True
-        w = MoneroWallet()
+        w = MoneroTestnetWallet()
         self.assertTrue(w.TESTNET)
         self.assertEqual('tribler_testnet', w.wallet_name)
 
