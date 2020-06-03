@@ -1,9 +1,11 @@
 import abc
 from datetime import datetime
 
+import stellar_sdk
 from stellar_sdk import Server
 from stellar_sdk.exceptions import NotFoundError
 
+from anydex.wallet.provider import ConnectionException, RequestException
 from anydex.wallet.provider import Provider
 from anydex.wallet.stellar.xlm_db import Transaction
 
@@ -63,18 +65,37 @@ class HorizonProvider(StellarProvider):
     def __init__(self, horizon_url='https://horizon-testnet.stellar.org/'):
         self.server = Server(horizon_url=horizon_url)
 
+    def _make_request(self, fun, *args, **kwargs):
+        """
+        Used to make the request to the horizon server.
+        It will catch the library specific exceptions and raise the exceptions used in this project.
+        :param fun: api call to make
+        :param args: args for the api call
+        :param kwargs: args for the api call
+        :return: response form the api call
+        """
+        try:
+            return fun(*args, **kwargs)
+        except stellar_sdk.exceptions.ConnectionError:
+            raise ConnectionException('Could not connect to the server')
+        # except stellar_sdk.exceptions.NotFoundError:
+        #     RequestException('response code was 404, this should never happen')
+        except stellar_sdk.exceptions.BadRequestError:
+            RequestException('Your request might have been malformed')
+        except stellar_sdk.exceptions.BadResponseError:
+            RequestException('The server returned a malformed response')
+
     def submit_transaction(self, tx):
-        return self.server.submit_transaction(tx)['hash']
+        return self._make_request(self.server.submit_transaction, tx)['hash']
 
     def get_balance(self, address):
         # We only care about the native token right now.
         return self.server.accounts().account_id(address).call()['balances'][0]['balance']
 
     def get_transactions(self, address):
-        response = self.server.transactions().for_account(address).include_failed(True).call()
+        response = self._make_request(self.server.transactions().for_account(address).include_failed(True).call)
         transactions = response['_embedded']['records']
         return self._normalize_transactions(transactions)
-        # return self._normalize_payments_all_types(payments)
 
     def _normalize_transactions(self, transactions):
         """
@@ -113,17 +134,18 @@ class HorizonProvider(StellarProvider):
         )
 
     def get_base_fee(self):
-        return self.server.fetch_base_fee()
+        return self._make_request(self.server.fetch_base_fee)
 
     def get_ledger_height(self):
-        return self.server.ledgers().limit(1).order().call()['_embedded']['records'][0]['sequence']
+        response = self._make_request(self.server.ledgers().limit(1).order().call)
+        return response['_embedded']['records'][0]['sequence']
 
     def get_account_sequence(self, address):
-        return int(self.server.accounts().account_id(address).call()["sequence"])
+        return int(self._make_request(self.server.accounts().account_id(address).call)["sequence"])
 
     def check_account_created(self, address) -> bool:
         try:
-            self.server.load_account(address)
+            self._make_request(self.server.load_account, address)
         except NotFoundError:
             return False
         return True
