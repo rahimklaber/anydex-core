@@ -2,20 +2,18 @@ import os
 import re
 from abc import ABCMeta
 from asyncio import Future
-from sqlalchemy import exists
 
 from iota.crypto.types import Seed
 from iota.transaction import ProposedTransaction
 from iota.types import Address
 from ipv8.util import succeed, fail
+from sqlalchemy import exists
 
 from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.iota.iota_database import initialize_db, DatabaseSeed, DatabaseTransaction, DatabaseBundle, \
     DatabaseAddress
 from anydex.wallet.iota.iota_provider import IotaProvider
 from anydex.wallet.wallet import Wallet, InsufficientFunds
-
-from sqlalchemy import update
 
 
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
@@ -131,9 +129,9 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         )
         bundle = await self.provider.submit_transaction(transaction)
 
-        # store bundle and its transactions in the database
+        # update bundles and transactions database
         await self.update_bundles_database()
-        await self.update_transactions_database(bundle.transactions)
+        await self.update_transactions_database()
 
         return bundle.hash.__str__()
 
@@ -170,11 +168,9 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         if not self.created:
             return 0
 
-        # get all transactions from the seed
-        tangle_transactions = await self.provider.get_seed_transactions()['transactions']
-        # update database
+        # update bundles and transactions database
         await self.update_bundles_database()
-        await self.update_transactions_database(tangle_transactions)
+        await self.update_transactions_database()
 
         # fetch pending transactions from the database
         pending_database_transactions = self.database.query(DatabaseTransaction) \
@@ -195,24 +191,20 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         if not self.created:
             return succeed([])
 
-        # Get transactions from the tangle
-        tangle_transactions = await self.provider.get_seed_transactions()['transactions']
-        # Update the database transactions
+        # update bundles and transactions database
         await self.update_bundles_database()
-        await self.update_transactions_database(tangle_transactions)
+        await self.update_transactions_database()
 
-        # Get all transactions of this seed
-        transactions_from_db = self.database.query(DatabaseTransaction) \
+        # get all transactions of this seed
+        db_seed_transactions = self.database.query(DatabaseTransaction) \
+            .filter(DatabaseTransaction.seed.__eq__(self.seed.__str__())) \
             .all()
-        print('db transactions:', [tx.address for tx in transactions_from_db])
-
         seed_addresses = self.database.query(DatabaseAddress)\
             .all()
         seed_addresses = [ad.address for ad in seed_addresses]
-        print('seed addresses:', seed_addresses)
 
         transactions = []
-        for db_tx in transactions_from_db:
+        for db_tx in db_seed_transactions:
             transactions.append({
                 'hash': db_tx.hash,
                 'outgoing': db_tx.address in seed_addresses,
@@ -251,17 +243,19 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         """
         Update the bundles database
         """
+        # get all tangle bundles
         tangle_bundles = await self.provider.get_all_bundles()
+        # get all bundle hashes in the database
         db_bundles = self.database.query(DatabaseBundle) \
             .all()
         db_bundle_hashes = [bundle.hash for bundle in db_bundles]
+        # insert/update bundles
         for bundle in tangle_bundles:
             if bundle.hash.__str__() not in db_bundle_hashes:
                 self.database.add(DatabaseBundle(
                     hash=bundle.hash.__str__(),
                     tail_transaction_hash=bundle.tail_transaction.hash.__str__(),
-                    count=len(bundle.transactions),
-                    is_confirmed=bundle.is_confirmed
+                    count=len(bundle.transactions)
                 ))
             else:
                 bundle_tail_tx_hash = bundle.tail_transaction.hash.__str__()
@@ -272,19 +266,19 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         self.database.commit()
 
-    async def update_transactions_database(self, transactions):
+    async def update_transactions_database(self):
         """
-        Update the database by updating transaction list and spent addresses list
-        :param transactions: transactions to be stored or updated in the database
+        Update the transactions database and spent addresses list
         """
-        # Get all transaction hashes in the database
+        # get all tangle transactions
+        tangle_transactions = await self.provider.get_seed_transactions()
+        # get all transaction hashes in the database
         db_txs = self.database.query(DatabaseTransaction) \
             .all()
         db_txs_hashes = [tx.hash for tx in db_txs]
-        for tx in transactions:
-            # if transaction already exists in the database, update the pending status
+        # insert/update transactions
+        for tx in tangle_transactions:
             if tx.hash.__str__() not in db_txs_hashes:
-                print('inside: not in: ', tx.hash.__str__())
                 self.database.add(DatabaseTransaction(
                     seed=self.seed.__str__(),
                     address=tx.address.__str__(),
@@ -293,17 +287,14 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                     msg_sig=tx.signature_message_fragment.__str__(),
                     current_index=tx.current_index,
                     timestamp=tx.timestamp,
-                    is_confirmed=tx.is_confirmed,
                     bundle_hash=tx.bundle_hash.__str__()
                 ))
                 # if sending from an address, mark it as spent in the database
                 if tx.value <= 0:
-                    print('inside: ours')
                     self.database.query(DatabaseAddress)\
                         .filter(DatabaseAddress.address.__eq__(tx.address.__str__())) \
                         .update({DatabaseAddress.is_spent: True})
             else:
-                print('inside: else: ', tx.hash.__str__())
                 confirmation_check = await self.provider.get_confirmations(tx.hash.__str__())
                 self.database.query(DatabaseTransaction) \
                     .filter(DatabaseTransaction.hash.__eq__(tx.hash.__str__())) \

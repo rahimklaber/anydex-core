@@ -88,7 +88,7 @@ class IotaProvider(Provider):
         await self.update_account_data()
         wallet_addresses = self.account_data['addresses']
         transactions = await self.asyncapi.find_transaction_objects(addresses=wallet_addresses)
-        return transactions
+        return transactions['transactions']
 
     async def get_all_bundles(self):
         """
