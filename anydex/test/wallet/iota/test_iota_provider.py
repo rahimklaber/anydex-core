@@ -1,15 +1,15 @@
-import unittest
-
+from ipv8.util import succeed
 from iota.api import AsyncIota
 from iota.crypto.addresses import AddressGenerator
 from iota.crypto.types import Seed
 from iota.transaction import ProposedTransaction, Bundle, Transaction
 from iota.types import Address
+from test.base import AbstractServer
 
 from anydex.wallet.iota.iota_provider import IotaProvider
 
 
-class TestIotaProvider(unittest.TestCase):
+class TestIotaProvider(AbstractServer):
     def setUp(self):
         self.node = 'https://nodes.comnet.thetangle.org:443'
 
@@ -159,13 +159,13 @@ class TestIotaProvider(unittest.TestCase):
     async def test_initialize_api_correct_seed(self):
         seed = Seed.random()
         provider = IotaProvider(testnet=True, node=self.node, seed=seed)
-        provider.asyncapi.get_account_data = lambda: {'balance': 0}
+        provider.asyncapi.get_account_data = lambda: succeed({'balance': 0})
         self.assertEqual(await provider.get_seed_balance(), 0)
 
     async def test_submit_transaction(self):
         bundle = Bundle([Transaction.from_tryte_string(self.get_transactions_tryte[0])])
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
-        provider.asyncapi.send_transfer = lambda transfers, min_weight_magnitude: {'bundle': bundle}
+        provider.asyncapi.send_transfer = lambda transfers, min_weight_magnitude: succeed({'bundle': bundle})
         transaction = ProposedTransaction(
             address=Address(
                 Transaction.as_json_compatible(Transaction.from_tryte_string(self.get_transactions_tryte[0]))[
@@ -187,34 +187,35 @@ class TestIotaProvider(unittest.TestCase):
 
     async def test_get_balance(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_2)
-        provider.asyncapi.get_balances = lambda addresses: {'balances': [4]}
+        provider.asyncapi.get_balances = lambda addresses: succeed({'balances': [4]})
         self.assertEqual(await provider.get_balance(address=[Address(self.seed_2_address_1)]), 4)
 
     async def test_get_balance_invalid_address(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
-        provider.asyncapi.get_balances = lambda addresses: {'balances': [0]}
+        provider.asyncapi.get_balances = lambda addresses: succeed({'balances': [0]})
         self.assertEqual(await provider.get_balance(
             address=[Address(self.wrong_address)]), 0)
 
     async def test_get_seed_balance(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
-        provider.asyncapi.get_account_data = lambda: {'balance': 996}
+        provider.asyncapi.get_account_data = lambda: succeed({'balance': 996})
         self.assertEqual(await provider.get_seed_balance(), 996)
 
     async def test_get_transactions(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
-        provider.asyncapi.find_transaction_objects = lambda addresses: self.get_transactions_tryte
+        provider.asyncapi.find_transaction_objects = lambda addresses: succeed(self.get_transactions_tryte)
         self.assertEqual(await provider.get_transactions(address=[Address(self.seed_1_address_1)]),
                          self.get_transactions_tryte)
 
     async def test_get_transactions_invalid_address(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
-        provider.asyncapi.find_transaction_objects = lambda addresses: {'transactions': []}
-        self.assertEqual(len(await provider.get_transactions(address=[Address(self.wrong_address)])), 0)
+        provider.asyncapi.find_transaction_objects = lambda addresses: succeed({'transactions': []})
+        txs = await provider.get_transactions(address=[Address(self.wrong_address)])
+        self.assertEqual(len(txs['transactions']), 0)
 
     async def test_get_seed_transactions(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
-        provider.asyncapi.find_transaction_objects = lambda addresses: self.get_seed_transactions_tryte
+        provider.asyncapi.find_transaction_objects = lambda addresses: succeed(self.get_seed_transactions_tryte)
         self.assertEqual(await provider.get_seed_transactions(), self.get_seed_transactions_tryte)
 
     async def test_get_all_bundles(self):
@@ -222,7 +223,7 @@ class TestIotaProvider(unittest.TestCase):
         bundle2 = Bundle([self.get_seed_transactions_tryte[1]])
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
         bundles = [bundle1, bundle2]
-        provider.asyncapi.get_account_data = lambda transactions: {'bundles': bundles}
+        provider.asyncapi.get_account_data = lambda: succeed({'bundles': bundles})
         self.assertListEqual(bundles, await provider.get_all_bundles())
 
     def test_generate_address(self):
@@ -234,12 +235,12 @@ class TestIotaProvider(unittest.TestCase):
 
     async def test_is_spent_true(self):
         provider = IotaProvider(seed=self.own_seed_1)
-        provider.asyncapi.were_addresses_spent_from = lambda *_: {'states': [True], 'duration': 0}
+        provider.asyncapi.were_addresses_spent_from = lambda *_: succeed({'states': [True], 'duration': 0})
         is_spent = await provider.is_spent(Address(self.seed_1_address_1))
         self.assertTrue(is_spent)
 
     async def test_is_spent_false(self):
         provider = IotaProvider(seed=self.own_seed_1)
-        provider.asyncapi.were_addresses_spent_from = lambda *_: {'states': [False], 'duration': 0}
+        provider.asyncapi.were_addresses_spent_from = lambda *_: succeed({'states': [False], 'duration': 0})
         is_spent = await provider.is_spent(Address(self.seed_1_address_1))
         self.assertFalse(is_spent)
