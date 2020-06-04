@@ -132,8 +132,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         bundle = await self.provider.submit_transaction(transaction)
 
         # store bundle and its transactions in the database
-        await self.update_bundles_database([bundle])
-        self.update_transactions_database(bundle.transactions)
+        await self.update_bundles_database()
+        await self.update_transactions_database(bundle.transactions)
 
         return bundle.hash.__str__()
 
@@ -154,7 +154,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         pending = await self.get_pending()
 
         response = succeed({
-            'available': available,
+            'available': available,  # TODO: minus pending or not?
             'pending': pending,
             'currency': self.get_identifier(),
             'precision': self.precision()
@@ -171,22 +171,21 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
             return 0
 
         # get all transactions from the seed
-        tangle_transactions = await self.provider.get_seed_transactions()
+        tangle_transactions = await self.provider.get_seed_transactions()['transactions']
         # update database
-        self.update_transactions_database(tangle_transactions['transactions'])
         await self.update_bundles_database()
+        await self.update_transactions_database(tangle_transactions)
 
-        database_transactions = self.database.query(DatabaseTransaction) \
+        # fetch pending transactions from the database
+        pending_database_transactions = self.database.query(DatabaseTransaction) \
             .filter(DatabaseTransaction.seed.__eq__(self.seed.__str__())) \
+            .filter(DatabaseTransaction.is_confirmed.is_(False)) \
             .all()
 
-        # iterate through transaction and check whether they are confirmed
-        pending_balance = 0
-        for tx in database_transactions:
-            if not tx.is_confirmed:
-                pending_balance += tx.value
+        # iterate through transactions and check whether they are confirmed
+        pending_balances = [tx.value for tx in pending_database_transactions]
 
-        return pending_balance
+        return sum(pending_balances)
 
     async def get_transactions(self):
         """
@@ -195,23 +194,24 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         """
         if not self.created:
             return succeed([])
+
         # Get transactions from the tangle
-        transactions_from_node = await self.provider.get_seed_transactions()
-        transactions_from_node = transactions_from_node['transactions']
+        tangle_transactions = await self.provider.get_seed_transactions()['transactions']
         # Update the database transactions
-        self.update_transactions_database(transactions_from_node)
+        await self.update_bundles_database()
+        await self.update_transactions_database(tangle_transactions)
+
         # Get all transactions of this seed
         transactions_from_db = self.database.query(DatabaseTransaction) \
             .all()
-
         print('db transactions:', [tx.address for tx in transactions_from_db])
 
-        transactions = []
-        # Parse transactions
         seed_addresses = self.database.query(DatabaseAddress)\
             .all()
         seed_addresses = [ad.address for ad in seed_addresses]
         print('seed addresses:', seed_addresses)
+
+        transactions = []
         for db_tx in transactions_from_db:
             transactions.append({
                 'hash': db_tx.hash,
@@ -223,6 +223,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                 'bundle': db_tx.bundle_hash,
                 'is_confirmed': db_tx.is_confirmed
             })
+
         return transactions
 
     def monitor_transaction(self, txid):
@@ -246,46 +247,32 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
         return monitor_future
 
-    async def update_bundles_database(self, bundles=None):
+    async def update_bundles_database(self):
         """
-        Update the database by updating bundle list
-        :param bundles: bundle to be stored
+        Update the bundles database
         """
-        # Get all unconfirmed bundles
-        pending_bundles = self.database.query(DatabaseBundle) \
-            .filter(DatabaseBundle.is_confirmed.is_(False)) \
+        tangle_bundles = await self.provider.get_all_bundles()
+        db_bundles = self.database.query(DatabaseBundle) \
             .all()
-
-        # Get all tail transactions from the pending bundles
-        tail_hashes = [bundle.tail_transaction_hash for bundle in pending_bundles]
-
-        # Get all bundles from the tangle
-        tangle_bundles = await self.provider.get_all_bundles(tail_hashes)
-        # Update pending bundles
-        if tangle_bundles:
-            for bundle in tangle_bundles:
+        db_bundle_hashes = [bundle.hash for bundle in db_bundles]
+        for bundle in tangle_bundles:
+            if bundle.hash.__str__() not in db_bundle_hashes:
+                self.database.add(DatabaseBundle(
+                    hash=bundle.hash.__str__(),
+                    tail_transaction_hash=bundle.tail_transaction.hash.__str__(),
+                    count=len(bundle.transactions),
+                    is_confirmed=bundle.is_confirmed
+                ))
+            else:
+                bundle_tail_tx_hash = bundle.tail_transaction.hash.__str__()
+                confirmation_check = await self.provider.get_confirmations(bundle_tail_tx_hash)
                 self.database.query(DatabaseBundle) \
                     .filter(DatabaseBundle.hash.__eq__(bundle.hash.__str__())) \
-                    .update({DatabaseBundle.is_confirmed: bundle.is_confirmed})
-
-        all_bundles = self.database.query(DatabaseBundle) \
-            .all()
-
-        if bundles:
-            for bundle in bundles:
-                # If the bundle isn't already in the database
-                if bundle not in all_bundles:
-                    # store bundle in the database
-                    self.database.add(DatabaseBundle(
-                        hash=bundle.hash.__str__(),
-                        tail_transaction_hash=bundle.tail_transaction.hash.__str__(),
-                        count=len(bundle.transactions),
-                        is_confirmed=bundle.is_confirmed
-                    ))
+                    .update({DatabaseBundle.is_confirmed: confirmation_check})
 
         self.database.commit()
 
-    def update_transactions_database(self, transactions):
+    async def update_transactions_database(self, transactions):
         """
         Update the database by updating transaction list and spent addresses list
         :param transactions: transactions to be stored or updated in the database
@@ -297,6 +284,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         for tx in transactions:
             # if transaction already exists in the database, update the pending status
             if tx.hash.__str__() not in db_txs_hashes:
+                print('inside: not in: ', tx.hash.__str__())
                 self.database.add(DatabaseTransaction(
                     seed=self.seed.__str__(),
                     address=tx.address.__str__(),
@@ -310,21 +298,16 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                 ))
                 # if sending from an address, mark it as spent in the database
                 if tx.value <= 0:
+                    print('inside: ours')
                     self.database.query(DatabaseAddress)\
                         .filter(DatabaseAddress.address.__eq__(tx.address.__str__())) \
                         .update({DatabaseAddress.is_spent: True})
-            else:  # TODO: has to be tested
-                bundle_hash = self.database.query(DatabaseTransaction.bundle_hash) \
-                    .filter(DatabaseTransaction.hash.__eq__(tx.hash.__str__())) \
-                    .one()
-
-                is_confirmed = self.database.query(DatabaseBundle.is_confirmed) \
-                    .filter(DatabaseBundle.hash.__eq__(bundle_hash.__str__())) \
-                    .one()
-
+            else:
+                print('inside: else: ', tx.hash.__str__())
+                confirmation_check = await self.provider.get_confirmations(tx.hash.__str__())
                 self.database.query(DatabaseTransaction) \
                     .filter(DatabaseTransaction.hash.__eq__(tx.hash.__str__())) \
-                    .update({DatabaseTransaction.is_confirmed: is_confirmed})
+                    .update({DatabaseTransaction.is_confirmed: confirmation_check})
 
         self.database.commit()
 

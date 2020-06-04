@@ -116,11 +116,11 @@ class IotaProvider(Provider):
         response = await self.asyncapi.were_addresses_spent_from([address])
         return response['states'][0]
 
-    # async def get_confirmations(self, tx_hashes: list):
-    #     """
-    #     Check whether transactions are confirmed
-    #     :param tx_hashes: transactions to check whether confirmed
-    #     :return: boolean
-    #     """
-    #     response = await self.async_api.get_latest_inclusion()
-    #     return response['states']
+    async def get_confirmations(self, tx_hash):
+        """
+        Check whether transactions are confirmed
+        :param tx_hash: transaction to check whether confirmed
+        :return: boolean
+        """
+        response = await self.asyncapi.get_inclusion_states([tx_hash], None)
+        return response['states'][0]
