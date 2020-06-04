@@ -215,7 +215,8 @@ class TestIotaProvider(AbstractServer):
 
     async def test_get_seed_transactions(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.own_seed_1)
-        provider.asyncapi.find_transaction_objects = lambda addresses: succeed(self.get_seed_transactions_tryte)
+        provider.asyncapi.find_transaction_objects = lambda addresses: \
+            succeed({'transactions': self.get_seed_transactions_tryte})
         self.assertEqual(await provider.get_seed_transactions(), self.get_seed_transactions_tryte)
 
     async def test_get_all_bundles(self):
