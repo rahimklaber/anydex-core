@@ -62,6 +62,7 @@ class StellarProvider(Provider, metaclass=abc.ABCMeta):
 class HorizonProvider(StellarProvider):
     """
     Horizon is a software that allows you to query nodes via http.
+    This should be the only thing we need since horizon also indexes the data it holds.
     """
 
     def __init__(self, horizon_url='https://horizon-testnet.stellar.org/'):
@@ -80,12 +81,15 @@ class HorizonProvider(StellarProvider):
             return fun(*args, **kwargs)
         except stellar_sdk.exceptions.ConnectionError:
             raise ConnectionException('Could not connect to the server')
-        # except stellar_sdk.exceptions.NotFoundError:
-        #     RequestException('response code was 404, this should never happen')
+        except stellar_sdk.exceptions.NotFoundError as e:
+            # This exception is used by the check_account_created function
+            if fun == self.server.load_account:
+                raise e
+            raise RequestException('Check the request params, the resource could not be found')
         except stellar_sdk.exceptions.BadRequestError:
-            RequestException('Your request might have been malformed')
+            raise RequestException('Your request had an error')
         except stellar_sdk.exceptions.BadResponseError:
-            RequestException('The server returned a malformed response')
+            raise RequestException('The server response had an error')
 
     def submit_transaction(self, tx):
         return self._make_request(self.server.submit_transaction, tx)['hash']
