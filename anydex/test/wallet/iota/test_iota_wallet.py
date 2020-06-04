@@ -1,7 +1,7 @@
 from asyncio import Future
 from sqlalchemy.orm import session as db_session
 
-from iota import Address, Transaction, Bundle
+from iota import Address, Transaction, Bundle, TransactionHash
 from iota.crypto.types import Seed
 from ipv8.util import succeed
 
@@ -354,20 +354,12 @@ class TestIotaWallet(AbstractServer):
         wallet = self.new_wallet()
         wallet.create_wallet()
 
-        async def balance_mock():
-            return succeed({'available': 42, 'pending': 0,
-                            'currency': self.identifier(), 'precision': 0})
-
-        async def submit_tx_mock(transaction):
-            return bundle
-
-        async def bundles_mock(tail_hashes):
-            return [bundle]
-
         # Set up mocks.
-        wallet.get_balance = balance_mock
-        wallet.provider.submit_transaction = submit_tx_mock
-        wallet.provider.get_all_bundles = bundles_mock
+        wallet.get_balance = lambda: succeed(succeed({'available': 42, 'pending': 0,
+                                                      'currency': self.identifier(), 'precision': 0}))
+        wallet.provider.submit_transaction = lambda transaction: succeed(bundle)
+        wallet.provider.get_all_bundles = lambda: succeed([bundle])
+        wallet.provider.get_seed_transactions = lambda: succeed([self.txn])
         # Send a correct transfer
         result = await wallet.transfer(1, self.txn.address.__str__())
 
@@ -461,34 +453,22 @@ class TestIotaWallet(AbstractServer):
         wallet = self.new_wallet()
         wallet.create_wallet()
 
-        async def provider_txs_mock():
-            return {'transactions': []}
-
-        async def update_bundles_mock():
-            return None
-
-        wallet.provider.get_seed_transactions = provider_txs_mock
-        wallet.update_bundles_database = update_bundles_mock
+        wallet.provider.get_seed_transactions = lambda: succeed([])
+        wallet.update_bundles_database = lambda: succeed(None)
         result = await wallet.get_pending()
         self.assertEqual(0, result)
 
     async def test_get_pending_confirmed_transaction(self):
         """
-        Tests the pending balance with no transactions
+        Tests the pending balance with one confirmed transaction
         """
         wallet = self.new_wallet()
         wallet.create_wallet()
         # Inject the valued transaction
         self.tx1.is_confirmed = True
 
-        async def provider_txs_mock():
-            return {'transactions': [self.tx1]}
-
-        async def update_bundles_mock():
-            return None
-
-        wallet.update_bundles_database = update_bundles_mock
-        wallet.provider.get_seed_transactions = provider_txs_mock
+        wallet.update_bundles_database = lambda: succeed(None)
+        wallet.provider.get_seed_transactions = lambda: succeed([self.tx1])
         result = await wallet.get_pending()
         # Since the transaction is confirmed, no value should be added
         self.assertEqual(0, result)
@@ -504,14 +484,8 @@ class TestIotaWallet(AbstractServer):
         self.txn.is_confirmed = False
         self.txn.value = 1
 
-        async def provider_txs_mock():
-            return {'transactions': [self.tx1, self.txn]}
-
-        async def update_bundles_mock():
-            return None
-
-        wallet.update_bundles_database = update_bundles_mock
-        wallet.provider.get_seed_transactions = provider_txs_mock
+        wallet.update_bundles_database = lambda: succeed(None)
+        wallet.provider.get_seed_transactions = lambda: succeed([self.tx1, self.txn])
 
         result = await wallet.get_pending()
         # Since the transaction is confirmed, no value should be added
@@ -536,9 +510,10 @@ class TestIotaWallet(AbstractServer):
         wallet.create_wallet()
 
         async def get_tx_mock():
-            return {'transactions': []}
+            return []
 
         wallet.provider.get_seed_transactions = get_tx_mock
+        wallet.update_bundles_database = lambda: succeed([])
         result = await wallet.get_transactions()
         expected = []
         self.assertEqual(expected, result)
@@ -546,7 +521,6 @@ class TestIotaWallet(AbstractServer):
     async def test_get_transactions_one_transaction(self):
         """
         Tests the get_transactions method for one transaction
-        :return:
         """
         wallet = self.new_wallet()
         # Circumvent wallet creation
@@ -555,12 +529,16 @@ class TestIotaWallet(AbstractServer):
         wallet.created = True
 
         async def get_tx_mock():
-            return {'transactions': [self.tx1]}
+            return [self.tx1]
+
+        async def update_bundles_mock():
+            pass
 
         # Instantiate API
         wallet.provider = IotaProvider(testnet=wallet.testnet, seed=wallet.seed)
         # Mock the API call return
         wallet.provider.get_seed_transactions = get_tx_mock
+        wallet.update_bundles_database = update_bundles_mock
         # Add the seed and the bundle to the database
         wallet.database.add(DatabaseSeed(name=wallet.wallet_name, seed=wallet.seed.__str__()))
         wallet.database.add(DatabaseBundle(hash=self.tx1.bundle_hash.__str__()))
@@ -600,11 +578,16 @@ class TestIotaWallet(AbstractServer):
         # Add it to the database
         wallet.database.add(database_bundle)
 
-        async def bundles_db_mock(tail_hashes):
+        # Set up mocks
+        async def confirmation_mocks(bundle_tail_hash):
+            return True
+
+        async def bundles_db_mock():
             return [bundle]
 
         # Mock API response
         wallet.provider.get_all_bundles = bundles_db_mock
+        wallet.provider.get_confirmations = confirmation_mocks
         await wallet.update_bundles_database()
         # Get the bundle after the method
         bundle_after = wallet.database.query(DatabaseBundle) \
@@ -615,12 +598,12 @@ class TestIotaWallet(AbstractServer):
 
     async def test_bundle_updates_no_bundle(self):
         """
-        Tests that updating the bundles does incorrectly update confirmation
+        Tests that bundles' confirmation status isn not incorrectly updated
         """
         wallet = self.new_wallet()
         wallet.create_wallet()
         bundle = Bundle([self.tx1])
-        # Make sure the bundle is confirmed
+        # Make sure the bundle is not confirmed
         bundle.is_confirmed = False
         # Create DatabaseBundle based on tx1
         database_bundle = DatabaseBundle(
@@ -632,11 +615,16 @@ class TestIotaWallet(AbstractServer):
         # Add it to the database
         wallet.database.add(database_bundle)
 
-        async def bundles_db_mock(tail_hashes):
-            return None
+        # Set up mocks
+        async def confirmation_mocks(bundle_tail_hash):
+            return False
+
+        async def bundles_db_mock():
+            return [bundle]
 
         # Mock API response
         wallet.provider.get_all_bundles = bundles_db_mock
+        wallet.provider.get_confirmations = confirmation_mocks
         await wallet.update_bundles_database()
         # Get the bundle after the method
         bundle_after = wallet.database.query(DatabaseBundle) \
@@ -649,8 +637,8 @@ class TestIotaWallet(AbstractServer):
         wallet = self.new_wallet()
         wallet.create_wallet()
 
-        async def bundles_db_mock(tail_hashes):
-            return None
+        async def bundles_db_mock():
+            return []
 
         # Mock API response
         wallet.provider.get_all_bundles = bundles_db_mock
@@ -674,12 +662,12 @@ class TestIotaWallet(AbstractServer):
             is_confirmed=False
         )
 
-        async def bundles_db_mock(tail_hashes):
-            return None
+        async def bundles_db_mock():
+            return [bundle]
 
         # Mock API response
         wallet.provider.get_all_bundles = bundles_db_mock
-        await wallet.update_bundles_database([bundle])
+        await wallet.update_bundles_database()
         # Get the bundle after the method
         bundles_after = wallet.database.query(DatabaseBundle) \
             .all()
