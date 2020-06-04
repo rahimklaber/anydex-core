@@ -151,7 +151,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         :return: list of payments related to the wallet.
         """
         if not self.created:
-            return succeed(None)
+            return succeed([])
 
         transactions = self.provider.get_transactions(self.get_address())
 

@@ -109,7 +109,7 @@ class StellarDb:
         :param secret: secret (like private key) of the wallet
         :param address: address (public key) of the wallet
         """
-        self.session.add(Secret(wallet_name=wallet_name, secret=secret, address=address))
+        self.session.add(Secret(name=wallet_name, secret=secret, address=address))
         self.session.commit()
 
     def get_outgoing_amount(self, address):
@@ -211,7 +211,7 @@ class StellarDb:
         :return: sequence number if exists or None
         """
         latest_sent_payment_sequence = self.session.query(Transaction.sequence_number).filter(
-            Transaction.source_account == address).order_by(
+            Transaction.source_account == address).filter(Transaction.succeeded.is_(True)).order_by(
             Transaction.sequence_number.desc()
         ).first()
         return latest_sent_payment_sequence[0] if latest_sent_payment_sequence else None
