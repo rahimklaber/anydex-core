@@ -105,7 +105,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         """
         balance = await self.get_balance()
         fee = self.provider.get_base_fee()  # fee for one operation
-        if balance['available'] < int(amount) + fee:
+        if balance['available'] - 1 < int(amount) + fee:  # stellar accounts need to hold a minimum of 1 XLM
             raise InsufficientFunds('Insufficient funds')
 
         self._logger.info('Creating Stellar Lumens payment with amount %s to address %s', amount, address)

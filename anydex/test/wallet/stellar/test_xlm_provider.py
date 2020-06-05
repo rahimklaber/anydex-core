@@ -131,7 +131,7 @@ class TestHorizonProvider(TestCase):
     }
 
     def setUp(self):
-        self.provider = HorizonProvider("yeet")
+        self.provider = HorizonProvider("")
 
     def test_submit_transaction(self):
         self.provider.server.submit_transaction = lambda *_: self.sample_submit_tx_response

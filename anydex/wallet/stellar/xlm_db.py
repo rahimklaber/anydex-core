@@ -40,10 +40,10 @@ class Payment(Base):
     def __repr__(self):
         return f"xlm_db.Payment( {self.from_}, {self.to}, {self.asset_type}, {self.amount} )"
 
-    def __eq__(self, other):
-        if not isinstance(other, Payment):
-            raise NotImplementedError(f'cannot compare equality between{self} and {other}')
-        return self.payment_id == other.payment_id
+    # def __eq__(self, other):
+    #     if not isinstance(other, Payment):
+    #         raise NotImplementedError(f'cannot compare equality between{self} and {other}')
+    #     return self.payment_id == other.payment_id
 
 
 class Transaction(Base):
@@ -88,6 +88,9 @@ class StellarDb:
     """
 
     def __init__(self, db_path):
+        """
+        :param db_path: full path (including db file)
+        """
         self.session = initialize_db(db_path)
 
     def get_wallet_secret(self, wallet_name):

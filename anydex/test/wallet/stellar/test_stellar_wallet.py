@@ -121,20 +121,17 @@ class TestAbstractStellarWallet(metaclass=abc.ABCMeta):
         """
         Test for getting sequence number from the database
         """
-        self.wallet.stellar_db.session.add(Transaction(sequence_number=1, succeeded=True, source_account='xxx'))
-        self.wallet.get_address = lambda: 'xxx'
+        self.wallet.stellar_db.session.add(Transaction(sequence_number=1, succeeded=True, source_account='sequence'))
+        self.wallet.stellar_db.session.commit()
+        self.wallet.get_address = lambda: 'sequence'
         self.assertEqual(1, self.wallet.get_sequence_number())
 
     def test_get_sequence_number_api(self):
         """
         Test for getting sequence number from the api
         """
-        mock = MockObject()
-        mock.get_account_sequence = lambda *_: 2
-        self.wallet.provider = mock
 
-        self.wallet.get_address = lambda: 'xxx'
-        self.assertEqual(2, self.wallet.get_sequence_number())
+        self.assertEqual(100, self.wallet.get_sequence_number())
 
     def test_get_address_not_created(self):
         """
@@ -217,7 +214,7 @@ class TestAbstractStellarWallet(metaclass=abc.ABCMeta):
         """
         self.wallet.created = True
         self.wallet.stellar_db.insert_transaction(self.tx)
-        self.wallet.get_address = lambda: 'GBOQNX4VWQMVN6C7NB5UL2CEV6AGVTM6LWQIXDRU6OBRMUNBTOMNSOAW'
+        self.wallet.get_address = lambda: 'GDQWI6FKB72DPOJE4CGYCFQZKRPQQIOYXRMZ5KEVGXMG6UUTGJMBCASH'
         self.wallet.provider = MockObject()
         self.wallet.provider.get_ledger_height = lambda: 26529414
         self.wallet.provider.get_transactions = lambda *_: []
@@ -250,12 +247,17 @@ class TestAbstractStellarWallet(metaclass=abc.ABCMeta):
         with self.assertRaises(InsufficientFunds):
             await self.wallet.transfer(10, 'xxx')
 
+    def test_min_unit(self):
+        self.assertEqual(1,self.wallet.min_unit())
+
 
 class TestStellarWallet(AbstractServer, TestAbstractStellarWallet):
 
     def setUp(self):
         super().setUp()
-        self.wallet = StellarWallet(self.session_base_dir, MockObject())
+        mock = MockObject()
+        mock.get_account_sequence = lambda *_: 100
+        self.wallet = StellarWallet(self.session_base_dir, mock)
 
     async def tearDown(self):
         db_session.close_all_sessions()
@@ -279,7 +281,9 @@ class TestStellarWallet(AbstractServer, TestAbstractStellarWallet):
 class TestStellarTestnetWallet(AbstractServer, TestAbstractStellarWallet):
     def setUp(self):
         super().setUp()
-        self.wallet = StellarTestnetWallet(self.session_base_dir, MockObject())
+        mock = MockObject()
+        mock.get_account_sequence = lambda *_: 100
+        self.wallet = StellarTestnetWallet(self.session_base_dir, mock)
 
     async def tearDown(self):
         db_session.close_all_sessions()
