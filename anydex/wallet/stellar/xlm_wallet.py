@@ -66,7 +66,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
                 'precision': self.precision()
             })
         xlm_balance = int(float(self.provider.get_balance(
-            address=self.get_address())) * 1e7)  # balance is not in smallest denomination
+            address=self.get_address())) * self.stroop_in_lumen())  # balance is not in smallest denomination
         pending_outgoing = self.stellar_db.get_outgoing_amount(self.get_address())
         balance = {
             'available': xlm_balance - pending_outgoing,
@@ -115,7 +115,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
             base_fee=self.provider.get_base_fee(),
             network_passphrase=network,
         )
-        amount_in_xlm = Decimal(amount / 1e7)  # amount in xlm instead of stroop (0.0000001 xlm)
+        amount_in_xlm = Decimal(amount / self.stroop_in_lumen())  # amount in xlm instead of stroop (0.0000001 xlm)
         if self.provider.check_account_created(address):
             tx_builder.append_payment_op(address, amount_in_xlm, asset)
         else:
@@ -201,6 +201,12 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         monitor_task = self.register_task(f"{self.network}_poll_{txid}", monitor, interval=5)
 
         return monitor_future
+
+    def stroop_in_lumen(self):
+        """
+        Get the amount of stroop in one lumen
+        """
+        return 1e7
 
 
 class StellarWallet(AbstractStellarWallet):
