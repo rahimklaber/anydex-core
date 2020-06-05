@@ -45,11 +45,13 @@ class MoneroWallet(Wallet):
         :return: boolean
         """
         if isinstance(other, MoneroWallet):
-            return (self.network == other.network and
-                    self.wallet_name == other.wallet_name and
-                    self.host == other.host and
-                    self.port == other.port and
-                    self.wallet == other.wallet)
+            return (
+                self.network == other.network and
+                self.wallet_name == other.wallet_name and
+                self.host == other.host and
+                self.port == other.port and
+                self.wallet == other.wallet
+            )
 
     def _wallet_connection_alive(self) -> bool:
         """
@@ -80,7 +82,6 @@ class MoneroWallet(Wallet):
             self._logger.info(f'Connection to wallet-rpc-server established')
             return succeed(None)
         except ConnectionError:
-            # TODO re-attempt connection
             return fail(WalletConnectionError(f'Cannot connect to wallet-rpc-server on {self.host} at {self.port}'))
 
     def get_balance(self):
@@ -92,15 +93,15 @@ class MoneroWallet(Wallet):
 
         :return: dictionary of available balance, pending balance, currency and precision.
                     In case wallet does not exist yet, return balance of 0.
+                    Convert Monero Decimal output to float.
         """
         if self._wallet_connection_alive():
             unlocked_balance = self.wallet.balance(unlocked=True)
             total_balance = self.wallet.balance(unlocked=False)
 
-            # TODO convert Decimal to float
             balance = {
-                'available': unlocked_balance,
-                'pending': total_balance - unlocked_balance,
+                'available': float(unlocked_balance),  # convert Decimal to float
+                'pending': float(total_balance - unlocked_balance),
                 'currency': 'XMR',
                 'precision': self.precision()
             }
@@ -125,18 +126,16 @@ class MoneroWallet(Wallet):
             unlock_time: int, default is 0
         :param amount: the transfer amount
         :param address: the receiver address
-        :return: transfer hash
+        :return: Future of transfer hash, None or InsufficientFundsException
         """
         if self._wallet_connection_alive():
             balance = await self.get_balance()
 
-            if balance['available'] < int(amount):
-                # TODO accounting for fees?
+            if balance['available'] < amount:
                 return fail(InsufficientFunds('Insufficient funds found in Monero wallet'))
 
             self._logger.info(f'Transfer {amount} to {address}')
-            transaction = self.wallet.transfer(address, Decimal(str(amount)), **kwargs)
-            # TODO verify correct return method
+            transaction = self.wallet.transfer(address, Decimal(str(amount)), **kwargs, relay=False)
             return succeed(transaction.hash)
         return succeed(None)
 
@@ -147,11 +146,11 @@ class MoneroWallet(Wallet):
 
         :param transfers: list of tuples of format (address, Decimal(amount))
         :param kwargs: payment_id, priority, unlock_time (see `transfer` method above)
-        :return: list of resulting hashes
+        :return: list of resulting hashes or return InsufficientFundsException
         """
         balance = await self.get_balance()
 
-        total_amount = sum([transfer[1] for transfer in transfers])
+        total_amount = float(sum([transfer[1] for transfer in transfers]))
 
         if balance['available'] < total_amount:
             return fail(InsufficientFunds('Insufficient funds found in Monero wallet for all transfers'))
@@ -163,6 +162,9 @@ class MoneroWallet(Wallet):
         return fail(WalletConnectionError('No connection to wallet for making transfers'))
 
     def get_address(self):
+        """
+        If wallet exists or connection is alive, return address.
+        """
         if self._wallet_connection_alive():
             return self.wallet.address()
         else:
@@ -186,7 +188,6 @@ class MoneroWallet(Wallet):
 
         :return: list of Payment instances: [Payment, ... ]
         """
-        # TODO return type for payments
         incoming_payments = await self.get_incoming_payments()
         outgoing_payments = await self.get_outgoing_payments()
         payments = incoming_payments + outgoing_payments
