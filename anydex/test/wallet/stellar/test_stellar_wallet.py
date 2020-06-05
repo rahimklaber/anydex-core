@@ -250,6 +250,13 @@ class TestAbstractStellarWallet(metaclass=abc.ABCMeta):
     def test_min_unit(self):
         self.assertEqual(1, self.wallet.min_unit())
 
+    def test_merge_account(self):
+        self.create_wallet()
+        self.wallet.provider.get_base_fee = lambda *_: 100
+        self.wallet.provider.submit_transaction = lambda *_: 'random_hash'
+        self.assertEqual('random_hash',
+                         self.wallet.merge_account('GDQWI6FKB72DPOJE4CGYCFQZKRPQQIOYXRMZ5KEVGXMG6UUTGJMBCASH'))
+
 
 class TestStellarWallet(AbstractServer, TestAbstractStellarWallet):
 
