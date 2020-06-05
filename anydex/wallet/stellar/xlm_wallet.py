@@ -47,7 +47,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         if self.created:
             return fail(RuntimeError(f'Stellar wallet with name {self.wallet_name} already exists'))
 
-        self._logger.info(f'Creating Stellar wallet with name {self.wallet_name}')
+        self._logger.info('Creating Stellar wallet with name %s', self.wallet_name)
         keypair = Keypair.random()
         self.keypair = keypair
         self.created = True
@@ -108,7 +108,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         if balance['available'] < int(amount) + fee:
             raise InsufficientFunds('Insufficient funds')
 
-        self._logger.info(f"Creating Stellar Lumens payment with amount {address} to address {address}")
+        self._logger.info('Creating Stellar Lumens payment with amount %s to address %s', amount, address)
         network = Network.PUBLIC_NETWORK_PASSPHRASE if not self.testnet else Network.TESTNET_NETWORK_PASSPHRASE
         tx_builder = TransactionBuilder(
             source_account=self.account,
