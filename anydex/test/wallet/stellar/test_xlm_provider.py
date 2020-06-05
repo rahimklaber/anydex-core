@@ -143,6 +143,7 @@ class TestHorizonProvider(TestCase):
         fun = lambda *_: mock  # the library we use uses the builder pattern
         mock.for_account = fun
         mock.include_failed = fun
+        mock.limit = fun
         mock.call = lambda *_: self.sample_get_txs_response
         self.provider.server.transactions = lambda: mock
         tx = Transaction(hash='96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98',
