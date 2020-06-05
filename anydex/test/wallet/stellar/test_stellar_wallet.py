@@ -248,7 +248,7 @@ class TestAbstractStellarWallet(metaclass=abc.ABCMeta):
             await self.wallet.transfer(10, 'xxx')
 
     def test_min_unit(self):
-        self.assertEqual(1,self.wallet.min_unit())
+        self.assertEqual(1, self.wallet.min_unit())
 
 
 class TestStellarWallet(AbstractServer, TestAbstractStellarWallet):

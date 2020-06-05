@@ -208,6 +208,27 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         """
         return 1e7
 
+    def merge_account(self, address):
+        """
+        Delete the wallet and send all funds to the specified address
+        :param address: address to send funds to
+        :return: tx hash
+        """
+
+        self._logger.info('Deleting wallet and sending all funds to address %s', address)
+        network = Network.PUBLIC_NETWORK_PASSPHRASE if not self.testnet else Network.TESTNET_NETWORK_PASSPHRASE
+        tx = TransactionBuilder(
+            source_account=self.account,
+            base_fee=self.provider.get_base_fee(),
+            network_passphrase=network,
+        ).append_account_merge_op(address).build()
+
+        tx.sign(self.keypair)
+        xdr_tx_envelope = tx.to_xdr()
+
+        tx_hash = self.provider.submit_transaction(xdr_tx_envelope)
+        return tx_hash
+
 
 class StellarWallet(AbstractStellarWallet):
 

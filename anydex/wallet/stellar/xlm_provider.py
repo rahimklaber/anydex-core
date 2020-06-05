@@ -99,7 +99,8 @@ class HorizonProvider(StellarProvider):
         return self._make_request(self.server.accounts().account_id(address).call)['balances'][0]['balance']
 
     def get_transactions(self, address):
-        response = self._make_request(self.server.transactions().for_account(address).include_failed(True).call)
+        response = self._make_request(
+            self.server.transactions().for_account(address).limit(200).include_failed(True).call)
         transactions = response['_embedded']['records']
         return self._normalize_transactions(transactions)
 
