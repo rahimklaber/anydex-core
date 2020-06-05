@@ -9,8 +9,8 @@ from stellar_sdk import Keypair
 from anydex.wallet.stellar.xlm_db import Secret, Transaction
 from anydex.wallet.stellar.xlm_wallet import StellarWallet, StellarTestnetWallet
 from anydex.wallet.wallet import InsufficientFunds
-from test.base import AbstractServer
-from test.util import MockObject, timeout
+from anydex.test.base import AbstractServer
+from anydex.test.util import MockObject, timeout
 
 
 class TestAbstractStellarWallet(metaclass=abc.ABCMeta):

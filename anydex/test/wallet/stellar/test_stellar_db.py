@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy.orm import session as db_session
 
 from anydex.wallet.stellar.xlm_db import StellarDb, Secret, Transaction
-from test.base import AbstractServer
+from anydex.test.base import AbstractServer
 
 
 class TestStellarDb(AbstractServer):

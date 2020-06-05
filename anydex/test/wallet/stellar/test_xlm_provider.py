@@ -8,7 +8,7 @@ from stellar_sdk.exceptions import NotFoundError
 from anydex.wallet.provider import ConnectionException, RequestException
 from anydex.wallet.stellar.xlm_db import Transaction
 from anydex.wallet.stellar.xlm_provider import HorizonProvider
-from test.util import MockObject
+from anydex.test.util import MockObject
 
 
 class TestHorizonProvider(TestCase):
