@@ -35,11 +35,13 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
             self.created = True
             self.account = Account(self.get_address(), self.get_sequence_number())
 
+    @abc.abstractmethod
     def get_identifier(self):
-        return 'XLM'
+        return
 
+    @abc.abstractmethod
     def get_name(self):
-        return Cryptocurrency.STELLAR.value
+        return
 
     def create_wallet(self):
         if self.created:
@@ -60,7 +62,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
             return succeed({
                 'available': 0,
                 'pending': 0,
-                'currency': 'XLM',
+                'currency': self.get_identifier(),
                 'precision': self.precision()
             })
         xlm_balance = int(float(self.provider.get_balance(
@@ -69,7 +71,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         balance = {
             'available': xlm_balance - pending_outgoing,
             'pending': 0,  # transactions are confirmed every 5 secs, so is this worth doing?
-            'currency': 'XLM',
+            'currency': self.get_identifier(),
             'precision': self.precision()
         }
         return succeed(balance)
@@ -102,8 +104,8 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         :return: Transaction hash
         """
         balance = await self.get_balance()
-
-        if balance['available'] < int(amount):
+        fee = self.provider.get_base_fee()  # fee for one operation
+        if balance['available'] < int(amount) + fee:
             raise InsufficientFunds('Insufficient funds')
 
         self._logger.info(f"Creating Stellar Lumens payment with amount {address} to address {address}")
@@ -123,7 +125,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         tx = tx_builder.build()
         tx.sign(self.keypair)
         xdr_tx_envelope = tx.to_xdr()
-        # todo add tx to databaese
+
         tx_hash = self.provider.submit_transaction(xdr_tx_envelope)
         tx_db = Transaction(hash=tx_hash,
                             source_account=self.get_address(),
@@ -196,7 +198,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
                     monitor_task.cancel()
 
         self._logger.debug("Start polling for transaction %s", txid)
-        monitor_task = self.register_task(f"{self.name}_poll_{txid}", monitor, interval=5)
+        monitor_task = self.register_task(f"{self.network}_poll_{txid}", monitor, interval=5)
 
         return monitor_future
 
@@ -206,7 +208,19 @@ class StellarWallet(AbstractStellarWallet):
     def __init__(self, db_path, provider: StellarProvider = None):
         super().__init__(db_path, False, provider)
 
+    def get_name(self):
+        return Cryptocurrency.STELLAR.value
+
+    def get_identifier(self):
+        return 'XLM'
+
 
 class StellarTestnetWallet(AbstractStellarWallet):
     def __init__(self, db_path, provider: StellarProvider = None):
         super().__init__(db_path, True, provider)
+
+    def get_name(self):
+        return f'testnet {Cryptocurrency.STELLAR.value}'
+
+    def get_identifier(self):
+        return 'TXLM'
