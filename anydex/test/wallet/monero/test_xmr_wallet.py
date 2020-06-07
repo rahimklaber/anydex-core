@@ -40,7 +40,7 @@ class TestMoneroWallet(AbstractServer):
 
     def test_wallet_fields(self):
         """
-        Verify correct values set for fields in Moneron non-TESTNET wallet instance.
+        Verify correct values set for fields in Monero non-TESTNET wallet instance.
         """
         MoneroWallet.TESTNET = False
         w = MoneroWallet(host='192.168.178.1')
