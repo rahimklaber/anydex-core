@@ -24,7 +24,6 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         self.testnet = testnet
         self.provider = provider
         self.network = 'testnet' if self.testnet else Cryptocurrency.STELLAR.value
-        self.min_confirmations = 0
         self.unlocked = True
         self.stellar_db = StellarDb(os.path.join(db_path, 'stellar.db'))
         self.wallet_name = 'stellar_tribler_testnet' if self.testnet else 'stellar_tribler'
