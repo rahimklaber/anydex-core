@@ -19,23 +19,6 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
     Test class containing the common tests for the testnet and normal stellar wallet.
     """
 
-    tx = Transaction(hash='96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98',
-                     ledger_nr=26529414,
-                     date_time=datetime.fromisoformat('2020-06-05T08:45:33'),
-                     source_account='GDQWI6FKB72DPOJE4CGYCFQZKRPQQIOYXRMZ5KEVGXMG6UUTGJMBCASH',
-                     operation_count=1,
-                     transaction_envelope="AAAAAOFkeKoP9De5JOCNgRYZVF8IIdi8WZ6olTXYb1KTMlgRAAAAZAGOO"
-                                          "+wAAAA9AAAAAQAAAAAAAAAAAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                                          "AAAAAAAAAAAAAAABAAAAAQAAAADhZHiqD/Q3uSTgjYEWGVRfCCHYvFmeqJU12G9SkzJYEQA"
-                                          "AAAAAAAAAXQbflbQZVvhfaHtF6ESvgGrNnl2gi44084MWUaGbmNkAAAAAAcnDgAAAAAAAAA"
-                                          "ABHvBc2AAAAEBUL1wo8IGHEpgpQ7llGaFE+rC9v5kk2KPJe53/gIdWF+792HYg5yTTmhJII"
-                                          "97YgM+Be8yponPH0YjMjeYphewI",
-                     fee=100,
-                     is_pending=False,
-                     succeeded=True,
-                     sequence_number=112092925529161789,
-                     min_time_bound=datetime.fromisoformat('1970-01-01T00:00:00'))
-
     def test_get_identifier(self):
         self.assertEqual(self.expected_identifier(), self.wallet.get_identifier())
 
@@ -73,7 +56,6 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
         Test for the wallet constructor when the wallet is already created
         """
         self.create_wallet()
-        StellarWallet.get_sequence_number = lambda *_: 100
 
         wallet = self.new_wallet()
         self.assertEqual(wallet.created, True)
@@ -122,10 +104,12 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
         """
         Test for getting sequence number from the database
         """
-        self.wallet.stellar_db.session.add(Transaction(sequence_number=1, succeeded=True, source_account='sequence'))
+        self.wallet.stellar_db.session.add(
+            Transaction(sequence_number=10000, succeeded=True, source_account=f'sequence {self.wallet.testnet}'))
         self.wallet.stellar_db.session.commit()
-        self.wallet.get_address = lambda: 'sequence'
-        self.assertEqual(1, self.wallet.get_sequence_number())
+        self.wallet.get_address = lambda: f'sequence {self.wallet.testnet}'
+        sequence_nr = self.wallet.get_sequence_number()
+        self.assertEqual(10000, sequence_nr)
 
     def test_get_sequence_number_api(self):
         """
@@ -164,24 +148,8 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
         """
         Test for get_transactions when wallet has been created
         """
-        # using the global tx doesn't work for some reason
-        tx = Transaction(hash='96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98',
-                         ledger_nr=26529414,
-                         date_time=datetime.fromisoformat('2020-06-05T08:45:33'),
-                         source_account='GDQWI6FKB72DPOJE4CGYCFQZKRPQQIOYXRMZ5KEVGXMG6UUTGJMBCASH',
-                         operation_count=1,
-                         transaction_envelope="AAAAAOFkeKoP9De5JOCNgRYZVF8IIdi8WZ6olTXYb1KTMlgRAAAAZAGOO"
-                                              "+wAAAA9AAAAAQAAAAAAAAAAAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-                                              "AAAAAAAAAAAAAAABAAAAAQAAAADhZHiqD/Q3uSTgjYEWGVRfCCHYvFmeqJU12G9SkzJYEQA"
-                                              "AAAAAAAAAXQbflbQZVvhfaHtF6ESvgGrNnl2gi44084MWUaGbmNkAAAAAAcnDgAAAAAAAAA"
-                                              "ABHvBc2AAAAEBUL1wo8IGHEpgpQ7llGaFE+rC9v5kk2KPJe53/gIdWF+792HYg5yTTmhJII"
-                                              "97YgM+Be8yponPH0YjMjeYphewI",
-                         fee=100,
-                         is_pending=False,
-                         succeeded=True,
-                         sequence_number=112092925529161789,
-                         min_time_bound=datetime.fromisoformat('1970-01-01T00:00:00'))
-        self.wallet.stellar_db.insert_transaction(tx)
+
+        self.wallet.stellar_db.insert_transaction(self.tx)
         self.wallet.get_address = lambda: 'GBOQNX4VWQMVN6C7NB5UL2CEV6AGVTM6LWQIXDRU6OBRMUNBTOMNSOAW'
         self.wallet.provider = MockObject()
         self.wallet.provider.get_ledger_height = lambda: 26529414
@@ -195,11 +163,14 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
             'amount': 30000000,
             'fee_amount': 100,
             'currency': self.expected_identifier(),
-            'timestamp': 1591339533.0,
+            'timestamp': None,  # timestamp is timezone specific
             'description': f'confirmations: 1'
         }
 
-        self.assertEqual([payment_dict], await self.wallet.get_transactions())
+        payments_from_wallet = await self.wallet.get_transactions()
+        payments_from_wallet[0]['timestamp'] = None  # timestamp is timezone specific
+
+        self.assertEqual([payment_dict], payments_from_wallet)
 
     @timeout(10)
     async def test_monitor_transactions_found(self):
@@ -261,6 +232,28 @@ class TestStellarWallet(AbstractServer, AbstractStellarWallet):
         mock.get_account_sequence = lambda *_: 100
         self.wallet = StellarWallet(self.session_base_dir, mock)
 
+        self.tx = Transaction(hash='96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98',
+                              ledger_nr=26529414,
+                              date_time=datetime.fromisoformat('2020-06-05T08:45:33'),
+                              source_account='GDQWI6FKB72DPOJE4CGYCFQZKRPQQIOYXRMZ5KEVGXMG6UUTGJMBCASH',
+                              operation_count=1,
+                              transaction_envelope="AAAAAOFkeKoP9De5JOCNgRYZVF8IIdi8WZ6olTXYb1KTMlgRAAAAZAGOO"
+                                                   "+wAAAA9AAAAAQAAAAAAAAAAAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                                   "A"
+                                                   "AAA"
+                                                   "AAAAAAAAAAAAAAABAAAAAQAAAADhZHiqD/Q3uSTgjYEWGVRfCCHYvFmeqJU12G9SkzJ"
+                                                   "YEQA"
+                                                   "AAAAAAAAAXQbflbQZVvhfaHtF6ESvgGrNnl2gi44084MWUaGbmNkAAAAAAcnDgAAAA"
+                                                   "AAAAA"
+                                                   "ABHvBc2AAAAEBUL1wo8IGHEpgpQ7llGaFE+rC9v5kk2KPJe53/gIdWF+792HYg5yT"
+                                                   "TmhJII"
+                                                   "97YgM+Be8yponPH0YjMjeYphewI",
+                              fee=100,
+                              is_pending=False,
+                              succeeded=True,
+                              sequence_number=112092925529161789,
+                              min_time_bound=datetime.fromisoformat('1970-01-01T00:00:00'))
+
     async def tearDown(self):
         db_session.close_all_sessions()
         await super().tearDown()
@@ -286,6 +279,27 @@ class TestStellarTestnetWallet(AbstractServer, AbstractStellarWallet):
         mock = MockObject()
         mock.get_account_sequence = lambda *_: 100
         self.wallet = StellarTestnetWallet(self.session_base_dir, mock)
+
+        self.tx = Transaction(hash='96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98',
+                              ledger_nr=26529414,
+                              date_time=datetime.fromisoformat('2020-06-05T08:45:33'),
+                              source_account='GDQWI6FKB72DPOJE4CGYCFQZKRPQQIOYXRMZ5KEVGXMG6UUTGJMBCASH',
+                              operation_count=1,
+                              transaction_envelope="AAAAAOFkeKoP9De5JOCNgRYZVF8IIdi8WZ6olTXYb1KTMlgRAAAAZAGOO"
+                                                   "+wAAAA9AAAAAQAAAAAAAAAAAAAAAAAAAAAAAAADAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+                                                   "AAAA"
+                                                   "AAAAAAAAAAAAAAABAAAAAQAAAADhZHiqD/Q3uSTgjYEWGVRfCCHYvFmeqJU12G9Skz"
+                                                   "JYEQA"
+                                                   "AAAAAAAAAXQbflbQZVvhfaHtF6ESvgGrNnl2gi44084MWUaGbmNkAAAAAAcnDgAAA"
+                                                   "AAAAAA"
+                                                   "ABHvBc2AAAAEBUL1wo8IGHEpgpQ7llGaFE+rC9v5kk2KPJe53/gIdWF+792HYg5yT"
+                                                   "TmhJII"
+                                                   "97YgM+Be8yponPH0YjMjeYphewI",
+                              fee=100,
+                              is_pending=False,
+                              succeeded=True,
+                              sequence_number=112092925529161789,
+                              min_time_bound=datetime.fromisoformat('1970-01-01T00:00:00'))
 
     async def tearDown(self):
         db_session.close_all_sessions()
