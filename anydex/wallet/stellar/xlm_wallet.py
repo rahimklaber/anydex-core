@@ -94,7 +94,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
     def get_sequence_number(self):
         """
         Use either the database or the api to find the sequence number.
-        If using the datbase fails we then use the provider.
+        If using the database fails we then use the provider.
 
         :return: sequence number of this wallet.
         """

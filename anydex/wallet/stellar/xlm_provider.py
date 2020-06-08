@@ -106,7 +106,7 @@ class HorizonProvider(StellarProvider):
 
     def _normalize_transactions(self, transactions):
         """
-        Transform a list of Transactions from the api into the format useed in this project
+        Transform a list of Transactions from the api into the format used in this project
         :param transactions: List of transactions from the api
         :return: A list of Transaction objects
         """

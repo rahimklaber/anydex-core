@@ -48,9 +48,9 @@ class Payment(Base):
 
 class Transaction(Base):
     """
-       Database definition for transactions table.
-       In stellar multiple operations can be a part of a transaction
-       """
+    Database definition for transactions table.
+    In stellar multiple operations can be a part of a transaction
+    """
     __tablename__ = 'transactions'
     id = Column(Integer, primary_key=True)
     hash = Column(String, unique=True)
@@ -177,6 +177,7 @@ class StellarDb:
                 source_account = Keypair.from_raw_ed25519_public_key(source_account[0].ed25519).public_key
             body = operation.body
             # we only care about create account and payment for the time being
+            payment = None
             if body.type == 0:  # create account
                 create_account_op = body.createAccountOp
                 payment = Payment(
@@ -193,12 +194,13 @@ class StellarDb:
                                   transaction_hash=transaction.hash,
                                   to=Keypair.from_raw_ed25519_public_key(payment_op.destination.ed25519).public_key,
                                   from_=source_account)
-            self.session.add(payment)
+            if payment:
+                self.session.add(payment)
 
     def insert_transaction(self, transaction):
         """
         Wrapper around the _insert_transactions function.
-        This method is intented to be used by users of this classes.
+        This method is intended to be used by users of this classes.
         The difference is that this method commits after inserting.
 
         :param transaction: Transaction to insert
