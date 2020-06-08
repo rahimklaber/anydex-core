@@ -17,7 +17,7 @@ class MoneroWallet(Wallet):
     This class is responsible for handling your Monero wallet.
     The class operates on the Monero wallet connected to the `monero-wallet-rpc` server.
     A Tribler specific account is created in the wallet, storing its address in database.
-    Anytime AnyDEX is started up, the address is retrieved to select the appropriate account.
+    Anytime AnyDex is started up, the address is retrieved to select the appropriate account.
     """
 
     TESTNET = False
@@ -36,22 +36,6 @@ class MoneroWallet(Wallet):
 
         self.wallet = None
         self.created = False
-
-    def __eq__(self, other):
-        """
-        Equality operator.
-
-        :param other: compared object
-        :return: boolean
-        """
-        if isinstance(other, MoneroWallet):
-            return (
-                self.network == other.network and
-                self.wallet_name == other.wallet_name and
-                self.host == other.host and
-                self.port == other.port and
-                self.wallet == other.wallet
-            )
 
     def _wallet_connection_alive(self) -> bool:
         """
