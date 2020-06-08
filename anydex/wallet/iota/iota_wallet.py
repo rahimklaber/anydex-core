@@ -54,6 +54,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         # initialize connection with API through the provider and get an active non-spent address
         self.provider = IotaProvider(testnet=self.testnet, seed=self.seed)
         self.created = True
+        return succeed([])
 
     def wallet_exists(self) -> bool:
         """
@@ -68,7 +69,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         :return: a non-spent address
         """
         if not self.created:
-            return succeed([])
+            return []
         # fetch all non-spent transactions from the database
         address_query = self.database.query(DatabaseAddress)
         non_spent = address_query.filter(DatabaseAddress.is_spent.is_(False)).all()
@@ -89,7 +90,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
             return non_spent[0].address
         # otherwise generate a new one with the new index and append checksum to it
         spent_count = self.database.query(DatabaseAddress).count()
-        address = self.provider.generate_address(index=spent_count)
+        address = await self.provider.generate_address(index=2*spent_count)
 
         # store address in the database
         self.database.add(DatabaseAddress(
@@ -106,33 +107,32 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         """
         value = int(value)
         if not self.created:
-            return fail(RuntimeError('The wallet must be created transfers can be made'))
+            return RuntimeError('The wallet must be created transfers can be made')
 
         if value < 0:
-            return fail(RuntimeError('Negative value transfers are not allowed.'))
+            return RuntimeError('Negative value transfers are not allowed.')
 
         # The pyota library has no support for address validation
         if not re.compile('^[A-Z9]{81}|[A-Z9]{90}$').match(address):
-            return fail(RuntimeError('Invalid IOTA address'))
+            return RuntimeError('Invalid IOTA address')
 
+        # Get wallet balance
         balance = await self.get_balance()
-        balance = balance.result()
 
         if balance['available'] < value:
-            return fail(InsufficientFunds(
-                "Balance %d of the wallet is less than %d", balance['available'], value))
+            return InsufficientFunds(
+                "Balance %d of the wallet is less than %d", balance['available'], value)
 
         # generate and send a transaction
         transaction = ProposedTransaction(
             address=Address(address),
             value=value
         )
+
+        # Submit the transaction to the tangle
         bundle = await self.provider.submit_transaction(transaction)
 
-        # update bundles and transactions database
-        await self.update_bundles_database()
-        await self.update_transactions_database()
-
+        # Return bundle hash ID instead of transaction ID
         return bundle.hash.__str__()
 
     async def get_balance(self):
@@ -141,24 +141,22 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         :return: available balance, pending balance, currency, precision
         """
         if not self.created:
-            return succeed({
+            return {
                 'available': 0,
                 'pending': 0,
                 'currency': self.get_identifier(),
                 'precision': self.precision()
-            })
+            }
 
         available = await self.provider.get_seed_balance()
         pending = await self.get_pending()
 
-        response = succeed({
-            'available': available,  # TODO: minus pending or not?
+        return {
+            'available': available,
             'pending': pending,
             'currency': self.get_identifier(),
             'precision': self.precision()
-        })
-
-        return response
+        }
 
     async def get_pending(self):
         """
@@ -189,7 +187,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         :return:
         """
         if not self.created:
-            return succeed([])
+            return []
 
         # update bundles and transactions database
         await self.update_bundles_database()
@@ -229,7 +227,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         async def monitor():
             transactions = await self.get_transactions()
             for transaction in transactions:
-                if transaction.hash.__str__().__eq__(txid):
+                if transaction['hash'].__eq__(txid):
                     self._logger.debug("Found transaction with id %s", txid)
                     monitor_future.set_result(None)
                     monitor_task.cancel()

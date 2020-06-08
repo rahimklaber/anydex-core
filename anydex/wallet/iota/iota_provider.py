@@ -1,5 +1,6 @@
-from iota import AsyncIota, ProposedTransaction, Seed, Transaction
 from datetime import datetime
+
+from iota import AsyncIota, ProposedTransaction, Seed
 from iota.crypto.addresses import AddressGenerator
 
 from anydex.wallet.provider import Provider
@@ -17,7 +18,7 @@ class IotaProvider(Provider):
         self.asyncapi = self.initialize_api(node, seed)
         self.account_data = None
         self.last_update = None
-        self.update_interval = 120
+        self.update_interval = 5
 
     def initialize_api(self, node, seed):
         """
@@ -37,7 +38,7 @@ class IotaProvider(Provider):
 
     async def update_account_data(self):
 
-        diff = self.last_update - datetime.now() if self.last_update else None
+        diff = datetime.now() - self.last_update if self.last_update else None
 
         if diff is None or diff.total_seconds() > float(self.update_interval):
             self.account_data = await self.asyncapi.get_account_data()
@@ -98,14 +99,14 @@ class IotaProvider(Provider):
         await self.update_account_data()
         return self.account_data['bundles']
 
-    def generate_address(self, index):
+    async def generate_address(self, index):
         """
         Get the newly generated address
         :param index: index from which start fetching a non-spent address
         :return: the new unspent address
         """
-        new_addresses = self.generator.get_addresses(start=index, count=1)
-        return new_addresses[0]
+        new_addresses = await self.asyncapi.get_new_addresses(index=index, count=1, security_level=2)
+        return new_addresses['addresses'][0]
 
     async def is_spent(self, address):
         """
