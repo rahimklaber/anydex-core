@@ -222,3 +222,19 @@ class TestIotaProvider(AbstractServer):
         provider.asyncapi.were_addresses_spent_from = lambda *_: succeed({'states': [False], 'duration': 0})
         is_spent = await provider.is_spent(Address(self.address_1))
         self.assertFalse(is_spent)
+
+    async def test_get_confirmations_true(self):
+        provider = IotaProvider(seed=self.own_seed_1)
+        provider.asyncapi.get_inclusion_states = lambda *_: succeed({'states': [True]})
+        tx_hashes = [Transaction.as_json_compatible(self.get_seed_transactions_tryte[0])['hash_'],
+                     Transaction.as_json_compatible(self.get_seed_transactions_tryte[1])['hash_']]
+        is_confirmed = await provider.get_confirmations(tx_hashes)
+        self.assertTrue(is_confirmed)
+
+    async def test_get_confirmations_false(self):
+        provider = IotaProvider(seed=self.own_seed_1)
+        provider.asyncapi.get_inclusion_states = lambda *_: succeed({'states': [False]})
+        tx_hashes = [Transaction.as_json_compatible(self.get_seed_transactions_tryte[0])['hash_'],
+                     Transaction.as_json_compatible(self.get_seed_transactions_tryte[1])['hash_']]
+        is_confirmed = await provider.get_confirmations(tx_hashes)
+        self.assertFalse(is_confirmed)
