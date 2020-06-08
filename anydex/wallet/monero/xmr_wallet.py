@@ -2,11 +2,12 @@ import time
 from asyncio.futures import Future
 from decimal import Decimal
 
-import monero.wallet
+import requests.exceptions
 from ipv8.util import fail, succeed
+
+import monero.wallet
 from monero.backends.jsonrpc import JSONRPCWallet
 from monero.transaction import OutgoingPayment, Payment
-from requests.exceptions import ConnectionError
 
 from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.wallet import Wallet, InsufficientFunds
@@ -47,7 +48,7 @@ class MoneroWallet(Wallet):
             try:
                 self.wallet.refresh()
                 return True
-            except ConnectionError:
+            except requests.exceptions.ConnectionError:
                 pass
         return False
 
@@ -59,11 +60,11 @@ class MoneroWallet(Wallet):
         Anydex operates on existing wallet with corresponding `wallet-rpc-server`.
         Creates instance of `monero-python` Wallet instance.
         """
-        self._logger.info(f'Connect to wallet-rpc-server on {self.host} at {self.port}')
+        self._logger.info('Connect to wallet-rpc-server on %s at %d', self.host, self.port)
         try:
             self.wallet = monero.wallet.Wallet(JSONRPCWallet(host=self.host, port=self.port))
             self.created = True
-            self._logger.info(f'Connection to wallet-rpc-server established')
+            self._logger.info('Connection to wallet-rpc-server established')
             return succeed(None)
         except ConnectionError:
             return fail(WalletConnectionError(f'Cannot connect to wallet-rpc-server on {self.host} at {self.port}'))
@@ -118,7 +119,7 @@ class MoneroWallet(Wallet):
             if balance['available'] < amount:
                 return fail(InsufficientFunds('Insufficient funds found in Monero wallet'))
 
-            self._logger.info(f'Transfer {amount} to {address}')
+            self._logger.info('Transfer %f to %s', amount, address)
             transaction = self.wallet.transfer(address, Decimal(str(amount)), **kwargs, relay=False)
             return succeed(transaction.hash)
         return succeed(None)
@@ -256,7 +257,6 @@ class MoneroWallet(Wallet):
 
         :param txid: transaction id
         """
-        pass
 
 
 class MoneroTestnetWallet(MoneroWallet):
@@ -277,11 +277,9 @@ class NotSupportedOperationException(Exception):
     """
     Raise exception if operation is not supported.
     """
-    pass
 
 
 class WalletConnectionError(Exception):
     """
     Raise in case connection to wallet is no longer alive.
     """
-    pass

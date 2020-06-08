@@ -23,7 +23,7 @@ class EthereumProvider(Provider, metaclass=abc.ABCMeta):
         """
         return
 
-    def estimate_gas(self, tx):
+    def estimate_gas(self):
         """
         Estimate the amount of gas needed for this transaction.
         :param tx: the transaction for which to estimate the gas
@@ -188,10 +188,6 @@ class EthereumBlockchairProvider(EthereumProvider):
         return self._normalize_transactions(txs)
 
     def get_transactions(self, address):
-        sent = self.send_request("/transactions", data={"q": f"sender({address})"})
-        sent_data = sent.json()["data"]
-        sent_mempool = self.send_request("/mempool/transactions", data={"q": f"sender({address})"})
-        sent_mempool_data = sent_mempool.json()["data"]
         response = self.send_request(f'/dashboards/address/{address}')
         return int(response.json()['data'][address.lower()]['address']['balance'])
 
@@ -244,11 +240,11 @@ class EthereumBlockchairProvider(EthereumProvider):
         if response.status_code in request_exceeded:
             raise RequestLimit(
                 'The server indicated the request limit has been exceeded')
-        elif response.status_code in blocked_codes:
+        if response.status_code in blocked_codes:
             raise Blocked('The server has blocked you')
-        elif response.status_code == 435:
+        if response.status_code == 435:
             raise RateExceeded('You are sending requests too fast')
-        elif response.status_code != 200:
+        if response.status_code != 200:
             raise RequestException(f'something went wrong, status code was : {response.status_code}')
 
     def _normalize_transactions(self, txs):
@@ -288,7 +284,7 @@ class EthereumBlockcypherProvider(EthereumProvider):
     Wrapper around blockcypher
     """
 
-    def __init__(self, api_url='https://api.blockcypher.com/', network="ethereum"):
+    def __init__(self, api_url='https://api.blockcypher.com/'):
         self.base_url = f'{api_url}v1/eth/main/'
 
     def send_request(self, path, data=None, method="get"):
@@ -353,7 +349,7 @@ class EthereumBlockcypherProvider(EthereumProvider):
         if response.status_code == 429:
             raise RateExceeded(
                 'The server indicated the rate limit has been reached')
-        elif response.status_code != 200:
+        if response.status_code != 200:
             raise RequestException(f'something went wrong, status code was : {response.status_code}')
 
 

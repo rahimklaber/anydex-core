@@ -24,6 +24,17 @@ class Source(Enum):
     USER = auto()
 
 
+class HostConfig:
+    """
+    Holds attributes adherent to the host configuration.
+    """
+
+    def __init__(self, host: str, port: int, protocol: str = 'http'):
+        self.host = host
+        self.port = port
+        self.protocol = protocol
+
+
 class Node:
     """
     Concrete class to create nodes from.
@@ -33,15 +44,15 @@ class Node:
     a DefaultNode-class implementation.
     """
 
-    def __init__(self, name: str, host: str, port: int, source: Source, network: Cryptocurrency,
-                 latency: float, protocol: str = 'http', username='', password=''):
+    def __init__(self, name: str, host_config: HostConfig, source: Source, network: Cryptocurrency,
+                 latency: float, username='', password=''):
         self.name = name
-        self.host = host
-        self.port = port
+        self.host = host_config.host
+        self.port = host_config.port
         self.source = source
         self.network = network
         self.latency = latency
-        self.protocol = protocol
+        self.protocol = host_config.protocol
         self.username = username
         self.password = password
 
@@ -67,7 +78,6 @@ def create_node(network: Cryptocurrency) -> Node:
     config = get_anydex_configuration()
     params = {'network': network}
 
-    # TODO split user/default node retrieval
     if 'node' in config:
         _logger.info('Parsing user node config')
 
@@ -76,20 +86,22 @@ def create_node(network: Cryptocurrency) -> Node:
         params['name'] = node_config.get('name', '')
 
         try:
-            params['host'] = node_config['host']
+            host = node_config['host']
         except KeyError:
             return fail(CannotCreateNodeException('Missing key `host` from node config'))
 
         try:
-            params['port'] = node_config['port']
+            port = node_config['port']
         except KeyError:
             return fail(CannotCreateNodeException('Missing key `port` from node config'))
 
-        params['protocol'] = node_config.get('protocol', 'http')
+        protocol = node_config.get('protocol', 'http')
         params['username'] = node_config.get('username', '')
         params['password'] = node_config.get('password', '')
 
-        params['latency'] = determine_latency(params['host'], params['port'])
+        params['latency'] = determine_latency(host, port)
+
+        params['host_config'] = HostConfig(host, port, protocol)
     else:
         _logger.info('Finding best host from pool of default hosts')
 
@@ -107,18 +119,21 @@ def create_node(network: Cryptocurrency) -> Node:
         selected_host, latency = select_best_host(network_hosts)
         protocol, username, password, host, port = parse_url(selected_host)
 
-        if protocol:
-            params['protocol'] = protocol
         if username:
             params['username'] = username
         if password:
             params['password'] = password
 
+        if protocol:
+            params['host_config'] = HostConfig(host, port, protocol)
+        else:
+            params['host_config'] = HostConfig(host, port)
+
         params['host'], params['port'] = host, port
         params['latency'] = latency
 
     node = Node(**params)
-    _logger.info(f'Using following node:\n{node}')
+    _logger.info('Using following node:\n%s', node)
     return node
 
 
@@ -126,7 +141,6 @@ class CannotCreateNodeException(Exception):
     """
     Raise exception from `create_node` if configuration is lacking.
     """
-    pass
 
 
 def read_default_hosts():
@@ -141,7 +155,7 @@ def read_default_hosts():
         try:
             nodes = json.loads(file.read())
         except json.JSONDecodeError as err:
-            _logger.error(f'Default nodes file could not be decoded: {err}')
+            _logger.error('Default nodes file could not be decoded: %s', err)
 
     return nodes
 
@@ -156,9 +170,8 @@ def select_best_host(hosts) -> tuple:
     results = dict()
 
     for host in hosts:
-        # TODO investigate possibilities for multi-threaded or async approach
         _, _, _, address, port = parse_url(host)
-        _logger.info(f'Determining latency for {address} at port {port}')
+        _logger.info('Determining latency for %s at port %d', address, port)
         latency = determine_latency(address, port)
         results[host] = latency
 
@@ -192,13 +205,13 @@ def determine_latency(address: str, port: int) -> float:
     retry: int = cfg['nodes']['retry']
     durations = []
 
-    for count in range(retry):
+    for _ in range(retry):
         start_time = time()
         try:
             sock.connect((address, port))
             sock.shutdown(socket.SHUT_RD)
         except socket.timeout:
-            _logger.warning(f'Ping attempt to host {address} timed out after {timeout} seconds')
+            _logger.warning('Ping attempt to host %s timed out after %f seconds', address, timeout)
             return float('inf')
         except OSError:
             return float('inf')
