@@ -66,7 +66,7 @@ class MoneroWallet(Wallet):
             self.created = True
             self._logger.info('Connection to wallet-rpc-server established')
             return succeed(None)
-        except ConnectionError:
+        except requests.exceptions.ConnectionError:
             return fail(WalletConnectionError(f'Cannot connect to wallet-rpc-server on {self.host} at {self.port}'))
 
     def get_balance(self):

@@ -509,14 +509,6 @@ class TestMoneroWallet(AbstractServer):
         p = Payment()
         self.assertEquals(4, await w.get_confirmations(p))
 
-    def test_monitor_transaction(self):
-        """
-        Test method `monitor_transaction` which simply returns on call.
-        """
-        w = MoneroWallet()
-        self.assertIsNone(w.monitor_transaction(TEST_TXID))  # return None-method
-        self.assertEquals(w, MoneroWallet())  # verify no state change takes place
-
 
 class TestTestnetMoneroWallet(AbstractServer):
 
