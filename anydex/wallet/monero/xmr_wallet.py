@@ -256,7 +256,7 @@ class MoneroWallet(Wallet):
 
         :param txid: transaction id
         """
-        super().monitor_transaction(txid)
+        pass
 
 
 class MoneroTestnetWallet(MoneroWallet):
