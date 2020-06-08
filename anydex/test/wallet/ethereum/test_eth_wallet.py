@@ -5,8 +5,8 @@ from sqlalchemy.orm import session as db_session
 
 from anydex.test.base import AbstractServer
 from anydex.test.util import MockObject
-from wallet.ethereum.eth_db import Key, Transaction
-from wallet.ethereum.eth_wallet import EthereumWallet, EthereumTestnetWallet
+from anydex.wallet.ethereum.eth_db import Key, Transaction
+from anydex.wallet.ethereum.eth_wallet import EthereumWallet, EthereumTestnetWallet
 
 
 class TestEthereumWallet(AbstractServer):

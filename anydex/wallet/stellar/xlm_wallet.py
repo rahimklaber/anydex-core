@@ -181,7 +181,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         return succeed(payments_to_return)
 
     def min_unit(self):
-        return 1
+        return self.stroop_in_lumen()  # if the minimum unit is too low we get float precision problems
 
     def precision(self):
         return 7

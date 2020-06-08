@@ -6,14 +6,15 @@ from ipv8.util import succeed
 from sqlalchemy.orm import session as db_session
 from stellar_sdk import Keypair
 
+from anydex.test.base import AbstractServer
+from anydex.test.util import MockObject, timeout
 from anydex.wallet.stellar.xlm_db import Secret, Transaction
 from anydex.wallet.stellar.xlm_wallet import StellarWallet, StellarTestnetWallet
 from anydex.wallet.wallet import InsufficientFunds
-from anydex.test.base import AbstractServer
-from anydex.test.util import MockObject, timeout
 
 
-class TestAbstractStellarWallet(metaclass=abc.ABCMeta):
+# Does not include "Test" in name because nose runs all classes with test in their name.
+class AbstractStellarWallet(metaclass=abc.ABCMeta):
     """
     Test class containing the common tests for the testnet and normal stellar wallet.
     """
@@ -159,12 +160,6 @@ class TestAbstractStellarWallet(metaclass=abc.ABCMeta):
         """
         self.assertEqual([], await self.wallet.get_transactions())
 
-    async def test_get_transactions_not_created(self):
-        """
-        Test for get_transactions when wallet has not been created
-        """
-        self.assertEqual([], await self.wallet.get_transactions())
-
     async def test_get_transactions_created(self):
         """
         Test for get_transactions when wallet has been created
@@ -248,7 +243,7 @@ class TestAbstractStellarWallet(metaclass=abc.ABCMeta):
             await self.wallet.transfer(10, 'xxx')
 
     def test_min_unit(self):
-        self.assertEqual(1, self.wallet.min_unit())
+        self.assertEqual(1e7, self.wallet.min_unit())
 
     def test_merge_account(self):
         self.create_wallet()
@@ -258,7 +253,7 @@ class TestAbstractStellarWallet(metaclass=abc.ABCMeta):
                          self.wallet.merge_account('GDQWI6FKB72DPOJE4CGYCFQZKRPQQIOYXRMZ5KEVGXMG6UUTGJMBCASH'))
 
 
-class TestStellarWallet(AbstractServer, TestAbstractStellarWallet):
+class TestStellarWallet(AbstractServer, AbstractStellarWallet):
 
     def setUp(self):
         super().setUp()
@@ -285,7 +280,7 @@ class TestStellarWallet(AbstractServer, TestAbstractStellarWallet):
         return 'XLM'
 
 
-class TestStellarTestnetWallet(AbstractServer, TestAbstractStellarWallet):
+class TestStellarTestnetWallet(AbstractServer, AbstractStellarWallet):
     def setUp(self):
         super().setUp()
         mock = MockObject()
