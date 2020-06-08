@@ -28,12 +28,17 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         self.unlocked = True
         self.stellar_db = StellarDb(os.path.join(db_path, 'stellar.db'))
         self.wallet_name = 'stellar_tribler_testnet' if self.testnet else 'stellar_tribler'
+        self.created_on_network = False  # Stellar accounts need to be explicitly created
 
         secret = self.stellar_db.get_wallet_secret(self.wallet_name)
         if secret:
             self.keypair = Keypair.from_secret(secret)
             self.created = True
-            self.account = Account(self.get_address(), self.get_sequence_number())
+            sequence_nr = 0
+            if self.provider.check_account_created(self.get_address()):
+                self.created_on_network = True
+                sequence_nr = self.get_sequence_number()
+            self.account = Account(self.get_address(), sequence_nr)
 
     @abc.abstractmethod
     def get_identifier(self):
@@ -51,14 +56,24 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         keypair = Keypair.random()
         self.keypair = keypair
         self.created = True
-        self.account = Account(self.get_address(), self.get_sequence_number())
+        self.account = Account(self.get_address(), 0)
+        self.created_on_network = False
         self.stellar_db.add_secret(self.wallet_name, keypair.secret, keypair.public_key)
 
         return succeed(None)
 
-    def get_balance(self):
+    def check_and_update_created_on_network(self):
+        """
+        Check if the account has been created on the stellar network and update it accordingly.
+        """
+        if self.created_on_network:
+            return
+        if self.provider.check_account_created(self.get_address()):
+            self.created_on_network = True
 
-        if not self.created:
+    def get_balance(self):
+        self.check_and_update_created_on_network()
+        if not self.created_on_network:
             return succeed({
                 'available': 0,
                 'pending': 0,
@@ -152,7 +167,8 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         related to this wallet.
         :return: list of payments related to the wallet.
         """
-        if not self.created:
+        self.check_and_update_created_on_network()
+        if not self.created_on_network:
             return succeed([])
 
         transactions = self.provider.get_transactions(self.get_address())
@@ -214,7 +230,9 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         :param address: address to send funds to
         :return: tx hash
         """
-
+        self.check_and_update_created_on_network()
+        if not self.created_on_network:
+            return fail(RuntimeError('Cannot do account merge operation: account is not created on network'))
         self._logger.info('Deleting wallet and sending all funds to address %s', address)
         network = Network.PUBLIC_NETWORK_PASSPHRASE if not self.testnet else Network.TESTNET_NETWORK_PASSPHRASE
         tx = TransactionBuilder(
@@ -227,7 +245,8 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         xdr_tx_envelope = tx.to_xdr()
 
         tx_hash = self.provider.submit_transaction(xdr_tx_envelope)
-        return tx_hash
+        self.created_on_network = False
+        return succeed(tx_hash)
 
 
 class StellarWallet(AbstractStellarWallet):

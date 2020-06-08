@@ -39,6 +39,7 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
         """
         self.wallet.get_sequence_number = lambda: 100
         self.wallet.create_wallet()
+        self.wallet.created_on_network = True
 
     def test_create_wallet(self):
         """
@@ -55,6 +56,7 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
         """
         Test for the wallet constructor when the wallet is already created
         """
+        self.wallet.check_and_update_created_on_network = lambda *_: None
         self.create_wallet()
 
         wallet = self.new_wallet()
@@ -83,13 +85,13 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
             'currency': self.expected_identifier(),
             'precision': 7
         }
+        self.wallet.check_and_update_created_on_network = lambda *_: None
         self.assertEquals(balance, await self.wallet.get_balance())
 
     async def test_get_balance(self):
         """
         Test for getting the balance when the wallet has been created
         """
-        self.wallet.provider = MockObject()
         self.create_wallet()
         self.wallet.provider.get_balance = lambda *_, **x: 100
         balance = {
@@ -142,6 +144,8 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
         """
         Test for get_transactions when wallet has not been created
         """
+        self.wallet.created_on_network = False
+        self.wallet.check_and_update_created_on_network = lambda *_: None
         self.assertEqual([], await self.wallet.get_transactions())
 
     async def test_get_transactions_created(self):
@@ -155,6 +159,7 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
         self.wallet.provider.get_ledger_height = lambda: 26529414
         self.wallet.provider.get_transactions = lambda *_: []
         self.wallet.created = True
+        self.wallet.created_on_network = True
         payment_dict = {
             'id': '96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98',  # use tx hash for now
             'outgoing': False,
@@ -179,6 +184,7 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
         :return:
         """
         self.wallet.created = True
+        self.wallet.created_on_network = True
         self.wallet.stellar_db.insert_transaction(self.tx)
         self.wallet.get_address = lambda: 'GDQWI6FKB72DPOJE4CGYCFQZKRPQQIOYXRMZ5KEVGXMG6UUTGJMBCASH'
         self.wallet.provider = MockObject()
@@ -216,12 +222,12 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
     def test_min_unit(self):
         self.assertEqual(1e7, self.wallet.min_unit())
 
-    def test_merge_account(self):
+    async def test_merge_account(self):
         self.create_wallet()
         self.wallet.provider.get_base_fee = lambda *_: 100
         self.wallet.provider.submit_transaction = lambda *_: 'random_hash'
         self.assertEqual('random_hash',
-                         self.wallet.merge_account('GDQWI6FKB72DPOJE4CGYCFQZKRPQQIOYXRMZ5KEVGXMG6UUTGJMBCASH'))
+                         await self.wallet.merge_account('GDQWI6FKB72DPOJE4CGYCFQZKRPQQIOYXRMZ5KEVGXMG6UUTGJMBCASH'))
 
 
 class TestStellarWallet(AbstractServer, AbstractStellarWallet):
@@ -231,7 +237,6 @@ class TestStellarWallet(AbstractServer, AbstractStellarWallet):
         mock = MockObject()
         mock.get_account_sequence = lambda *_: 100
         self.wallet = StellarWallet(self.session_base_dir, mock)
-
         self.tx = Transaction(hash='96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98',
                               ledger_nr=26529414,
                               date_time=datetime.fromisoformat('2020-06-05T08:45:33'),
@@ -261,6 +266,7 @@ class TestStellarWallet(AbstractServer, AbstractStellarWallet):
     def new_wallet(self):
         mock = MockObject()
         mock.get_account_sequence = lambda *_: 100
+        mock.check_account_created = lambda *_: None
         return StellarWallet(self.session_base_dir, mock)
 
     def test_get_identifier(self):
@@ -307,6 +313,7 @@ class TestStellarTestnetWallet(AbstractServer, AbstractStellarWallet):
 
     def new_wallet(self):
         mock = MockObject()
+        mock.check_account_created = lambda *_: None
         mock.get_account_sequence = lambda *_: 100
         return StellarTestnetWallet(self.session_base_dir, mock)
 
