@@ -173,7 +173,7 @@ class TestMoneroWallet(AbstractServer):
                                   payment_id='test_id',
                                   priority=1,
                                   unlock_time=0)
-        self.assertEquals(TEST_HASH, result.result())
+        self.assertEqual(TEST_HASH, result.result())
 
     async def test_transfer_wallet_not_enough(self):
         """
@@ -228,7 +228,7 @@ class TestMoneroWallet(AbstractServer):
         w.wallet = mock_wallet
 
         hashes = await w.transfer_multiple(transfers, priority=3)
-        self.assertEquals(2, len(hashes.result()))
+        self.assertEqual(2, len(hashes.result()))
 
     async def test_transfer_multiple_wallet_not_enough(self):
         """
@@ -246,7 +246,7 @@ class TestMoneroWallet(AbstractServer):
         mock_wallet.balance = lambda **_: 21.3
         w.wallet = mock_wallet
 
-        self.assertAsyncRaises(InsufficientFunds, w.transfer_multiple(transfers, priority=3))
+        self.assertAsyncRaises(InsufficientFunds, await w.transfer_multiple(transfers, priority=3))
 
     def test_get_address_no_wallet(self):
         """
@@ -254,7 +254,7 @@ class TestMoneroWallet(AbstractServer):
         """
         w = MoneroWallet()
         addr = w.get_address()
-        self.assertEquals('', addr)
+        self.assertEqual('', addr)
 
     def test_get_address_wallet(self):
         """
@@ -266,7 +266,7 @@ class TestMoneroWallet(AbstractServer):
         mock_wallet.address = lambda: TEST_ADDRESS
         w.wallet = mock_wallet
         addr = w.get_address()
-        self.assertEquals(TEST_ADDRESS, addr)
+        self.assertEqual(TEST_ADDRESS, addr)
 
     def test_get_transactions_no_wallet(self):
         """
@@ -348,7 +348,7 @@ class TestMoneroWallet(AbstractServer):
         w.wallet = mock_wallet
 
         payments = await w._get_payments()
-        self.assertEquals(2, len(payments))
+        self.assertEqual(2, len(payments))
 
     def test_normalize_transaction_incoming_payment(self):
         """
@@ -466,21 +466,21 @@ class TestMoneroWallet(AbstractServer):
         Verify minimal transfer unit.
         """
         w = MoneroWallet()
-        self.assertEquals(1, w.min_unit())  # 1 piconero
+        self.assertEqual(1, w.min_unit())  # 1 piconero
 
     def test_precision(self):
         """
         Verify Monero default precision.
         """
         w = MoneroWallet()
-        self.assertEquals(12, w.precision())
+        self.assertEqual(12, w.precision())
 
     def test_get_identifier(self):
         """
         Verify correct identifier is returned.
         """
         w = MoneroWallet()
-        self.assertEquals('XMR', w.get_identifier())
+        self.assertEqual('XMR', w.get_identifier())
 
     def test_get_confirmations_no_wallet(self):
         """
@@ -507,7 +507,7 @@ class TestMoneroWallet(AbstractServer):
         w.wallet = mock_wallet
 
         p = Payment()
-        self.assertEquals(4, await w.get_confirmations(p))
+        self.assertEqual(4, await w.get_confirmations(p))
 
 
 class TestTestnetMoneroWallet(AbstractServer):
@@ -525,11 +525,11 @@ class TestTestnetMoneroWallet(AbstractServer):
         Ensure name of Monero testnet wallet differs from regular Monero wallet.
         """
         w = MoneroTestnetWallet()
-        self.assertEquals('Testnet XMR', w.get_name())
+        self.assertEqual('Testnet XMR', w.get_name())
 
     def test_get_identifier(self):
         """
         Ensure identifier of Monero testnet wallet is equivalent to `TXMR`
         """
         w = MoneroTestnetWallet()
-        self.assertEquals('TXMR', w.get_identifier())
+        self.assertEqual('TXMR', w.get_identifier())
