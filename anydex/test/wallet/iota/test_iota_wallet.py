@@ -1,6 +1,7 @@
 from iota import Address, Transaction, Bundle
 from iota.crypto.types import Seed
 from ipv8.util import succeed
+from sqlalchemy.orm import session as db_session
 
 from anydex.test.base import AbstractServer
 from anydex.wallet.iota.iota_database import DatabaseBundle, DatabaseAddress, DatabaseTransaction, DatabaseSeed
@@ -103,6 +104,7 @@ class TestIotaWallet(AbstractServer):
         )
 
     async def tearDown(self):
+        db_session.close_all_sessions()
         await super().tearDown()
 
     def new_wallet(self):
