@@ -31,6 +31,10 @@ jobs:
         python setup.py install
         # Install IPv8
         pip install pyipv8
+    - name: Lint with pylint
+      run: |
+        # Execute bash script
+        bash .scripts/runpylint.sh
     - name: Test using nose
       run: |
         python run_nose.py
