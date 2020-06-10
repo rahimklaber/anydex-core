@@ -22,7 +22,7 @@ class DatabaseTransaction(Base):
     __tablename__ = "transactions"
     # need to include a relation to the key table.
     id = Column(Integer, primary_key=True)
-    seed = Column(Integer, ForeignKey('seeds.seed'))
+    seed = Column(String(81))
     address = Column(String(81))
     value = Column(Integer)
     hash = Column(String(81), unique=True)
@@ -30,7 +30,7 @@ class DatabaseTransaction(Base):
     current_index = Column(Integer)
     timestamp = Column(Integer)
     is_confirmed = Column(Boolean, default=False)
-    bundle_hash = Column(Integer, ForeignKey('bundles.hash'))
+    bundle_hash = Column(String(81))
 
 
 class DatabaseBundle(Base):
@@ -52,7 +52,7 @@ class DatabaseAddress(Base):
     __tablename__ = "addresses"
     id = Column(Integer, primary_key=True)
     address = Column(String(81), unique=True)
-    seed = Column(Integer, ForeignKey('seeds.seed'))
+    seed = Column(String(81))
     is_spent = Column(Boolean, default=False)
 
 

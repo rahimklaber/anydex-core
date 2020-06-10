@@ -20,11 +20,16 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
     def __init__(self, db_path, testnet, node):
         super().__init__()
-        self.unlocked = True
-        self.node = node
-        self.testnet = testnet
+
+        self.name = 'Iota Test Network' if testnet else 'Iota Network'
         self.network = 'iota_testnet' if testnet else 'iota'
-        self.wallet_name = 'iota testnet' if testnet else 'iota'
+        self.wallet_name = f'tribler_testnet_{self.network}' if testnet else f'tribler_{self.network}'
+        self.testnet = testnet
+        self.unlocked = True
+
+        self.node = node
+        self.seed = None
+        self.provider = None
         self.database = initialize_db(os.path.join(db_path, 'iota.db'))
         self.created = self.wallet_exists()
 
@@ -34,17 +39,15 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                 .one()
             self.seed = Seed(db_seed.seed)
             self.provider = IotaProvider(testnet=self.testnet, seed=self.seed)
-        else:
-            self.seed = None
-            self.provider = None
 
     def create_wallet(self):
         """
         Create wallet by creating seed, storing it and setting up API access
         """
         if self.created:
-            return fail(RuntimeError('%s wallet with name %s already exists.',
-                                     self.get_identifier(), self.wallet_name))
+            return fail(RuntimeError(f'Iota wallet with name {self.wallet_name} already exists.'))
+
+        self._logger.info(f'Creating Iota wallet with name {self.wallet_name}')
 
         # generate random seed and store it in the database as a String instead of TryteString
         self.seed = Seed.random()
@@ -120,8 +123,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         balance = await self.get_balance()
 
         if balance['available'] < value:
-            return InsufficientFunds(
-                "Balance %d of the wallet is less than %d", balance['available'], value)
+            return InsufficientFunds(f'Balance {balance["available"]} of the wallet is less than {value}.')
 
         # generate and send a transaction
         transaction = ProposedTransaction(
@@ -130,6 +132,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         )
 
         # Submit the transaction to the tangle
+        self._logger.info(f"Creating {self.network} payment with amount {value} to address {address}")
         bundle = await self.provider.submit_transaction(transaction)
 
         # Return bundle hash ID instead of transaction ID
@@ -228,12 +231,12 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
             transactions = await self.get_transactions()
             for transaction in transactions:
                 if transaction['hash'].__eq__(txid):
-                    self._logger.debug("Found transaction with id %s", txid)
+                    self._logger.debug('Found transaction with id %s', txid)
                     monitor_future.set_result(None)
                     monitor_task.cancel()
 
-        self._logger.debug("Start polling for transaction %s", txid)
-        monitor_task = self.register_task(f"{self.network}_poll_{txid}", monitor, interval=5)
+        self._logger.debug('Start polling for transaction %s', txid)
+        monitor_task = self.register_task(f'{self.name}_poll_{txid}', monitor, interval=5)
 
         return monitor_future
 
@@ -305,7 +308,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         return self.testnet
 
     def precision(self):
-        return 0  # or 6, depends if we decide to trade 1 Million IOTAs or 1 IOTA
+        return 0  # 6 if MIOTAs
 
     def min_unit(self):
         return 0  # valueless and feeless transactions are possible
@@ -315,19 +318,19 @@ class IotaWallet(AbstractIotaWallet):
     def __init__(self, db_path, node=None):
         super(IotaWallet, self).__init__(db_path, False, node)
 
+    def get_identifier(self):
+        return 'IOTA'
+
     def get_name(self):
         return Cryptocurrency.IOTA.value
-
-    def get_identifier(self):
-        return 'IOTA'  # or MIOTA, depends if we decide to trade 1 Million IOTAs or 1 IOTA
 
 
 class IotaTestnetWallet(AbstractIotaWallet):
     def __init__(self, db_path, node=None):
         super(IotaTestnetWallet, self).__init__(db_path, True, node)
 
+    def get_identifier(self):
+        return 'TIOTA'
+
     def get_name(self):
         return 'Testnet IOTA'
-
-    def get_identifier(self):
-        return 'TIOTA'  # or TMIOTA, depends if we decide to trade 1 Million IOTAs or 1 IOTA

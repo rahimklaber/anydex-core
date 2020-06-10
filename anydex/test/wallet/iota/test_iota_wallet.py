@@ -464,8 +464,7 @@ class TestIotaWallet(AbstractServer):
 
         result = await self.wallet.get_pending()
         # Since the transaction is confirmed, no value should be added
-        self.assertEqual(self.txn.value + self.tx1.value,
-                         result)
+        self.assertEqual(self.txn.value + self.tx1.value, result)
         self.wallet.cancel_all_pending_tasks()
 
     async def test_get_transactions_before_creation(self):
