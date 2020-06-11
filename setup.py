@@ -25,7 +25,7 @@ setup(
         "requests",
         "web3",
         "sqlalchemy",
-        "monero-python",
+        "monero",
         "responses"
     ],
     classifiers=[
