@@ -13,42 +13,10 @@ class TestIotaProvider(AbstractServer):
         self.node = 'https://nodes.comnet.thetangle.org:443'
 
         self.seed = 'BZTTWRWPZWQDCQRXEJNGVZJUBPRDYRNSQZIZOVGLDJIRRAXFJTZOUDVOBJ9I9CIKX99KVZDLKIWMYQDZK'
-        self.address_1 = 'RGJLBAMAXIUHYPVAPKGVGGHTWXYJHVVQD9TDEVRWJKUINBNATQIBBNNHMOYBBWVXCQQHZJBXDCNJCJFCY'
-        self.address_2 = 'PUKLSGSYSWQCLQPEAJ9JDOPL9Z9PJGASKMGFQASCXQQD9IYU9XNLNUPTNKPLFRQDLZOOKKCCDUNFYGFCW'
-
-        self.random_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDX'
+        self.seed_address = 'RGJLBAMAXIUHYPVAPKGVGGHTWXYJHVVQD9TDEVRWJKUINBNATQIBBNNHMOYBBWVXCQQHZJBXDCNJCJFCY'
         self.wrong_address = 'EEWRFWF9VOHUWUAZCP9MNHVPYKKOYWPOUOQX9NRPNHZIZWTZFBBIJKPHUWBHTUCMWWOUNGSSUYYXWRONG'
 
-        self.async_api = AsyncIota(adapter=self.node, seed=self.seed, devnet=True)
-
-        self.submit_response_tryte = \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999' \
-            '999EEWRFWF9VOHUWUAZCP9MNHVPYKKOYWPOUOQX9NRPNHZIZWTZFBBIJKPHUWBHTUCMWWOUNGSSUYYXKMOID99999999999999999999' \
-            '9999999YA9999999999999999999999999MAKDWCD99999999999999999999NDNAFYFCSNFLTAIFJRFYVBKNRCKDJVBKOERSIHQXSJT' \
-            'GGYWOOYHQHJWTV9JWQASBUXLCTYJKHYPFDIJIZXLP9MRUPSQPZQTLTNNEGSZZYDXZWVEVEQ9LLJCFRPTOHGZLX9JZOHRHWYGDKQQSWZH' \
-            'RIPLSBNANYML999XLP9MRUPSQPZQTLTNNEGSZZYDXZWVEVEQ9LLJCFRPTOHGZLX9JZOHRHWYGDKQQSWZHRIPLSBNANYML999YA999999' \
-            '9999999999999999999NJLHXWBQF999999999MMMMMMMMMPUCTRIO9LOFTHEBSQKTGABGJNDZ '
-        self.get_transactions_tryte = [
+        self.transaction_tryte = [
             'NY9PEUUVPCHCKQLVYHTYUCVUTQTQZASPXVDCPGLHVJXCFOUGFRSNZGGYSAXICHGRQGWNEKOXKDSYSIDZBVWYQZKJETKOFHPAWLPGCTMYGY'
             'KOTNZNGQKBUMXTDDTZYSRPTEBQVIDNGEXCQORA999JDOIFW9LWDGMSG9YCI9MYYEQMWGGWPNHKPUFJBYBSZ9PZSRWZRGTVIGMTQOBKKWEU'
             'IWZJYEOGXMEVXBKFVENVGGPAUKHHFACVWKDOCNRUWITYPTBSMFZGTFDJEZAFJEFKXYZABDGBOCVUSTHGIJZ9AAWS9URSQBHWDSHVHJGWGF'
@@ -76,7 +44,7 @@ class TestIotaProvider(AbstractServer):
             'MGGKRALVOKBNWYWVARYXZPBMEESSZCSSPAAJRXOPDVGGT999999999999999999999999999999FKPBYVBQF999999999MMMMMMMMMARTF'
             'KPAYUZWLZNVDTMWEGUFN9QL'
         ]
-        self.get_seed_transactions_tryte = [
+        self.seed_transactions_trytes = [
             Transaction.from_tryte_string(
                 'LEINZHQPBKVSEFVJELUKLRKRLIVSBMEMFQNXVGZYPPPU9LMWUQTAAIZKYPIOKRKPGYCIIGLKVJSBANCZWEIZAKRJDKKWJVVLVSDOMU'
                 'YWZE9YOGGSLNNWIZMLDZG9KMKWVRCHHJVCAXBSNBYNTQOJORNFUOJWNMNLNDDEQMTUBJXRDNLUBRFRRMCYUTLQJAMBWWHXFOZHFAPF'
@@ -145,29 +113,25 @@ class TestIotaProvider(AbstractServer):
         self.assertEqual(await provider.get_seed_balance(), 0)
 
     async def test_submit_transaction(self):
-        bundle = Bundle([Transaction.from_tryte_string(self.get_transactions_tryte[0])])
+        bundle = Bundle([Transaction.from_tryte_string(self.transaction_tryte[0])])
         provider = IotaProvider(testnet=True, node=self.node, seed=self.seed)
         provider.asyncapi.send_transfer = lambda transfers, min_weight_magnitude: succeed({'bundle': bundle})
         transaction = ProposedTransaction(
             address=Address(
-                Transaction.as_json_compatible(Transaction.from_tryte_string(self.get_transactions_tryte[0]))[
-                    'address']),
-            value=Transaction.as_json_compatible(Transaction.from_tryte_string(self.get_transactions_tryte[0]))[
-                'value']
+                Transaction.as_json_compatible(Transaction.from_tryte_string(self.transaction_tryte[0]))['address']),
+            value=Transaction.as_json_compatible(Transaction.from_tryte_string(self.transaction_tryte[0]))['value']
         )
-        self.assertEqual(bundle, await provider.submit_transaction(
-            tx=transaction))
+        self.assertEqual(bundle, await provider.submit_transaction(tx=transaction))
 
     async def test_get_balance(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.seed)
         provider.asyncapi.get_balances = lambda addresses: succeed({'balances': [4]})
-        self.assertEqual(await provider.get_balance(address=[Address(self.address_1)]), 4)
+        self.assertEqual(await provider.get_balance(address=[Address(self.seed_address)]), 4)
 
     async def test_get_balance_invalid_address(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.seed)
         provider.asyncapi.get_balances = lambda addresses: succeed({'balances': [0]})
-        self.assertEqual(await provider.get_balance(
-            address=[Address(self.wrong_address)]), 0)
+        self.assertEqual(await provider.get_balance(address=[Address(self.wrong_address)]), 0)
 
     async def test_get_seed_balance(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.seed)
@@ -176,9 +140,8 @@ class TestIotaProvider(AbstractServer):
 
     async def test_get_transactions(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.seed)
-        provider.asyncapi.find_transaction_objects = lambda addresses: succeed(self.get_transactions_tryte)
-        self.assertEqual(await provider.get_transactions(address=[Address(self.address_1)]),
-                         self.get_transactions_tryte)
+        provider.asyncapi.find_transaction_objects = lambda addresses: succeed(self.transaction_tryte)
+        self.assertEqual(await provider.get_transactions(address=[Address(self.seed_address)]), self.transaction_tryte)
 
     async def test_get_transactions_invalid_address(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.seed)
@@ -189,50 +152,50 @@ class TestIotaProvider(AbstractServer):
     async def test_get_seed_transactions(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.seed)
         provider.update_account_data = lambda: succeed(None)
-        provider.account_data = {'addresses': Address(self.address_1)}
+        provider.account_data = {'addresses': Address(self.seed_address)}
         provider.asyncapi.find_transaction_objects = lambda addresses: \
-            succeed({'transactions': self.get_seed_transactions_tryte})
-        self.assertEqual(await provider.get_seed_transactions(), self.get_seed_transactions_tryte)
+            succeed({'transactions': self.seed_transactions_trytes})
+        self.assertEqual(await provider.get_seed_transactions(), self.seed_transactions_trytes)
 
     async def test_get_all_bundles(self):
-        bundle1 = Bundle([self.get_seed_transactions_tryte[0]])
-        bundle2 = Bundle([self.get_seed_transactions_tryte[1]])
-        provider = IotaProvider(testnet=True, node=self.node, seed=self.seed)
+        bundle1 = Bundle([self.seed_transactions_trytes[0]])
+        bundle2 = Bundle([self.seed_transactions_trytes[1]])
         bundles = [bundle1, bundle2]
+        provider = IotaProvider(testnet=True, node=self.node, seed=self.seed)
         provider.asyncapi.get_account_data = lambda: succeed({'bundles': bundles})
         self.assertListEqual(bundles, await provider.get_all_bundles())
 
     async def test_generate_address(self):
         provider = IotaProvider(testnet=True, node=self.node, seed=self.seed)
         provider.asyncapi.get_new_addresses = lambda index, count, security_level: \
-            succeed({'addresses': [Address(self.address_1)]})
+            succeed({'addresses': [Address(self.seed_address)]})
         new_address = await provider.generate_address(0)
-        self.assertEqual(new_address, self.address_1)
+        self.assertEqual(new_address, self.seed_address)
 
     async def test_is_spent_true(self):
         provider = IotaProvider(seed=self.seed)
         provider.asyncapi.were_addresses_spent_from = lambda *_: succeed({'states': [True], 'duration': 0})
-        is_spent = await provider.is_spent(Address(self.address_1))
+        is_spent = await provider.is_spent(Address(self.seed_address))
         self.assertTrue(is_spent)
 
     async def test_is_spent_false(self):
         provider = IotaProvider(seed=self.seed)
         provider.asyncapi.were_addresses_spent_from = lambda *_: succeed({'states': [False], 'duration': 0})
-        is_spent = await provider.is_spent(Address(self.address_1))
+        is_spent = await provider.is_spent(Address(self.seed_address))
         self.assertFalse(is_spent)
 
     async def test_get_confirmations_true(self):
         provider = IotaProvider(seed=self.seed)
         provider.asyncapi.get_inclusion_states = lambda *_: succeed({'states': [True]})
-        tx_hashes = [Transaction.as_json_compatible(self.get_seed_transactions_tryte[0])['hash_'],
-                     Transaction.as_json_compatible(self.get_seed_transactions_tryte[1])['hash_']]
+        tx_hashes = [Transaction.as_json_compatible(self.seed_transactions_trytes[0])['hash_'],
+                     Transaction.as_json_compatible(self.seed_transactions_trytes[1])['hash_']]
         is_confirmed = await provider.get_confirmations(tx_hashes)
         self.assertTrue(is_confirmed)
 
     async def test_get_confirmations_false(self):
         provider = IotaProvider(seed=self.seed)
         provider.asyncapi.get_inclusion_states = lambda *_: succeed({'states': [False]})
-        tx_hashes = [Transaction.as_json_compatible(self.get_seed_transactions_tryte[0])['hash_'],
-                     Transaction.as_json_compatible(self.get_seed_transactions_tryte[1])['hash_']]
+        tx_hashes = [Transaction.as_json_compatible(self.seed_transactions_trytes[0])['hash_'],
+                     Transaction.as_json_compatible(self.seed_transactions_trytes[1])['hash_']]
         is_confirmed = await provider.get_confirmations(tx_hashes)
         self.assertFalse(is_confirmed)
