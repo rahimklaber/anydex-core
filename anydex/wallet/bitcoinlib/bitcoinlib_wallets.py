@@ -100,7 +100,7 @@ class BitcoinlibWallet(Wallet):
         return self.network
 
     def create_wallet(self):
-        if wallet_exists(self.wallet_name, db_uri=self.db_path):
+        if self.created:
             return fail(RuntimeError(f"{self.network} wallet with name {self.wallet_name} already exists."))
 
         self._logger.info("Creating wallet in %s", self.wallet_dir)

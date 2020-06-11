@@ -47,7 +47,7 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
         """
 
         self.create_wallet()
-        addr = self.wallet.stellar_db.session.query(Secret.address).first()[0]
+        addr = self.wallet.database.session.query(Secret.address).first()[0]
         self.assertIsNotNone(self.wallet.keypair)
         self.assertTrue(self.wallet.created)
         self.assertEqual(addr, self.wallet.get_address())
@@ -106,9 +106,9 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
         """
         Test for getting sequence number from the database
         """
-        self.wallet.stellar_db.session.add(
+        self.wallet.database.session.add(
             Transaction(sequence_number=10000, succeeded=True, source_account=f'sequence {self.wallet.testnet}'))
-        self.wallet.stellar_db.session.commit()
+        self.wallet.database.session.commit()
         self.wallet.get_address = lambda: f'sequence {self.wallet.testnet}'
         sequence_nr = self.wallet.get_sequence_number()
         self.assertEqual(10000, sequence_nr)
@@ -153,7 +153,7 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
         Test for get_transactions when wallet has been created
         """
 
-        self.wallet.stellar_db.insert_transaction(self.tx)
+        self.wallet.database.insert_transaction(self.tx)
         self.wallet.get_address = lambda: 'GBOQNX4VWQMVN6C7NB5UL2CEV6AGVTM6LWQIXDRU6OBRMUNBTOMNSOAW'
         self.wallet.provider = MockObject()
         self.wallet.provider.get_ledger_height = lambda: 26529414
@@ -185,7 +185,7 @@ class AbstractStellarWallet(metaclass=abc.ABCMeta):
         """
         self.wallet.created = True
         self.wallet.created_on_network = True
-        self.wallet.stellar_db.insert_transaction(self.tx)
+        self.wallet.database.insert_transaction(self.tx)
         self.wallet.get_address = lambda: 'GDQWI6FKB72DPOJE4CGYCFQZKRPQQIOYXRMZ5KEVGXMG6UUTGJMBCASH'
         self.wallet.provider = MockObject()
         self.wallet.provider.get_ledger_height = lambda: 26529414

@@ -108,7 +108,7 @@ class TestIotaWallet(AbstractServer):
         await super().tearDown()
 
     def new_wallet(self):
-        return IotaWallet(self.session_base_dir, True)
+        return IotaWallet(self.session_base_dir)
 
     def name(self):
         return 'iota'
@@ -641,13 +641,13 @@ class TestIotaWallet(AbstractServer):
 class TestIotaTestnetWallet(TestIotaWallet):
 
     def new_wallet(self):
-        return IotaTestnetWallet(self.session_base_dir, True)
+        return IotaTestnetWallet(self.session_base_dir)
 
     def identifier(self):
         return 'TIOTA'
 
     def name(self):
-        return 'Testnet IOTA'
+        return 'testnet iota'
 
     def devnet(self):
         return True

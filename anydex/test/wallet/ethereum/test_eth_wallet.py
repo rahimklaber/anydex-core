@@ -128,7 +128,6 @@ class TestEthereumWallet(AbstractServer):
         """
         Test for get identifier
         """
-
         wallet = EthereumWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
         self.assertEqual("ETH", wallet.get_identifier())
 
@@ -202,7 +201,7 @@ class TestTestnetEthereumWallet(AbstractServer):
         db_session.close_all_sessions()
         await super().tearDown()
 
-    def test_get_idetifier(self):
+    def test_get_identifier(self):
         """
         Test for get identifier
         """
@@ -214,4 +213,4 @@ class TestTestnetEthereumWallet(AbstractServer):
         Test for get_name
         """
         wallet = EthereumTestnetWallet(self.session_base_dir, True)  # Trick the wallet to not use the default provider
-        self.assertEqual("Testnet ETH", wallet.get_name())
+        self.assertEqual("testnet ethereum", wallet.get_name())

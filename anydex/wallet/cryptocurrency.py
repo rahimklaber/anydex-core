@@ -5,14 +5,13 @@ class Cryptocurrency(Enum):
     """
     Enum representing currently implemented cryptocurrencies.
     """
+    BANDWIDTH_TOKEN = 'bandwidth_token'
 
     BITCOIN = 'bitcoin'
-    DASH = 'dash'
-    BANDWIDTH_TOKEN = 'bandwidth_token'
-    ETHEREUM = 'ethereum'
-    RIPPLE = 'ripple'
     LITECOIN = 'litecoin'
+    DASH = 'dash'
+
+    ETHEREUM = 'ethereum'
     IOTA = 'iota'
     MONERO = 'monero'
-    ZCASH = 'zcash'
     STELLAR = 'stellar'

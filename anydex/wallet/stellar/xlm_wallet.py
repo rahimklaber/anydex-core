@@ -15,23 +15,24 @@ from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
     """
-    Wallet that provides support for the native Stellar token; lumen.
+    This class is responsible for handling your Stellar wallet.
     """
 
-    def __init__(self, db_path, testnet=False, provider: StellarProvider = None):
+    def __init__(self, db_path: str, testnet: bool, provider: StellarProvider):
+        super(AbstractStellarWallet, self).__init__()
 
-        super().__init__()
+        self.network = 'stellar_testnet' if testnet else 'stellar'
+        self.wallet_name = f'tribler_testnet_{self.network}' if testnet else f'tribler_{self.network}'
         self.testnet = testnet
-        self.provider = provider
-        self.network = 'testnet' if self.testnet else Cryptocurrency.STELLAR.value
         self.unlocked = True
-        self.stellar_db = StellarDb(os.path.join(db_path, 'stellar.db'))
-        self.wallet_name = 'stellar_tribler_testnet' if self.testnet else 'stellar_tribler'
+
+        self.provider = provider
+        self.database = StellarDb(os.path.join(db_path, 'stellar.db'))
         self.created_on_network = False  # Stellar accounts need to be explicitly created
 
-        secret = self.stellar_db.get_wallet_secret(self.wallet_name)
-        if secret:
-            self.keypair = Keypair.from_secret(secret)
+        existing_secret = self.database.get_wallet_secret(self.wallet_name)
+        if existing_secret:
+            self.keypair = Keypair.from_secret(existing_secret)
             self.created = True
             sequence_nr = 0
             if self.provider.check_account_created(self.get_address()):
@@ -39,25 +40,16 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
                 sequence_nr = self.get_sequence_number()
             self.account = Account(self.get_address(), sequence_nr)
 
-    @abc.abstractmethod
-    def get_identifier(self):
-        return
-
-    @abc.abstractmethod
-    def get_name(self):
-        return
-
     def create_wallet(self):
         if self.created:
             return fail(RuntimeError(f'Stellar wallet with name {self.wallet_name} already exists'))
 
         self._logger.info('Creating Stellar wallet with name %s', self.wallet_name)
-        keypair = Keypair.random()
-        self.keypair = keypair
+        self.keypair = Keypair.random()
         self.created = True
         self.account = Account(self.get_address(), 0)
         self.created_on_network = False
-        self.stellar_db.add_secret(self.wallet_name, keypair.secret, keypair.public_key)
+        self.database.add_secret(self.wallet_name, self.keypair.secret, self.keypair.public_key)
 
         return succeed(None)
 
@@ -79,16 +71,17 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
                 'currency': self.get_identifier(),
                 'precision': self.precision()
             })
-        xlm_balance = int(float(self.provider.get_balance(
-            address=self.get_address())) * self.stroop_in_lumen())  # balance is not in smallest denomination
-        pending_outgoing = self.stellar_db.get_outgoing_amount(self.get_address())
-        balance = {
-            'available': xlm_balance - pending_outgoing,
-            'pending': 0,  # transactions are confirmed every 5 secs, so is this worth doing?
+
+        available = int(float(self.provider.get_balance(address=self.get_address()))
+                        * self.stroop_in_lumen())  # balance is not in smallest denomination
+        pending_outgoing = self.database.get_outgoing_amount(self.get_address())
+
+        return succeed({
+            'available': available - pending_outgoing,
+            'pending': 0,
             'currency': self.get_identifier(),
             'precision': self.precision()
-        }
-        return succeed(balance)
+        })
 
     def get_sequence_number(self):
         """
@@ -97,7 +90,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
 
         :return: sequence number of this wallet.
         """
-        sequence_nr_db = self.stellar_db.get_sequence_number(self.get_address())
+        sequence_nr_db = self.database.get_sequence_number(self.get_address())
         return sequence_nr_db if sequence_nr_db else self.provider.get_account_sequence(
             self.get_address())
 
@@ -150,7 +143,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
                             is_pending=True,
                             fee=tx.transaction.fee,
                             )
-        self.stellar_db.insert_transaction(tx_db)
+        self.database.insert_transaction(tx_db)
         return tx_hash
 
     def get_address(self):
@@ -160,7 +153,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
 
     def get_transactions(self):
         """
-        Transactions in stellar is different from etheruem or bitcoin.
+        Transactions in stellar is different from ethereum or bitcoin.
         A payment in stellar is the same as a transactions in ethereum or bitcoin.
         Even though this method is called get_transactions (for compat with the wallet api) it returns the `payments`
         related to this wallet.
@@ -172,13 +165,13 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
 
         transactions = self.provider.get_transactions(self.get_address())
 
-        self.stellar_db.update_db(transactions)
+        self.database.update_db(transactions)
 
         # list of tuples with payment and transaction
 
         latest_ledger_height = self.provider.get_ledger_height()
         payments_to_return = []
-        payments = self.stellar_db.get_payments_and_transactions(self.get_address())
+        payments = self.database.get_payments_and_transactions(self.get_address())
         for payment in payments:
             confirmations = latest_ledger_height - payment[1].ledger_nr + 1 if payment[1].ledger_nr else 0
             payments_to_return.append({
@@ -253,19 +246,19 @@ class StellarWallet(AbstractStellarWallet):
     def __init__(self, db_path, provider: StellarProvider = None):
         super().__init__(db_path, False, provider)
 
-    def get_name(self):
-        return Cryptocurrency.STELLAR.value
-
     def get_identifier(self):
         return 'XLM'
+
+    def get_name(self):
+        return Cryptocurrency.STELLAR.value
 
 
 class StellarTestnetWallet(AbstractStellarWallet):
     def __init__(self, db_path, provider: StellarProvider = None):
         super().__init__(db_path, True, provider)
 
-    def get_name(self):
-        return f'testnet {Cryptocurrency.STELLAR.value}'
-
     def get_identifier(self):
         return 'TXLM'
+
+    def get_name(self):
+        return f'testnet {Cryptocurrency.STELLAR.value}'

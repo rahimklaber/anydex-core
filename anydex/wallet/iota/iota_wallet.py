@@ -17,6 +17,9 @@ from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
+    """
+    This class is responsible for handling the IOTA wallet.
+    """
 
     def __init__(self, db_path: str, testnet: bool, node: str):
         super(AbstractIotaWallet, self).__init__()
@@ -329,4 +332,4 @@ class IotaTestnetWallet(AbstractIotaWallet):
         return 'TIOTA'
 
     def get_name(self):
-        return 'Testnet IOTA'
+        return f'testnet {Cryptocurrency.IOTA.value}'

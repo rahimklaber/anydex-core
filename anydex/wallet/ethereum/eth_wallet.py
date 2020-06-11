@@ -15,7 +15,7 @@ from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
     """
-    This class is responsible for handling your Ethereum wallet.
+    This class is responsible for handling the Ethereum wallet.
     """
 
     def __init__(self, db_path: str, testnet: bool, chain_id: int, provider):
@@ -65,16 +65,16 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
                 'currency': 'ETH',
                 'precision': self.precision()
             })
-        address = self.get_address()
+
         self._update_database(self.get_transactions())
         pending_outgoing = self.get_outgoing_amount()
-        balance = {
-            'available': self.provider.get_balance(address) - pending_outgoing,
+
+        return succeed({
+            'available': self.provider.get_balance(self.get_address()) - pending_outgoing,
             'pending': self.get_incoming_amount(),
             'currency': 'ETH',
             'precision': self.precision()
-        }
-        return succeed(balance)
+        })
 
     def get_outgoing_amount(self):
         """
@@ -258,4 +258,4 @@ class EthereumTestnetWallet(AbstractEthereumWallet):
         return 'TETH'
 
     def get_name(self):
-        return 'Testnet ETH'
+        return f'testnet {Cryptocurrency.ETHEREUM.value}'
