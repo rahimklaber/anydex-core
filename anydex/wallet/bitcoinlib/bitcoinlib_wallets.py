@@ -32,15 +32,17 @@ class BitcoinlibWallet(Wallet):
             raise UnsupportedNetwork(network)
 
         super(BitcoinlibWallet, self).__init__()
-        self.testnet = testnet
+
         self.network = network
+        self.wallet_name = f'tribler_testnet_{self.network}' if testnet else f'tribler_{self.network}'
+        self.testnet = testnet
+        self.unlocked = True
+
         self.currency = currency
         self.wallet_dir = wallet_dir
         self.min_confirmations = 0
         self.wallet = None
-        self.unlocked = True
         self.db_path = os.path.join(wallet_dir, 'wallets.sqlite')
-        self.wallet_name = f'tribler_testnet_{network}' if self.testnet else 'tribler_' + network
 
         if wallet_exists(self.wallet_name, db_uri=self.db_path):
             self.wallet = HDWallet(self.wallet_name, db_uri=self.db_path)

@@ -1,5 +1,6 @@
 import os
 import time
+from abc import ABCMeta
 from asyncio import Future
 
 from ipv8.util import fail, succeed
@@ -12,34 +13,33 @@ from anydex.wallet.ethereum.eth_provider import AutoEthereumProvider, AutoTestne
 from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 
-class EthereumWallet(Wallet):
+class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
     """
     This class is responsible for handling your Ethereum wallet.
     """
-    TESTNET = False
 
-    def __init__(self, db_path, provider=None):
-        super().__init__()
+    def __init__(self, db_path: str, testnet: bool, chain_id: int, provider):
+        super(AbstractEthereumWallet, self).__init__()
+
+        self.network = 'testnet' if testnet else Cryptocurrency.ETHEREUM.value
+        self.wallet_name = 'tribler_testnet' if testnet else 'tribler'
+        self.testnet = testnet
+        self.unlocked = True
+
+        self.chain_id = chain_id
+        self.min_confirmations = 0
+        self.account = None
+        self._session = initialize_db(os.path.join(db_path, 'eth.db'))
+
         if provider:
             self.provider = provider
-        else:
-            self.provider = AutoTestnetEthereumProvider() if self.TESTNET else AutoEthereumProvider()
+        else:  # the testnet we are currently using is ropsten
+            self.provider = AutoTestnetEthereumProvider() if testnet else AutoEthereumProvider()
 
-        self.network = 'testnet' if self.TESTNET else Cryptocurrency.ETHEREUM.value
-        self.min_confirmations = 0
-        self.unlocked = True
-        self._session = initialize_db(os.path.join(db_path, 'eth.db'))
-        self.wallet_name = 'tribler_testnet' if self.TESTNET else 'tribler'
-
-        row = self._session.query(Key).filter(Key.name == self.wallet_name).first()
-        if row:
-            self.account = Web3().eth.account.from_key(row.private_key)
+        existing_wallet = self._session.query(Key).filter(Key.name == self.wallet_name).first()
+        if existing_wallet:
+            self.account = Web3().eth.account.from_key(existing_wallet.private_key)
             self.created = True
-        else:
-            self.account = None
-
-    def get_name(self):
-        return Cryptocurrency.ETHEREUM.value
 
     def create_wallet(self):
         """
@@ -116,7 +116,7 @@ class EthereumWallet(Wallet):
             'value': int(amount),
             'nonce': self.get_transaction_count(),
             'gasPrice': self.provider.get_gas_price(),
-            'chainId': self.get_chain_id()
+            'chainId': self.chain_id
         }
 
         transaction['gas'] = self.provider.estimate_gas(transaction)
@@ -139,13 +139,6 @@ class EthereumWallet(Wallet):
         )
         self._session.commit()
         return signed['hash'].hex()
-
-    def get_chain_id(self):
-        """
-        Get the chain id of the current ethereum network.
-        """
-
-        return 1
 
     def get_address(self):
         if not self.account:
@@ -189,16 +182,6 @@ class EthereumWallet(Wallet):
 
         return succeed(transactions_to_return)
 
-    def min_unit(self):
-        # TODO determine minimal transfer unit
-        return 1
-
-    def precision(self):
-        return 18
-
-    def get_identifier(self):
-        return 'ETH'
-
     def _update_database(self, transactions):
         """
         Update transactions in the database.
@@ -222,6 +205,23 @@ class EthereumWallet(Wallet):
                 self._session.add(transaction)
         self._session.commit()
 
+    def get_transaction_count(self):
+        """
+        Get the amount of transactions sent by this wallet
+        """
+        row = self._session.query(Transaction.nonce).filter(Transaction.from_ == self.get_address()).order_by(
+            Transaction.nonce.desc()).first()
+        if row:
+            return row[0] + 1  # nonce + 1
+        return 0
+
+    def min_unit(self):
+        # TODO determine minimal transfer unit
+        return 1
+
+    def precision(self):
+        return 18
+
     def monitor_transaction(self, txid):
         monitor_future = Future()
 
@@ -234,33 +234,28 @@ class EthereumWallet(Wallet):
                     monitor_task.cancel()
 
         self._logger.debug('Start polling for transaction %s', txid)
-        monitor_task = self.register_task(f'{self.name}_poll_{txid}', monitor, interval=5)
+        monitor_task = self.register_task(f'{self.network}_poll_{txid}', monitor, interval=5)
 
         return monitor_future
 
-    def get_transaction_count(self):
-        """
-        Get the amount of transactions sent by this wallet
-        """
-        row = self._session.query(Transaction.nonce).filter(Transaction.from_ == self.get_address()).order_by(
-            Transaction.nonce.desc()).first()
-        if row:
-            return row[0] + 1  # nonce + 1
-        return 0
 
+class EthereumWallet(AbstractEthereumWallet):
+    def __init__(self, db_path, provider=None):
+        super(EthereumWallet, self).__init__(db_path, False, 1, provider)
 
-class EthereumTestnetWallet(EthereumWallet):
-    """
-    This wallet represents testnet Ethereum.
-    Note: The testnet we are currently using is ropsten.
-    """
-    TESTNET = True
+    def get_identifier(self):
+        return 'ETH'
 
     def get_name(self):
-        return 'Testnet ETH'
+        return Cryptocurrency.ETHEREUM.value
+
+
+class EthereumTestnetWallet(AbstractEthereumWallet):
+    def __init__(self, db_path, provider=None):
+        super(EthereumTestnetWallet, self).__init__(db_path, True, 3, provider)
 
     def get_identifier(self):
         return 'TETH'
 
-    def get_chain_id(self):
-        return 3
+    def get_name(self):
+        return 'Testnet ETH'

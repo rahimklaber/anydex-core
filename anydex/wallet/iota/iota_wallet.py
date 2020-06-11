@@ -19,7 +19,7 @@ from anydex.wallet.wallet import Wallet, InsufficientFunds
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
     def __init__(self, db_path: str, testnet: bool, node: str):
-        super().__init__()
+        super(AbstractIotaWallet, self).__init__()
 
         self.network = 'iota_testnet' if testnet else 'iota'
         self.wallet_name = f'tribler_testnet_{self.network}' if testnet else f'tribler_{self.network}'
@@ -30,14 +30,14 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.seed = None
         self.provider = None
         self.database = initialize_db(os.path.join(db_path, 'iota.db'))
-        self.created = self.wallet_exists()
 
-        if self.created:
+        if self.wallet_exists():
             db_seed = self.database.query(DatabaseSeed) \
                 .filter(DatabaseSeed.name.__eq__(self.wallet_name)) \
                 .one()
             self.seed = Seed(db_seed.seed)
             self.provider = IotaProvider(testnet=self.testnet, seed=self.seed)
+            self.created = True
 
     def wallet_exists(self) -> bool:
         """
