@@ -1,7 +1,6 @@
 from datetime import datetime
 
-from iota import AsyncIota, ProposedTransaction, Seed
-from iota.crypto.addresses import AddressGenerator
+from iota import AsyncIota, ProposedTransaction
 
 from anydex.wallet.provider import Provider
 
@@ -14,8 +13,7 @@ class IotaProvider(Provider):
     def __init__(self, testnet=True, node=None, seed=None):
         super().__init__()
         self.testnet = testnet
-        self.generator = AddressGenerator(Seed(seed))
-        self.asyncapi = self.initialize_api(node, seed)
+        self.async_api = self.initialize_api(node, seed)
         self.account_data = None
         self.last_update = None
         self.update_interval = 5
@@ -41,7 +39,7 @@ class IotaProvider(Provider):
         diff = datetime.now() - self.last_update if self.last_update else None
 
         if diff is None or diff.total_seconds() > float(self.update_interval):
-            self.account_data = await self.asyncapi.get_account_data()
+            self.account_data = await self.async_api.get_account_data()
             self.last_update = datetime.now()
 
     async def submit_transaction(self, tx: ProposedTransaction):
@@ -50,8 +48,8 @@ class IotaProvider(Provider):
         :param tx: the proposed transaction to submit to the network
         :return: the bundle containing the transaction
         """
-        response = await self.asyncapi.send_transfer(transfers=[tx],
-                                                     min_weight_magnitude=10)
+        response = await self.async_api.send_transfer(transfers=[tx],
+                                                      min_weight_magnitude=10)
         return response['bundle']
 
     async def get_balance(self, address):
@@ -60,7 +58,7 @@ class IotaProvider(Provider):
         :param address: address whose balance is being retrieved
         :return: the balance
         """
-        response = await self.asyncapi.get_balances(addresses=[address])
+        response = await self.async_api.get_balances(addresses=[address])
         return response['balances'][0]
 
     async def get_seed_balance(self):
@@ -77,7 +75,7 @@ class IotaProvider(Provider):
         :param address: address whose transactions are being retrieved
         :return: a list of all fetched transactions
         """
-        transactions = await self.asyncapi.find_transaction_objects(addresses=[address])
+        transactions = await self.async_api.find_transaction_objects(addresses=[address])
         return transactions
 
     async def get_seed_transactions(self):
@@ -88,7 +86,7 @@ class IotaProvider(Provider):
         # fetch transactions from wallet_addresses from account_data
         await self.update_account_data()
         wallet_addresses = self.account_data['addresses']
-        transactions = await self.asyncapi.find_transaction_objects(addresses=wallet_addresses)
+        transactions = await self.async_api.find_transaction_objects(addresses=wallet_addresses)
         return transactions['transactions']
 
     async def get_all_bundles(self):
@@ -105,7 +103,7 @@ class IotaProvider(Provider):
         :param index: index from which start fetching a non-spent address
         :return: the new unspent address
         """
-        new_addresses = await self.asyncapi.get_new_addresses(index=index, count=1, security_level=2)
+        new_addresses = await self.async_api.get_new_addresses(index=index, count=1, security_level=2)
         return new_addresses['addresses'][0]
 
     async def is_spent(self, address):
@@ -114,7 +112,7 @@ class IotaProvider(Provider):
         :param address: address to check whether spent
         :return: boolean
         """
-        response = await self.asyncapi.were_addresses_spent_from([address])
+        response = await self.async_api.were_addresses_spent_from([address])
         return response['states'][0]
 
     async def get_confirmations(self, tx_hash):
@@ -123,5 +121,5 @@ class IotaProvider(Provider):
         :param tx_hash: transaction to check whether confirmed
         :return: boolean
         """
-        response = await self.asyncapi.get_inclusion_states([tx_hash], None)
+        response = await self.async_api.get_inclusion_states([tx_hash], None)
         return response['states'][0]

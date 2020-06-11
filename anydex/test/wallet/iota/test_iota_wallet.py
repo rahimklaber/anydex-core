@@ -15,6 +15,7 @@ class TestIotaWallet(AbstractServer):
     def setUp(self):
         super(TestIotaWallet, self).setUp()
         self.wallet = self.new_wallet()
+
         self.tx1 = Transaction.from_tryte_string(
             b'PCGDSCPCSCGD99999999999999999'
             b'999999999999999999999999999999999999999999999999999999999999999999'
@@ -58,8 +59,7 @@ class TestIotaWallet(AbstractServer):
             b'EFGA9MAITXIBCPCDJSDPMKXFSXRIMBDHUFEYOV9GWAQVXEHWLKMZ999EINFACHIOTA'
             b'9999999999999999999999999999999999999999999EX99999999CCA9999999999'
             b'9999')
-
-        self.txn = Transaction.from_tryte_string(
+        self.tx2 = Transaction.from_tryte_string(
             b'GYPRVHBEZOOFXSHQBLCYW9ICTCISLHDBNMMVYD9JJHQMPQCTIQAQTJNNNJ9IDXLRCC'
             b'OYOXYPCLR9PBEY9ORZIEPPDNTI9CQWYZUOTAVBXPSBOFEQAPFLWXSWUIUSJMSJIIIZ'
             b'WIKIRH9GCOEVZFKNXEVCUCIIWZQCQEUVRZOCMEL9AMGXJNMLJCIA9UWGRPPHCEOPTS'
@@ -221,22 +221,23 @@ class TestIotaWallet(AbstractServer):
         Tests the generation of a fresh address, when no others exist
         """
         address_length = 81
-        # Create the wallet
-        self.wallet.create_wallet()
         address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDX'
 
-        self.wallet.provider.generate_address = lambda index: succeed(Address(address))
+        # Create the wallet
+        self.wallet.create_wallet()
+
         # Get the address
+        self.wallet.provider.generate_address = lambda index: succeed(Address(address))
         result = await self.wallet.get_address()
-        # Assert the type and length
 
         addresses_after = self.wallet.database.query(DatabaseAddress) \
             .filter(DatabaseAddress.seed.__eq__(self.wallet.seed.__str__())) \
             .all()
 
-        # Assert correct result and storage
+        # Assert the type and length
         self.assertIsNotNone(result)
         self.assertEqual(address_length, len(result))
+        # Assert correct result and storage
         self.assertEqual(address, addresses_after[0].address)
         self.assertEqual(1, len(addresses_after))
         self.wallet.cancel_all_pending_tasks()
@@ -246,10 +247,11 @@ class TestIotaWallet(AbstractServer):
         Tests getting a new address when all current addresses are spent
         """
         address_length = 81
+        old_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
+
         # Create the wallet
         self.wallet.create_wallet()
         # Add an unspent address to the database
-        old_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
         self.wallet.database.add(DatabaseAddress(
             address=old_address,
             is_spent=False
@@ -295,8 +297,8 @@ class TestIotaWallet(AbstractServer):
         to_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
 
         # Set up mocks.
-        self.wallet.get_balance = lambda: succeed({'available': 0, 'pending': 0,
-                                                   'currency': self.identifier(), 'precision': 0})
+        self.wallet.get_balance = lambda: \
+            succeed({'available': 0, 'pending': 0, 'currency': self.identifier(), 'precision': 0})
         # Try sending a transfer with a value higher than the
         # Available amount.
         result = await self.wallet.transfer(1, to_address)
@@ -311,8 +313,8 @@ class TestIotaWallet(AbstractServer):
         self.wallet.create_wallet()
         # Address taken from IOTA documentation.
         to_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
-        self.wallet.get_balance = lambda: succeed({'available': 42, 'pending': 0,
-                                                   'currency': self.identifier(), 'precision': 6})
+        self.wallet.get_balance = lambda: \
+            succeed({'available': 42, 'pending': 0, 'currency': self.identifier(), 'precision': 6})
         # Try sending the invalid amount
         result = await self.wallet.transfer(-1, to_address)
         # Assert type and contents.
@@ -326,8 +328,8 @@ class TestIotaWallet(AbstractServer):
         self.wallet.create_wallet()
         # Address contains a random lower case letter
         to_address = 'ZLGVEQ9JUZZWCZXLWVaTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
-        self.wallet.get_balance = lambda: succeed({'available': 42, 'pending': 0,
-                                                   'currency': self.identifier(), 'precision': 0})
+        self.wallet.get_balance = lambda: \
+            succeed({'available': 42, 'pending': 0, 'currency': self.identifier(), 'precision': 0})
         # Try sending the invalid amount
         result = await self.wallet.transfer(0, to_address)
         # Assert type and contents.
@@ -338,17 +340,17 @@ class TestIotaWallet(AbstractServer):
         """
         Tests the good weather case for transfers
         """
-        bundle = Bundle([self.txn])
+        bundle = Bundle([self.tx2])
         self.wallet.create_wallet()
 
         # Set up mocks.
-        self.wallet.get_balance = lambda: succeed({'available': 42, 'pending': 0,
-                                                   'currency': self.identifier(), 'precision': 0})
+        self.wallet.get_balance = lambda: \
+            succeed({'available': 42, 'pending': 0, 'currency': self.identifier(), 'precision': 0})
         self.wallet.provider.submit_transaction = lambda transaction: succeed(bundle)
         self.wallet.provider.get_all_bundles = lambda: succeed([bundle])
-        self.wallet.provider.get_seed_transactions = lambda: succeed([self.txn])
+        self.wallet.provider.get_seed_transactions = lambda: succeed([self.tx2])
         # Send a correct transfer
-        result = await self.wallet.transfer(1, self.txn.address.__str__())
+        result = await self.wallet.transfer(1, self.tx2.address.__str__())
         # Update the database
         await self.wallet.update_transactions_database()
         await self.wallet.update_bundles_database()
@@ -367,7 +369,7 @@ class TestIotaWallet(AbstractServer):
             .all()
         # Get the transaction that's part of the bundle
         tx_query = self.wallet.database.query(DatabaseTransaction) \
-            .filter(DatabaseTransaction.hash.__eq__(self.txn.hash.__str__())) \
+            .filter(DatabaseTransaction.hash.__eq__(self.tx2.hash.__str__())) \
             .all()
         self.assertEqual(len(all_txs), 1)
         self.assertEqual(all_txs, tx_query)
@@ -407,8 +409,8 @@ class TestIotaWallet(AbstractServer):
         self.wallet.get_pending = lambda: succeed(0)
         self.wallet.provider.get_seed_balance = lambda: succeed(42)
         self.wallet.provider.get_seed_transactions = lambda: succeed(None)
-        self.wallet.update_transactions_database = lambda transactions: succeed(None)
         self.wallet.update_bundles_database = lambda: succeed({'transactions': []})
+        self.wallet.update_transactions_database = lambda: succeed(None)
         # Get the balance of the uncreated wallet
         result = await self.wallet.get_balance()
         self.assertDictEqual(expected, result)
@@ -456,15 +458,15 @@ class TestIotaWallet(AbstractServer):
         self.wallet.create_wallet()
         # Inject the valued transaction
         self.tx1.is_confirmed = False
-        self.txn.is_confirmed = False
-        self.txn.value = 1
+        self.tx2.is_confirmed = False
+        self.tx2.value = 1
 
-        self.wallet.update_bundles_database = lambda: succeed(None)
-        self.wallet.provider.get_seed_transactions = lambda: succeed([self.tx1, self.txn])
+        self.wallet.provider.get_seed_transactions = lambda: succeed([self.tx1, self.tx2])
+        await self.wallet.update_transactions_database()
 
         result = await self.wallet.get_pending()
         # Since the transaction is confirmed, no value should be added
-        self.assertEqual(self.txn.value + self.tx1.value, result)
+        self.assertEqual(self.tx2.value + self.tx1.value, result)
         self.wallet.cancel_all_pending_tasks()
 
     async def test_get_transactions_before_creation(self):

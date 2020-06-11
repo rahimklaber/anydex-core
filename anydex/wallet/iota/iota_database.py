@@ -20,7 +20,6 @@ class DatabaseTransaction(Base):
     Database definition for transactions.
     """
     __tablename__ = "transactions"
-    # need to include a relation to the key table.
     id = Column(Integer, primary_key=True)
     seed = Column(String(81))
     address = Column(String(81))
