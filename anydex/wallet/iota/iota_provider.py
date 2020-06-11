@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from iota import AsyncIota, ProposedTransaction
+from iota import AsyncIota, ProposedTransaction, Seed
 
 from anydex.wallet.provider import Provider
 
@@ -10,7 +10,7 @@ class IotaProvider(Provider):
     An IOTA provider for interaction with an IOTA ledger.
     """
 
-    def __init__(self, testnet=True, node=None, seed=None):
+    def __init__(self, testnet: bool = True, node: str = None, seed: Seed = None):
         super().__init__()
         self.testnet = testnet
         self.async_api = self.initialize_api(node, seed)

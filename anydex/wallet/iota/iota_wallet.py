@@ -18,7 +18,7 @@ from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
-    def __init__(self, db_path, testnet, node):
+    def __init__(self, db_path: str, testnet: bool, node: str):
         super().__init__()
 
         self.name = 'Iota Test Network' if testnet else 'Iota Network'
