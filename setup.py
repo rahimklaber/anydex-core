@@ -26,7 +26,9 @@ setup(
         "web3",
         "sqlalchemy",
         "monero",
-        "responses"
+        "responses",
+        "stellar-sdk"
+
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",
