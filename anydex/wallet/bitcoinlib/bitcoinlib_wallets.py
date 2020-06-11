@@ -113,16 +113,22 @@ class BitcoinlibWallet(Wallet):
         return succeed(None)
 
     def get_balance(self):
-        if self.created:
-            self.wallet.utxos_update(networks=self.network)
+        if not self.created:
             return succeed({
-                "available": self.wallet.balance(network=self.network),
+                "available": 0,
                 "pending": 0,
                 "currency": self.currency,
                 "precision": self.precision()
             })
 
-        return succeed({"available": 0, "pending": 0, "currency": self.currency, "precision": self.precision()})
+        self.wallet.utxos_update(networks=self.network)
+
+        return succeed({
+            "available": self.wallet.balance(network=self.network),
+            "pending": 0,
+            "currency": self.currency,
+            "precision": self.precision()
+        })
 
     async def transfer(self, amount, address):
         balance = await self.get_balance()

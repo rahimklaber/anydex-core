@@ -18,10 +18,9 @@ from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
 
-    def __init__(self, db_path, testnet, node):
+    def __init__(self, db_path: str, testnet: bool, node: str):
         super().__init__()
 
-        self.name = 'Iota Test Network' if testnet else 'Iota Network'
         self.network = 'iota_testnet' if testnet else 'iota'
         self.wallet_name = f'tribler_testnet_{self.network}' if testnet else f'tribler_{self.network}'
         self.testnet = testnet
@@ -126,27 +125,24 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         if value < 0:
             return RuntimeError('Negative value transfers are not allowed.')
 
-        # The pyota library has no support for address validation
+        # the pyota library has no support for address validation
         if not re.compile('^[A-Z9]{81}|[A-Z9]{90}$').match(address):
             return RuntimeError('Invalid IOTA address')
 
-        # Get wallet balance
+        # check wallet balance
         balance = await self.get_balance()
-
         if balance['available'] < value:
             return InsufficientFunds(f'Balance {balance["available"]} of the wallet is less than {value}.')
 
         # generate and send a transaction
+        self._logger.info(f"Creating {self.network} payment with amount {value} to address {address}")
         transaction = ProposedTransaction(
             address=Address(address),
             value=value
         )
-
-        # Submit the transaction to the tangle
-        self._logger.info(f"Creating {self.network} payment with amount {value} to address {address}")
         bundle = await self.provider.submit_transaction(transaction)
 
-        # Return bundle hash ID instead of transaction ID
+        # return bundle hash ID instead of transaction ID
         return bundle.hash.__str__()
 
     async def get_address(self):
@@ -155,7 +151,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         :return: a non-spent address
         """
         if not self.created:
-            return []
+            return ''
         # fetch all non-spent transactions from the database
         address_query = self.database.query(DatabaseAddress)
         non_spent = address_query.filter(DatabaseAddress.is_spent.is_(False)).all()
@@ -166,7 +162,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                 address_query.filter(DatabaseAddress.address.__eq__(address.address)).update({
                     DatabaseAddress.is_spent: True,
                 })
-        self.database.commit()
+
         # if any non spent addresses left in the database, return first one
         non_spent = self.database.query(DatabaseAddress) \
             .filter(DatabaseAddress.is_spent.is_(False)) \
@@ -183,6 +179,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
             address=address.__str__(),
             seed=self.seed.__str__(),
         ))
+        self.database.commit()
+
         return address.__str__()
 
     async def get_transactions(self):
@@ -304,7 +302,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                     monitor_task.cancel()
 
         self._logger.debug('Start polling for transaction %s', txid)
-        monitor_task = self.register_task(f'{self.name}_poll_{txid}', monitor, interval=5)
+        monitor_task = self.register_task(f'{self.network}_poll_{txid}', monitor, interval=5)
 
         return monitor_future
 

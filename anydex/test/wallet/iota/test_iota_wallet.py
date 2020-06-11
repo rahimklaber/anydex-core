@@ -209,11 +209,10 @@ class TestIotaWallet(AbstractServer):
         """
         Bad weather test case for getting an address
         """
-        expected = []
         # Get the address
         result = await self.wallet.get_address()
         # Assert the type and content
-        self.assertEqual(expected, result)
+        self.assertEqual('', result)
         self.wallet.cancel_all_pending_tasks()
 
     async def test_get_address_correct(self):
