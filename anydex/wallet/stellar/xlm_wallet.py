@@ -15,7 +15,7 @@ from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
     """
-    Wallet that provides support for
+    Wallet that provides support for the native Stellar token; lumen.
     """
 
     def __init__(self, db_path, testnet=False, provider: StellarProvider = None):
