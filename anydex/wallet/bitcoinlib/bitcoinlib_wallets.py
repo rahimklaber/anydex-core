@@ -29,14 +29,13 @@ class BitcoinlibWallet(Wallet):
 
     SUPPORTED_NETWORKS = ['bitcoin', 'litecoin', 'dash', 'litecoin_testnet', 'dash_testnet', 'testnet']
 
-    def __init__(self, wallet_dir, testnet, network, name, currency):
+    def __init__(self, wallet_dir, testnet, network, currency):
         if network not in self.SUPPORTED_NETWORKS:
             raise UnsupportedNetwork(network)
         super(BitcoinlibWallet, self).__init__()
         self.testnet = testnet
         self.network = network
         self.currency = currency
-        self.name = name
         self.wallet_dir = wallet_dir
         self.min_confirmations = 0
         self.wallet = None
@@ -93,7 +92,7 @@ class BitcoinlibWallet(Wallet):
         os.environ['BCL_CONFIG_FILE'] = os.path.abspath(cfg_name)
 
     def get_name(self):
-        return self.name
+        return self.network
 
     def get_identifier(self):
         return self.currency
@@ -150,7 +149,7 @@ class BitcoinlibWallet(Wallet):
                     monitor_task.cancel()
 
         self._logger.debug("Start polling for transaction %s", txid)
-        monitor_task = self.register_task(f"{self.name}_poll_{txid}", monitor, interval=5)
+        monitor_task = self.register_task(f"{self.network}_poll_{txid}", monitor, interval=5)
 
         return monitor_future
 
@@ -268,3 +267,95 @@ class TestnetBitcoinlibWallet(BitcoinlibWallet, metaclass=ABCMeta):
     def __init__(self, wallet_dir, network):
         super(TestnetBitcoinlibWallet, self)\
             .__init__(wallet_dir, True, network, self.NETWORK_INFO[network][0], self.NETWORK_INFO[network][1])
+
+
+class BitcoinWallet(BitcoinlibWallet):
+    """
+    This class is responsible for handling your bitcoin wallet.
+    """
+    def __init__(self, wallet_dir):
+        super(BitcoinWallet, self)\
+            .__init__(wallet_dir=wallet_dir,
+                      testnet=False,
+                      network='bitcoin',
+                      currency='BTC')
+
+    def is_testnet(self):
+        return False
+
+
+class LitecoinWallet(BitcoinlibWallet):
+    """
+    This class is responsible for handling your bitcoin wallet.
+    """
+    def __init__(self, wallet_dir):
+        super(LitecoinWallet, self) \
+            .__init__(wallet_dir=wallet_dir,
+                      testnet=False,
+                      network='litecoin',
+                      currency='LTC')
+
+    def is_testnet(self):
+        return False
+
+
+class DashWallet(BitcoinlibWallet):
+    """
+    This class is responsible for handling your bitcoin wallet.
+    """
+    def __init__(self, wallet_dir):
+        super(DashWallet, self) \
+            .__init__(wallet_dir=wallet_dir,
+                      testnet=False,
+                      network='dash',
+                      currency='DASH')
+
+    def is_testnet(self):
+        return False
+
+
+class BitcoinTestnetWallet(BitcoinlibWallet):
+    """
+    This class is responsible for handling your bitcoin wallet.
+    """
+    def __init__(self, wallet_dir):
+        super(BitcoinTestnetWallet, self)\
+            .__init__(wallet_dir=wallet_dir,
+                      testnet=True,
+                      network='testnet',
+                      currency='TBTC')
+
+    def is_testnet(self):
+        return True
+
+
+class LitecoinTestnetWallet(BitcoinlibWallet):
+    """
+    This class is responsible for handling your bitcoin wallet.
+    """
+
+    def __init__(self, wallet_dir):
+        super(LitecoinTestnetWallet, self) \
+            .__init__(wallet_dir=wallet_dir,
+                      testnet=True,
+                      network='litecoin_testnet',
+                      currency='XLT')
+
+    def is_testnet(self):
+        return True
+
+
+class DashTestnetWallet(BitcoinlibWallet):
+    """
+    This class is responsible for handling your bitcoin wallet.
+    """
+
+    def __init__(self, wallet_dir):
+        super(DashTestnetWallet, self) \
+            .__init__(wallet_dir=wallet_dir,
+                      testnet=True,
+                      network='das_testnet',
+                      currency='TDASH')
+
+    def is_testnet(self):
+        return True
