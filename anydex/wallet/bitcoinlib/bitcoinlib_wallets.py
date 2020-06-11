@@ -1,6 +1,4 @@
 import abc
-from abc import ABCMeta
-
 import os
 import time
 
@@ -9,7 +7,8 @@ from binascii import hexlify
 from configparser import ConfigParser
 
 from ipv8.util import fail, succeed
-from bitcoinlib.wallets import wallet_exists, HDWallet, WalletError
+from bitcoinlib.wallets import wallet_exists, HDWallet, WalletError, DbTransaction, DbTransactionInput
+from bitcoinlib.transactions import Transaction
 
 from anydex.wallet.wallet import InsufficientFunds, Wallet
 
@@ -162,9 +161,6 @@ class BitcoinlibWallet(Wallet):
         if not self.created:
             return succeed([])
 
-        from bitcoinlib.transactions import Transaction
-        from bitcoinlib.wallets import DbTransaction, DbTransactionInput
-
         # Update all transactions
         self.wallet.transactions_update(network=self.network)
 
@@ -228,46 +224,7 @@ class BitcoinlibWallet(Wallet):
 
     @abc.abstractmethod
     def is_testnet(self):
-        return
-
-
-class ConcreteBitcoinlibWallet(BitcoinlibWallet):
-    """
-    Superclass for all concrete wallets, from which real assets can be traded.
-    """
-    NETWORK_INFO = {
-        'bitcoin': ['Bitcoin', 'BTC'],
-        'litecoin': ['Litecoin Network', 'LTC'],
-        'dash': ['Dash Network', 'DASH']
-    }
-
-    def is_testnet(self):
-        return False
-
-    def __init__(self, wallet_dir, network):
-        super(ConcreteBitcoinlibWallet, self)\
-            .__init__(wallet_dir, False, network, self.NETWORK_INFO[network][0], self.NETWORK_INFO[network][1])
-
-
-class TestnetBitcoinlibWallet(BitcoinlibWallet, metaclass=ABCMeta):
-    """
-    Superclass for all testnet wallets, from which testnet assets can be traded.
-    """
-
-    # Names of the networks and identifiers are mirroring those of bitcoinlib
-    NETWORK_INFO = {
-        'testnet': ['Bitcoin Test Network 3', 'TBTC'],
-        'litecoin_testnet': ['Litecoin Test Network', 'XLT'],
-        'dash_testnet': ['Dash Testnet Network', 'tDASH']
-    }
-
-    def is_testnet(self):
-        return True
-
-    def __init__(self, wallet_dir, network):
-        super(TestnetBitcoinlibWallet, self)\
-            .__init__(wallet_dir, True, network, self.NETWORK_INFO[network][0], self.NETWORK_INFO[network][1])
-
+        pass
 
 class BitcoinWallet(BitcoinlibWallet):
     """
@@ -354,7 +311,7 @@ class DashTestnetWallet(BitcoinlibWallet):
         super(DashTestnetWallet, self) \
             .__init__(wallet_dir=wallet_dir,
                       testnet=True,
-                      network='das_testnet',
+                      network='dash_testnet',
                       currency='TDASH')
 
     def is_testnet(self):
