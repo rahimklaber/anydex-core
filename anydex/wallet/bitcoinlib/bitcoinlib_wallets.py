@@ -1,4 +1,3 @@
-import abc
 import os
 import time
 
@@ -26,11 +25,12 @@ class BitcoinlibWallet(Wallet):
     Superclass used for the implementation of bitcoinlib wallets.
     """
 
-    SUPPORTED_NETWORKS = ['bitcoin', 'litecoin', 'dash', 'litecoin_testnet', 'dash_testnet', 'testnet']
+    SUPPORTED_NETWORKS = ['bitcoin', 'litecoin', 'dash', 'testnet', 'litecoin_testnet', 'dash_testnet']
 
     def __init__(self, wallet_dir, testnet, network, currency):
         if network not in self.SUPPORTED_NETWORKS:
             raise UnsupportedNetwork(network)
+
         super(BitcoinlibWallet, self).__init__()
         self.testnet = testnet
         self.network = network
@@ -50,7 +50,7 @@ class BitcoinlibWallet(Wallet):
 
     def cfg_init(self):
         """
-        Adjusts the bitcoinlib configuration for the creation of a wallet
+        Adjusts the bitcoinlib configuration for the creation of a wallet.
         """
         config = ConfigParser()
 
@@ -79,8 +79,9 @@ class BitcoinlibWallet(Wallet):
         return config
 
     def lib_init(self):
-        """Initializes bitcoinlib by creating a configuration file and
-        Setting the environmental variable.
+        """
+        Initializes bitcoinlib by creating a configuration file and
+        setting the environmental variable.
         """
         cfg_name = 'bcl_config.ini'
 
@@ -90,11 +91,11 @@ class BitcoinlibWallet(Wallet):
 
         os.environ['BCL_CONFIG_FILE'] = os.path.abspath(cfg_name)
 
-    def get_name(self):
-        return self.network
-
     def get_identifier(self):
         return self.currency
+
+    def get_name(self):
+        return self.network
 
     def create_wallet(self):
         if wallet_exists(self.wallet_name, db_uri=self.db_path):
@@ -133,25 +134,6 @@ class BitcoinlibWallet(Wallet):
             return str(tx.hash)
         raise InsufficientFunds("Insufficient funds")
 
-    def monitor_transaction(self, txid):
-        """
-        Monitor a given transaction ID. Returns a Deferred that fires when the transaction is present.
-        """
-        monitor_future = Future()
-
-        async def monitor():
-            transactions = await self.get_transactions()
-            for transaction in transactions:
-                if transaction['id'] == txid:
-                    self._logger.debug("Found transaction with id %s", txid)
-                    monitor_future.set_result(None)
-                    monitor_task.cancel()
-
-        self._logger.debug("Start polling for transaction %s", txid)
-        monitor_task = self.register_task(f"{self.network}_poll_{txid}", monitor, interval=5)
-
-        return monitor_future
-
     def get_address(self):
         if not self.created:
             return ''
@@ -164,6 +146,7 @@ class BitcoinlibWallet(Wallet):
         # Update all transactions
         self.wallet.transactions_update(network=self.network)
 
+        # TODO: 'Access to a protected member _session of a class'
         txs = self.wallet._session.query(DbTransaction.raw, DbTransaction.confirmations,
                                          DbTransaction.date, DbTransaction.fee) \
             .filter(DbTransaction.wallet_id == self.wallet.wallet_id) \
@@ -217,14 +200,33 @@ class BitcoinlibWallet(Wallet):
         return succeed(transactions_list)
 
     def min_unit(self):
-        return 100000  # For LTC, BTC and DASH, the minimmum trade should be 100.000 basic units (Satoshi, duffs)
+        return 100000  # For LTC, BTC and DASH, the minimum trade should be 100.000 basic units (Satoshi, duffs)
 
     def precision(self):
         return 8       # The precision for LTC, BTC and DASH is the same.
 
-    @abc.abstractmethod
+    def monitor_transaction(self, txid):
+        """
+        Monitor a given transaction ID. Returns a Deferred that fires when the transaction is present.
+        """
+        monitor_future = Future()
+
+        async def monitor():
+            transactions = await self.get_transactions()
+            for transaction in transactions:
+                if transaction['id'] == txid:
+                    self._logger.debug("Found transaction with id %s", txid)
+                    monitor_future.set_result(None)
+                    monitor_task.cancel()
+
+        self._logger.debug("Start polling for transaction %s", txid)
+        monitor_task = self.register_task(f"{self.network}_poll_{txid}", monitor, interval=5)
+
+        return monitor_future
+
     def is_testnet(self):
-        pass
+        return self.testnet
+
 
 class BitcoinWallet(BitcoinlibWallet):
     """
@@ -237,13 +239,10 @@ class BitcoinWallet(BitcoinlibWallet):
                       network='bitcoin',
                       currency='BTC')
 
-    def is_testnet(self):
-        return False
-
 
 class LitecoinWallet(BitcoinlibWallet):
     """
-    This class is responsible for handling your bitcoin wallet.
+    This class is responsible for handling your litecoin wallet.
     """
     def __init__(self, wallet_dir):
         super(LitecoinWallet, self) \
@@ -252,13 +251,10 @@ class LitecoinWallet(BitcoinlibWallet):
                       network='litecoin',
                       currency='LTC')
 
-    def is_testnet(self):
-        return False
-
 
 class DashWallet(BitcoinlibWallet):
     """
-    This class is responsible for handling your bitcoin wallet.
+    This class is responsible for handling your dash wallet.
     """
     def __init__(self, wallet_dir):
         super(DashWallet, self) \
@@ -267,13 +263,10 @@ class DashWallet(BitcoinlibWallet):
                       network='dash',
                       currency='DASH')
 
-    def is_testnet(self):
-        return False
-
 
 class BitcoinTestnetWallet(BitcoinlibWallet):
     """
-    This class is responsible for handling your bitcoin wallet.
+    This class is responsible for handling your bitcoin testnet wallet.
     """
     def __init__(self, wallet_dir):
         super(BitcoinTestnetWallet, self)\
@@ -282,15 +275,11 @@ class BitcoinTestnetWallet(BitcoinlibWallet):
                       network='testnet',
                       currency='TBTC')
 
-    def is_testnet(self):
-        return True
-
 
 class LitecoinTestnetWallet(BitcoinlibWallet):
     """
-    This class is responsible for handling your bitcoin wallet.
+    This class is responsible for handling your litecoin testnet wallet.
     """
-
     def __init__(self, wallet_dir):
         super(LitecoinTestnetWallet, self) \
             .__init__(wallet_dir=wallet_dir,
@@ -298,21 +287,14 @@ class LitecoinTestnetWallet(BitcoinlibWallet):
                       network='litecoin_testnet',
                       currency='XLT')
 
-    def is_testnet(self):
-        return True
-
 
 class DashTestnetWallet(BitcoinlibWallet):
     """
-    This class is responsible for handling your bitcoin wallet.
+    This class is responsible for handling your dash testnet wallet.
     """
-
     def __init__(self, wallet_dir):
         super(DashTestnetWallet, self) \
             .__init__(wallet_dir=wallet_dir,
                       testnet=True,
                       network='dash_testnet',
                       currency='TDASH')
-
-    def is_testnet(self):
-        return True
