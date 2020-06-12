@@ -8,10 +8,10 @@ from anydex.wallet.iota.iota_provider import PyOTAIotaProvider
 
 
 class TestIotaProvider(AbstractServer):
+
     node = 'https://nodes.comnet.thetangle.org:443'
     seed = 'BZTTWRWPZWQDCQRXEJNGVZJUBPRDYRNSQZIZOVGLDJIRRAXFJTZOUDVOBJ9I9CIKX99KVZDLKIWMYQDZK'
     seed_address = 'RGJLBAMAXIUHYPVAPKGVGGHTWXYJHVVQD9TDEVRWJKUINBNATQIBBNNHMOYBBWVXCQQHZJBXDCNJCJFCY'
-    provider = PyOTAIotaProvider(testnet=True, node=node, seed=seed)
 
     transaction_tryte = [
         'NY9PEUUVPCHCKQLVYHTYUCVUTQTQZASPXVDCPGLHVJXCFOUGFRSNZGGYSAXICHGRQGWNEKOXKDSYSIDZBVWYQZKJETKOFHPAWLPGCTMYGY'
@@ -99,6 +99,10 @@ class TestIotaProvider(AbstractServer):
             'KCFZCGIANMPJB9UCEFJMVI9BFYLLRUVPCCVFRDF999SB9999999999999999999999999HBSNMUBQF999999999MMMMMMMMMFUMSRI'
             'ATHUEKBDFFCBIWTHLM9V9')
     ]
+
+    def setUp(self):
+        super().setUp()
+        self.provider = PyOTAIotaProvider(testnet=True, node=self.node, seed=self.seed)
 
     async def test_initialize_api_correct_seed(self):
         """

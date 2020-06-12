@@ -7,6 +7,7 @@ from anydex.wallet.provider import Provider
 
 
 class IotaProvider(Provider, metaclass=abc.ABCMeta):
+
     @abc.abstractmethod
     def initialize_api(self, node, seed):
         """

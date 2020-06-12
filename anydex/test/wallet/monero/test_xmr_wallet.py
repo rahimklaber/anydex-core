@@ -93,7 +93,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Verify wallet create method in case `wallet-rpc-server` is not running.
         """
-        w = self.new_wallet()  # use default host, port configuration
+        w = self.new_wallet()
         fail_backend()
         self.assertAsyncRaises(WalletConnectionError, w.create_wallet())
         self.assertFalse(w.created)
@@ -103,7 +103,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Verify wallet create method in case `wallet-rpc-server` is running on correct host/port.
         """
-        w = self.new_wallet()  # use default host, port configuration
+        w = self.new_wallet()
         succeed_backend()
         result = w.create_wallet()
         self.assertIsNone(result.result())
