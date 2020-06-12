@@ -194,7 +194,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
     def precision(self):
         return 7
 
-    def monitor_transaction(self, txid):
+    def monitor_transaction(self, txid, interval=5):
         monitor_future = Future()
 
         async def monitor():
@@ -206,7 +206,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
                     monitor_task.cancel()
 
         self._logger.debug("Start polling for transaction %s", txid)
-        monitor_task = self.register_task(f"{self.network}_poll_{txid}", monitor, interval=5)
+        monitor_task = self.register_task(f"{self.network}_poll_{txid}", monitor, interval=interval)
 
         return monitor_future
 

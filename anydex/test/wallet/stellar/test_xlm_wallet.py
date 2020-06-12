@@ -197,7 +197,7 @@ class TestStellarWallet(AbstractServer):
 
         self.assertEqual([payment_dict], payments_from_wallet)
 
-    @timeout(10)
+    @timeout(5)
     async def test_monitor_transactions_found(self):
         """
         Test for monitor_transactions when the transaction is found
@@ -211,10 +211,10 @@ class TestStellarWallet(AbstractServer):
         self.wallet.provider.get_ledger_height = lambda: 26529414
         self.wallet.provider.get_transactions = lambda *_: []
 
-        self.assertIsNone(
-            await self.wallet.monitor_transaction('96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98'))
+        self.assertIsNone(await self.wallet.monitor_transaction(
+            '96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98', 1))
 
-    @timeout(10)
+    @timeout(5)
     async def test_monitor_transactions_not_found(self):
         """
         Test for monitor_transactions when the transaction is not found
@@ -225,9 +225,10 @@ class TestStellarWallet(AbstractServer):
         self.wallet.provider.get_ledger_height = lambda: 26529414
         self.wallet.provider.get_transactions = lambda *_: []
 
-        future = self.wallet.monitor_transaction('96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98')
+        future = self.wallet.monitor_transaction(
+            '96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98', 1)
         # the monitor transaction runs every 5 secs so this should be enough
-        time.sleep(6)
+        time.sleep(2)
         self.assertFalse(future.done())
 
     async def test_transfer_no_balance(self):

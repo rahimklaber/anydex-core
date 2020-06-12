@@ -202,8 +202,10 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         db_seed_transactions = self.database.query(DatabaseTransaction) \
             .filter(DatabaseTransaction.seed.__eq__(self.seed.__str__())) \
             .all()
-        db_addresses = self.database.query(DatabaseAddress).all()
-        seed_addresses = [ad.address for ad in db_addresses]
+        db_seed_addresses = self.database.query(DatabaseAddress) \
+            .filter(DatabaseAddress.seed.__eq__(self.seed.__str__())) \
+            .all()
+        seed_addresses = [ad.address for ad in db_seed_addresses]
 
         transactions = []
         for db_tx in db_seed_transactions:
