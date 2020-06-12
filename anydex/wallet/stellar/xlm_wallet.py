@@ -22,7 +22,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         super(AbstractStellarWallet, self).__init__()
 
         self.network = 'stellar_testnet' if testnet else 'stellar'
-        self.wallet_name = f'tribler_testnet_{self.network}' if testnet else f'tribler_{self.network}'
+        self.wallet_name = f'tribler_{self.network}'
         self.testnet = testnet
         self.unlocked = True
 

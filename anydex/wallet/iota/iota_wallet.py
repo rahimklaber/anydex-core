@@ -25,7 +25,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         super(AbstractIotaWallet, self).__init__()
 
         self.network = 'iota_testnet' if testnet else 'iota'
-        self.wallet_name = f'tribler_testnet_{self.network}' if testnet else f'tribler_{self.network}'
+        self.wallet_name = f'tribler_{self.network}'
         self.testnet = testnet
         self.unlocked = True
 

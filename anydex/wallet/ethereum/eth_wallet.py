@@ -21,8 +21,8 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
     def __init__(self, db_path: str, testnet: bool, chain_id: int, provider):
         super(AbstractEthereumWallet, self).__init__()
 
-        self.network = 'testnet' if testnet else Cryptocurrency.ETHEREUM.value
-        self.wallet_name = 'tribler_testnet' if testnet else 'tribler'
+        self.network = 'ethereum_testnet' if testnet else 'ethereum'
+        self.wallet_name = f'tribler_{self.network}'
         self.testnet = testnet
         self.unlocked = True
 

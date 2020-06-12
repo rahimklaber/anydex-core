@@ -548,8 +548,8 @@ class TestTestnetMoneroWallet(AbstractServer):
         Verify Testnet Wallet-specific values for wallet fields.
         """
         w = MoneroTestnetWallet()
-        self.assertTrue(w.TESTNET)
-        self.assertEqual('tribler_testnet', w.wallet_name)
+        self.assertTrue(w.testnet)
+        self.assertEqual('tribler_monero_testnet', w.wallet_name)
         w.cancel_all_pending_tasks()
 
     def test_get_name(self):
@@ -557,7 +557,7 @@ class TestTestnetMoneroWallet(AbstractServer):
         Ensure name of Monero testnet wallet differs from regular Monero wallet.
         """
         w = MoneroTestnetWallet()
-        self.assertEqual('Testnet XMR', w.get_name())
+        self.assertEqual('testnet monero', w.get_name())
         w.cancel_all_pending_tasks()
 
     def test_get_identifier(self):

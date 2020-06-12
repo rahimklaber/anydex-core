@@ -34,7 +34,7 @@ class BitcoinlibWallet(Wallet):
         super(BitcoinlibWallet, self).__init__()
 
         self.network = network
-        self.wallet_name = f'tribler_testnet_{self.network}' if testnet else f'tribler_{self.network}'
+        self.wallet_name = f'tribler_{self.network}'
         self.testnet = testnet
         self.unlocked = True
 
