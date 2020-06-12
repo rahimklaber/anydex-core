@@ -38,13 +38,22 @@ def fail_backend():
 
 class TestMoneroWallet(AbstractServer):
 
+    def setUp(self):
+        super().setUp()
+        self.identifier = 'XMR'
+        self.name = 'monero'
+        self.wallet_name = 'tribler_monero'
+        self.network = 'monero'
+
+    def new_wallet(self, host: str = '127.0.0.1', port: int = 18081):
+        return MoneroWallet(host, port)
+
     def test_wallet_fields(self):
         """
         Verify correct values set for fields in Monero non-TESTNET wallet instance.
         """
-        MoneroWallet.TESTNET = False
-        w = MoneroWallet(host='192.168.178.1')
-        self.assertEqual('monero', w.network)
+        w = self.new_wallet(host='192.168.178.1')
+        self.assertEqual(self.network, w.network)
         self.assertEqual(0, w.min_confirmations)
         self.assertEqual('192.168.178.1', w.host)
         self.assertEqual(18081, w.port)
@@ -55,7 +64,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Test _wallet_connection_alive method in case wallet is not created yet.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         fail_backend()
         self.assertFalse(w._wallet_connection_alive())
         w.cancel_all_pending_tasks()
@@ -64,7 +73,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Test _wallet_connection_alive method in case wallet is has been created.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         succeed_backend()
         result = w.create_wallet()
         self.assertIsNone(result.result())
@@ -76,15 +85,15 @@ class TestMoneroWallet(AbstractServer):
         """
         Test `get_name` method on Monero wallet.
         """
-        w = MoneroWallet()
-        self.assertEqual(Cryptocurrency.MONERO.value, w.get_name())
+        w = self.new_wallet()
+        self.assertEqual(self.name, w.get_name())
         w.cancel_all_pending_tasks()
 
     async def test_wallet_creation_fail(self):
         """
         Verify wallet create method in case `wallet-rpc-server` is not running.
         """
-        w = MoneroWallet()  # use default host, port configuration
+        w = self.new_wallet()  # use default host, port configuration
         fail_backend()
         self.assertAsyncRaises(WalletConnectionError, w.create_wallet())
         self.assertFalse(w.created)
@@ -94,7 +103,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Verify wallet create method in case `wallet-rpc-server` is running on correct host/port.
         """
-        w = MoneroWallet()  # use default host, port configuration
+        w = self.new_wallet()  # use default host, port configuration
         succeed_backend()
         result = w.create_wallet()
         self.assertIsNone(result.result())
@@ -108,7 +117,7 @@ class TestMoneroWallet(AbstractServer):
         test_host = '192.168.178.1'
         test_port = 1903
 
-        w = MoneroWallet(host=test_host, port=test_port)
+        w = self.new_wallet(host=test_host, port=test_port)
         succeed_backend()
         result = w.create_wallet()
         self.assertIsNone(result.result())
@@ -120,11 +129,11 @@ class TestMoneroWallet(AbstractServer):
         """
         Check balance in case no connection to wallet exists yet.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         self.assertDictEqual({
             'available': 0,
             'pending': 0,
-            'currency': 'XMR',
+            'currency': self.identifier,
             'precision': 12
         }, await w.get_balance())
         w.cancel_all_pending_tasks()
@@ -133,7 +142,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Check balance in case wallet connection exists.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         mock_wallet = MockObject()
         mock_wallet.refresh = lambda *_: None
         mock_wallet.balance = lambda unlocked: 20.2
@@ -143,7 +152,7 @@ class TestMoneroWallet(AbstractServer):
         self.assertDictEqual({
             'available': 20.2,
             'pending': 0,
-            'currency': 'XMR',
+            'currency': self.identifier,
             'precision': 12
         }, await w.get_balance())
         w.cancel_all_pending_tasks()
@@ -152,7 +161,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Attempt XMR transfer in case no wallet exists.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         result = await w.transfer(20.2, 'test_address',
                                   payment_id='test_id',
                                   priority=1,
@@ -164,7 +173,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Attempt XMR transfer in case wallet exists and enough XMR available.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         succeed_backend()
         await w.create_wallet()
 
@@ -190,7 +199,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Attempt XMR transfer in case not enough XMR available.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         succeed_backend()
         await w.create_wallet()
 
@@ -210,7 +219,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Make multiple transfers, but no wallet initialized.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
 
         transfers = [
             (TEST_ADDRESS, Decimal('20.2')),
@@ -224,7 +233,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Make multiple transfers at once, enough balance.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
 
         transfers = [
             (TEST_ADDRESS, Decimal('20.2')),
@@ -248,7 +257,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Make multiple transfers at once, but not enough balance.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
 
         transfers = [
             (TEST_ADDRESS, Decimal('20.2')),
@@ -267,7 +276,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Get Monero wallet address without wallet initialized.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         addr = w.get_address()
         self.assertEqual('', addr)
         w.cancel_all_pending_tasks()
@@ -276,7 +285,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Get Monero wallet address with wallet initialized.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         mock_wallet = MockObject()
         mock_wallet.refresh = lambda: None
         mock_wallet.address = lambda: TEST_ADDRESS
@@ -289,7 +298,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Attempt retrieval of transactions from Monero wallet in case wallet does not exist.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         self.assertAsyncRaises(WalletConnectionError, w.get_transactions())
         w.cancel_all_pending_tasks()
 
@@ -297,7 +306,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Test retrieval of transactions from Monero wallet in case wallet does exist.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
 
         timestamp = datetime.now()
 
@@ -326,7 +335,7 @@ class TestMoneroWallet(AbstractServer):
             'to': TEST_ADDRESS,
             'amount': 30.3,
             'fee_amount': 1,
-            'currency': 'XMR',
+            'currency': self.identifier,
             'timestamp': ts,
             'description': 'Confirmations: 21'
         }, transactions.result()[0])
@@ -338,7 +347,7 @@ class TestMoneroWallet(AbstractServer):
             'to': TEST_ADDRESS,
             'amount': 12.7,
             'fee_amount': 1,
-            'currency': 'XMR',
+            'currency': self.identifier,
             'timestamp': ts,
             'description': 'Confirmations: 17'
         }, transactions.result()[1])
@@ -348,7 +357,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Get all payments (incoming and outgoing) corresponding to the wallet.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         succeed_backend()
         await w.create_wallet()
 
@@ -375,7 +384,7 @@ class TestMoneroWallet(AbstractServer):
         Test for Payment instance being IncomingPayment.
         Verify monero.transaction.Transaction instances are correctly formatted.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         payment = IncomingPayment()
         payment.local_address = TEST_ADDRESS
         payment.amount = 9.2
@@ -398,7 +407,7 @@ class TestMoneroWallet(AbstractServer):
             'to': TEST_ADDRESS,
             'amount': 9.2,
             'fee_amount': 0.78,
-            'currency': 'XMR',
+            'currency': self.identifier,
             'timestamp': ts,
             'description': 'Confirmations: 12'
         }, w._normalize_transaction(payment))
@@ -408,7 +417,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Verify monero.transaction.Transaction instances are correctly formatted.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         payment = OutgoingPayment()
         payment.local_address = TEST_ADDRESS
         payment.amount = 11.8
@@ -431,7 +440,7 @@ class TestMoneroWallet(AbstractServer):
             'to': '',
             'amount': 11.8,
             'fee_amount': 0.3,
-            'currency': 'XMR',
+            'currency': self.identifier,
             'timestamp': ts,
             'description': 'Confirmations: 23'
         }, w._normalize_transaction(payment))
@@ -441,7 +450,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Get incoming payments for Monero wallet in case no wallet exists.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         self.assertAsyncRaises(WalletConnectionError, w.get_incoming_payments())
         w.cancel_all_pending_tasks()
 
@@ -449,7 +458,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Get incoming payments for Monero wallet in case wallet exists.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
 
         mock_wallet = MockObject()
         mock_wallet.refresh = lambda *_: None
@@ -466,7 +475,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Get outgoing payments for Monero wallet in case no wallet exists.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         self.assertAsyncRaises(WalletConnectionError, w.get_outgoing_payments())
         w.cancel_all_pending_tasks()
 
@@ -474,7 +483,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Get outgoing payments for Monero wallet in case wallet exists.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
 
         mock_wallet = MockObject()
         mock_wallet.refresh = lambda *_: None
@@ -491,7 +500,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Verify minimal transfer unit.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         self.assertEqual(1, w.min_unit())  # 1 piconero
         w.cancel_all_pending_tasks()
 
@@ -499,7 +508,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Verify Monero default precision.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         self.assertEqual(12, w.precision())
         w.cancel_all_pending_tasks()
 
@@ -507,15 +516,15 @@ class TestMoneroWallet(AbstractServer):
         """
         Verify correct identifier is returned.
         """
-        w = MoneroWallet()
-        self.assertEqual('XMR', w.get_identifier())
+        w = self.new_wallet()
+        self.assertEqual(self.identifier, w.get_identifier())
         w.cancel_all_pending_tasks()
 
     def test_get_confirmations_no_wallet(self):
         """
         Verify number of confirmations returned in case wallet does not exist.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         self.assertIsNone(w.wallet)
         p = Payment()
         self.assertAsyncRaises(WalletConnectionError, w.get_confirmations(p))
@@ -525,7 +534,7 @@ class TestMoneroWallet(AbstractServer):
         """
         Verify number of confirmations returned in case wallet does exist.
         """
-        w = MoneroWallet()
+        w = self.new_wallet()
         self.assertIsNone(w.wallet)
         succeed_backend()
         await w.create_wallet()
@@ -541,29 +550,15 @@ class TestMoneroWallet(AbstractServer):
         w.cancel_all_pending_tasks()
 
 
-class TestTestnetMoneroWallet(AbstractServer):
+class TestTestnetMoneroWallet(TestMoneroWallet):
 
-    def test_wallet_fields(self):
-        """
-        Verify Testnet Wallet-specific values for wallet fields.
-        """
-        w = MoneroTestnetWallet()
-        self.assertTrue(w.testnet)
-        self.assertEqual('tribler_monero_testnet', w.wallet_name)
-        w.cancel_all_pending_tasks()
+    def setUp(self):
+        super().setUp()
+        self.wallet = self.new_wallet()
+        self.identifier = 'TXMR'
+        self.name = 'testnet monero'
+        self.wallet_name = 'tribler_monero_testnet'
+        self.network = 'monero_testnet'
 
-    def test_get_name(self):
-        """
-        Ensure name of Monero testnet wallet differs from regular Monero wallet.
-        """
-        w = MoneroTestnetWallet()
-        self.assertEqual('testnet monero', w.get_name())
-        w.cancel_all_pending_tasks()
-
-    def test_get_identifier(self):
-        """
-        Ensure identifier of Monero testnet wallet is equivalent to `TXMR`
-        """
-        w = MoneroTestnetWallet()
-        self.assertEqual('TXMR', w.get_identifier())
-        w.cancel_all_pending_tasks()
+    def new_wallet(self, host: str = '127.0.0.1', port: int = 18081):
+        return MoneroTestnetWallet(host, port)
