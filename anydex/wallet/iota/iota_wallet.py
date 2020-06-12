@@ -12,7 +12,7 @@ from sqlalchemy import exists
 from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.iota.iota_database import initialize_db, \
     DatabaseSeed, DatabaseTransaction, DatabaseBundle, DatabaseAddress
-from anydex.wallet.iota.iota_provider import IotaProvider
+from anydex.wallet.iota.iota_provider import PyOTAIotaProvider
 from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 
@@ -39,7 +39,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
                 .filter(DatabaseSeed.name.__eq__(self.wallet_name)) \
                 .one()
             self.seed = Seed(db_seed.seed)
-            self.provider = IotaProvider(testnet=self.testnet, seed=self.seed)
+            self.provider = PyOTAIotaProvider(testnet=self.testnet, seed=self.seed)
             self.created = True
 
     def wallet_exists(self) -> bool:
@@ -64,7 +64,7 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
         self.database.commit()
 
         # initialize connection with API through the provider and get an active non-spent address
-        self.provider = IotaProvider(testnet=self.testnet, seed=self.seed)
+        self.provider = PyOTAIotaProvider(testnet=self.testnet, seed=self.seed)
         self.created = True
         return succeed([])
 

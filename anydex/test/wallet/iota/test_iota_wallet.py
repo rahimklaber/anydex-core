@@ -5,7 +5,7 @@ from sqlalchemy.orm import session as db_session
 
 from anydex.test.base import AbstractServer
 from anydex.wallet.iota.iota_database import DatabaseBundle, DatabaseAddress, DatabaseTransaction, DatabaseSeed
-from anydex.wallet.iota.iota_provider import IotaProvider
+from anydex.wallet.iota.iota_provider import PyOTAIotaProvider
 from anydex.wallet.iota.iota_wallet import IotaWallet, IotaTestnetWallet
 from anydex.wallet.wallet import InsufficientFunds
 
@@ -242,7 +242,7 @@ class TestIotaWallet(AbstractServer):
 
     async def test_transfer_before_creation(self):
         """
-        Tests the bad weather case of transfering before wallet creation.
+        Tests the bad weather case of transferring before wallet creation.
         """
         # Address taken from IOTA documentation.
         to_address = 'ZLGVEQ9JUZZWCZXLWVNTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW'
@@ -467,7 +467,7 @@ class TestIotaWallet(AbstractServer):
         self.wallet.created = True
 
         # Instantiate API
-        self.wallet.provider = IotaProvider(testnet=self.wallet.testnet, seed=self.wallet.seed)
+        self.wallet.provider = PyOTAIotaProvider(testnet=self.wallet.testnet, seed=self.wallet.seed)
         # Mock the API call return
         self.wallet.provider.get_seed_transactions = lambda: succeed([self.tx1])
         self.wallet.update_bundles_database = lambda: succeed(None)
