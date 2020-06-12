@@ -179,6 +179,7 @@ class TestLitecoinWallet(TestBitcoinWallet):
         self.min_unit = 100000
         self.precision = 8
         self.testnet = False
+
         self.raw_tx = \
             '020000000001047b95e486a4c85541db0743d85022849f05bbb57f3e7dc4ea981a2c5a9622a9f70000000017160014' +\
             '66f5596df480f9b8aeb5460293a9782780abc6f2feffffff8e66a70a3a2dbaadc9952db44c34bf01f4dc7156243d42' +\
@@ -248,6 +249,7 @@ class TestBitcoinTestnetWallet(TestBitcoinWallet):
         self.min_unit = 100000
         self.precision = 8
         self.testnet = True
+
         self.raw_tx = \
             '02000000014bca66ebc0e3ab0c5c3aec6d0b3895b968497397752977dfd4a2f0bc67db6810000000006b4830450221' +\
             '00fc93a034db310fbfead113283da95e980ac7d867c7aa4e6ef0aba80ef321639e02202bc7bd7b821413d814d9f7d6' +\

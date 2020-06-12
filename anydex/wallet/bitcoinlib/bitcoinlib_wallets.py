@@ -5,9 +5,9 @@ from asyncio import Future
 from binascii import hexlify
 from configparser import ConfigParser
 
-from ipv8.util import fail, succeed
 from bitcoinlib.wallets import wallet_exists, HDWallet, WalletError, DbTransaction, DbTransactionInput
 from bitcoinlib.transactions import Transaction
+from ipv8.util import fail, succeed
 
 from anydex.wallet.wallet import InsufficientFunds, Wallet
 

@@ -1,4 +1,3 @@
-import abc
 import time
 from datetime import datetime
 
@@ -218,7 +217,7 @@ class TestStellarWallet(AbstractServer):
     @timeout(10)
     async def test_monitor_transactions_not_found(self):
         """
-        Test for monitor_transactions when the transaction is found
+        Test for monitor_transactions when the transaction is not found
         """
         self.wallet.created = True
         self.wallet.get_address = lambda: 'GBOQNX4VWQMVN6C7NB5UL2CEV6AGVTM6LWQIXDRU6OBRMUNBTOMNSOAW'

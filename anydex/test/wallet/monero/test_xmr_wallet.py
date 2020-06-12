@@ -8,7 +8,6 @@ from requests.exceptions import ConnectionError
 
 from anydex.test.base import AbstractServer
 from anydex.test.util import MockObject
-from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.monero.xmr_wallet import MoneroWallet, MoneroTestnetWallet, WalletConnectionError
 from anydex.wallet.wallet import InsufficientFunds
 

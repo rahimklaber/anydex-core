@@ -94,9 +94,11 @@ class TestEthereumWallet(AbstractServer):
         """
         self.wallet.create_wallet()
         self.wallet._session.add(
-            Transaction(is_pending=True, value=100, from_=self.wallet.account.address, hash=self.wallet.generate_txid()))
+            Transaction(is_pending=True, value=100, from_=self.wallet.account.address,
+                        hash=self.wallet.generate_txid()))
         self.wallet._session.add(
-            Transaction(is_pending=True, value=200, from_=self.wallet.account.address, hash=self.wallet.generate_txid()))
+            Transaction(is_pending=True, value=200, from_=self.wallet.account.address,
+                        hash=self.wallet.generate_txid()))
         self.assertEqual(300, self.wallet.get_outgoing_amount())
 
     def test_get_incoming_amount(self):
@@ -134,16 +136,18 @@ class TestEthereumWallet(AbstractServer):
         Test for get transactions
         """
         self.wallet.create_wallet()
-        tx = Transaction(hash="0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060",
-                         date_time=datetime(2015, 8, 7, 3, 30, 33),
-                         from_=self.wallet.get_address(),
-                         to="0x5df9b87991262f6ba471f09758cde1c0fc1de734",
-                         gas=5,
-                         gas_price=5,
-                         nonce=0,
-                         is_pending=False,
-                         value=31337,
-                         block_number=46147)
+        tx = Transaction(
+            hash="0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060",
+            date_time=datetime(2015, 8, 7, 3, 30, 33),
+            from_=self.wallet.get_address(),
+            to="0x5df9b87991262f6ba471f09758cde1c0fc1de734",
+            gas=5,
+            gas_price=5,
+            nonce=0,
+            is_pending=False,
+            value=31337,
+            block_number=46147
+        )
         mock_provider = MockObject()
         mock_provider.get_latest_blocknr = lambda *_: 46147
         mock_provider.get_transactions = lambda *_, **x: [tx]
@@ -168,16 +172,18 @@ class TestEthereumWallet(AbstractServer):
         Test get transaction count
         """
         self.wallet.create_wallet()
-        tx = Transaction(hash="0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060",
-                         date_time=datetime(2015, 8, 7, 3, 30, 33),
-                         from_=self.wallet.get_address(),
-                         to="0x5df9b87991262f6ba471f09758cde1c0fc1de734",
-                         gas=5,
-                         gas_price=5,
-                         nonce=5,
-                         is_pending=True,
-                         value=31337,
-                         block_number=46147)
+        tx = Transaction(
+            hash="0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060",
+            date_time=datetime(2015, 8, 7, 3, 30, 33),
+            from_=self.wallet.get_address(),
+            to="0x5df9b87991262f6ba471f09758cde1c0fc1de734",
+            gas=5,
+            gas_price=5,
+            nonce=5,
+            is_pending=True,
+            value=31337,
+            block_number=46147
+        )
         self.wallet._session.add(tx)
         self.assertEqual(6, self.wallet.get_transaction_count())
 
