@@ -62,7 +62,7 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
             return succeed({
                 'available': 0,
                 'pending': 0,
-                'currency': 'ETH',
+                'currency': self.get_identifier(),
                 'precision': self.precision()
             })
 
@@ -72,7 +72,7 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
         return succeed({
             'available': self.provider.get_balance(self.get_address()) - pending_outgoing,
             'pending': self.get_incoming_amount(),
-            'currency': 'ETH',
+            'currency': self.get_identifier(),
             'precision': self.precision()
         })
 

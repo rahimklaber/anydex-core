@@ -80,7 +80,7 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
             return succeed({
                 'available': 0,
                 'pending': 0,
-                'currency': 'XMR',
+                'currency': self.get_identifier(),
                 'precision': self.precision()
             })
 
@@ -90,7 +90,7 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
         return succeed({
             'available': float(unlocked_balance),  # convert Decimal to float
             'pending': float(total_balance - unlocked_balance),
-            'currency': 'XMR',
+            'currency': self.get_identifier(),
             'precision': self.precision()
         })
 
