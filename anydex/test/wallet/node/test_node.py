@@ -35,8 +35,7 @@ class TestNode(unittest.TestCase):
         self.test_url = 'https://www.tribler.org'
         self.host = 'www.tribler.org'
 
-        with open('hosts.json') as file:
-            self.hosts = json.loads(file.read())
+        self.hosts = HOSTS
 
         self.ethereum_hosts = []
         for ethereum_host in self.hosts['ethereum']:
