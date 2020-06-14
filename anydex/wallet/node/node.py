@@ -86,7 +86,7 @@ def create_node(network: Cryptocurrency) -> Node:
         params['name'] = node_config.get('name', '')
 
         try:
-            protocol, username, password, host, port = parse_url(node_config['host'])
+            protocol, username, password, host, port = _parse_url(node_config['host'])
         except KeyError:
             return fail(CannotCreateNodeException('Missing key `host` from node config'))
 
@@ -115,7 +115,7 @@ def create_node(network: Cryptocurrency) -> Node:
 
         # host format: protocol://username:password@domain:port
         selected_host, latency = select_best_host(network_hosts)
-        protocol, username, password, host, port = parse_url(selected_host)
+        protocol, username, password, host, port = _parse_url(selected_host)
 
         if username:
             params['username'] = username
@@ -127,7 +127,6 @@ def create_node(network: Cryptocurrency) -> Node:
         else:
             params['host_config'] = HostConfig(host, port)
 
-        params['host'], params['port'] = host, port
         params['latency'] = latency
 
     node = Node(**params)
@@ -183,12 +182,13 @@ def determine_latency(host: str) -> tuple:
     :return: tuple of host and latency in ms as float
     """
     cfg = get_anydex_configuration()
-    timeout = cfg['nodes']['timeout']
+    timeout = cfg['node_config']['timeout']
 
-    retry: int = cfg['nodes']['retry']
+    retry: int = cfg['node_config']['retry']
     durations = []
 
-    _, _, _, address, port = parse_url(host)
+    _, _, _, address, port = _parse_url(host)
+    port = port if port else 80
 
     for _ in range(retry):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # does not support IPv6 addresses
@@ -207,14 +207,19 @@ def determine_latency(host: str) -> tuple:
             return host, float('inf')
         durations.append(time() - start_time)
 
-    return host, round(avg(durations) * 1000, 2)
+    return host, round(_avg(durations) * 1000, 2)
 
 
-def avg(elements: list):
+def _avg(elements: list):
     return sum(elements) / len(elements)
 
 
-def parse_url(url: str) -> tuple:
+def _parse_url(url: str) -> tuple:
+    """
+    Return parsed tuple of url components.
+
+    :return: tuple of protocol, username, password, host and port
+    """
     parsed = urlparse(url)
     protocol = parsed.scheme
     username = parsed.username

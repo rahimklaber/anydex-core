@@ -1,4 +1,8 @@
+import json
 import unittest
+
+import anydex.wallet.node.node as node
+from anydex.wallet.cryptocurrency import Cryptocurrency
 
 
 class TestNode(unittest.TestCase):
@@ -7,57 +11,97 @@ class TestNode(unittest.TestCase):
     """
 
     def setUp(self):
-        pass
+        self.test_url = 'https://www.tribler.org'
+        self.host = 'www.tribler.org'
 
-    # def test_init(self):
-    #     """
-    #     Test the initialization of a price
-    #     """
-    #     with self.assertRaises(ValueError):
-    #         AssetAmount('1', 'MC')
-    #     with self.assertRaises(ValueError):
-    #         AssetAmount(1, 2)
-    #
-    # def test_addition(self):
-    #     # Test for addition
-    #     self.assertEqual(AssetAmount(102, 'BTC'), self.assetamount1 + self.assetamount2)
-    #     self.assertFalse(self.assetamount1 is (self.assetamount1 + self.assetamount2))
-    #     self.assertEqual(NotImplemented, self.assetamount1.__add__(10))
-    #     self.assertEqual(NotImplemented, self.assetamount1.__add__(self.assetamount4))
-    #
-    # def test_subtraction(self):
-    #     # Test for subtraction
-    #     self.assertEqual(AssetAmount(98, 'BTC'), self.assetamount2 - self.assetamount1)
-    #     self.assertEqual(NotImplemented, self.assetamount1.__sub__(10))
-    #     self.assertEqual(NotImplemented, self.assetamount1.__sub__(self.assetamount4))
-    #
-    # def test_comparison(self):
-    #     # Test for comparison
-    #     self.assertTrue(self.assetamount1 < self.assetamount2)
-    #     self.assertTrue(self.assetamount2 > self.assetamount1)
-    #     self.assertEqual(NotImplemented, self.assetamount1.__le__(10))
-    #     self.assertEqual(NotImplemented, self.assetamount1.__lt__(10))
-    #     self.assertEqual(NotImplemented, self.assetamount1.__ge__(10))
-    #     self.assertEqual(NotImplemented, self.assetamount1.__gt__(10))
-    #     self.assertEqual(NotImplemented, self.assetamount1.__le__(self.assetamount4))
-    #     self.assertEqual(NotImplemented, self.assetamount1.__lt__(self.assetamount4))
-    #     self.assertEqual(NotImplemented, self.assetamount1.__ge__(self.assetamount4))
-    #     self.assertEqual(NotImplemented, self.assetamount1.__gt__(self.assetamount4))
-    #
-    # def test_equality(self):
-    #     # Test for equality
-    #     self.assertTrue(self.assetamount1 == AssetAmount(2, 'BTC'))
-    #     self.assertTrue(self.assetamount1 != self.assetamount2)
-    #     self.assertFalse(self.assetamount1 == 2)
-    #     self.assertFalse(self.assetamount1 == self.assetamount4)
-    #
-    # def test_hash(self):
-    #     # Test for hashes
-    #     self.assertEqual(self.assetamount1.__hash__(), AssetAmount(2, 'BTC').__hash__())
-    #     self.assertNotEqual(self.assetamount1.__hash__(), self.assetamount2.__hash__())
-    #
-    # def test_str(self):
-    #     """
-    #     Test the string representation of a Price object
-    #     """
-    #     self.assertEqual(str(self.assetamount1), "2 BTC")
+        with open('hosts.json') as file:
+            self.hosts = json.loads(file.read())
+
+        self.ethereum_hosts = []
+        for ethereum_host in self.hosts['ethereum']:
+            _, _, _, host, _ = node._parse_url(ethereum_host)
+            self.ethereum_hosts.append(host)
+
+        self.monero_hosts = []
+        for ethereum_host in self.hosts['monero']:
+            _, _, _, host, _ = node._parse_url(ethereum_host)
+            self.monero_hosts.append(host)
+
+    def test_avg(self):
+        """
+        Test getting average of elements in a list.
+        """
+        elements = [1, 2.3, 4, 5]
+        self.assertEqual(3.075, node._avg(elements))
+
+    def test_parse_url(self):
+        """
+        Test url parse.
+        Verify correct components are returned.
+        """
+        result = node._parse_url(self.test_url)
+        self.assertEqual(5, len(result))
+
+        self.assertEqual('https', result[0])
+        self.assertEqual(self.host, result[3])
+        self.assertIsNone(result[1])
+        self.assertIsNone(result[2])
+        self.assertIsNone(result[4])
+
+    def test_source(self):
+        """
+        Verify correct values are set for Enum components.
+        """
+        src = node.Source.USER
+        self.assertEqual(2, src.value)
+
+    def test_host_config(self):
+        """
+        Verify instantiation of HostConfig instance.
+        """
+        host_config = node.HostConfig(self.host, 80, 'https')
+
+        self.assertEqual(self.host, host_config.host)
+        self.assertEqual(80, host_config.port)
+        self.assertEqual('https', host_config.protocol)
+
+    def test_node_instantiation(self):
+        """
+        Verify correct instantiation of Node instance.
+        """
+        host_config = node.HostConfig(self.host, 80, 'https')
+        test_node = node.Node('test_node', host_config, node.Source.USER, Cryptocurrency.MONERO,
+                              20.2, 'test_username')  # leave password void
+
+        self.assertEqual('', test_node.password)
+        self.assertEqual(host_config.host, test_node.host)
+
+    def test_create_node_default_hosts_many(self):
+        """
+        Verify `create_node` function creates a valid Node instance.
+        Node instance should belong to the Monero cryptocurrency.
+        Verify process for many provides node hosts.
+        """
+        test_node = node.create_node(Cryptocurrency.MONERO)
+        self.assertEqual('', test_node.name)
+        self.assertIsNotNone(test_node.host)
+        self.assertIn(test_node.host, self.monero_hosts)
+        self.assertEqual(Cryptocurrency.MONERO, test_node.network)
+
+    def test_create_node_default_hosts_few(self):
+        """
+        Verify `create_node` function creates a valid Node instance.
+        Node instance should belong to the Ethereum cryptocurrency.
+        Verify process for just a few node hosts.
+        """
+        test_node = node.create_node(Cryptocurrency.ETHEREUM)
+        self.assertEqual('', test_node.name)
+        self.assertIn(test_node.host, self.ethereum_hosts)
+        self.assertEqual(Cryptocurrency.ETHEREUM, test_node.network)
+
+    def test_create_node_non_existent_network(self):
+        """
+        Verify that `create_node` fails in case of faulty `network`.
+        """
+        with self.assertRaises(AttributeError):
+            node.create_node('test_network')

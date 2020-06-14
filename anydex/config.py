@@ -44,7 +44,7 @@ default = {
             ],
             'initialize': {},
             'on_start': [
-                ('resolve_dns_bootstrap_addresses', )
+                ('resolve_dns_bootstrap_addresses',)
             ]
         },
         {
@@ -75,13 +75,13 @@ default = {
             'initialize': {},
             'on_start': []
         }
-    ]
-    # 'node_config': {
-    # host format: protocol://username:password@domain:port
-    #     'host': '',
-    #     'timeout': 10.0,
-    #     'retry': 3
-    # }
+    ],
+    'node_config': {
+        # host: protocol://username:password@domain:port
+        'host': '',
+        'timeout': 10.0,
+        'retry': 3
+    }
 }
 
 
