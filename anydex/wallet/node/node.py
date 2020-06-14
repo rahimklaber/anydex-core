@@ -1,8 +1,8 @@
 import json
 import logging
 import socket
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum, auto
-from ipaddress import ip_address, IPv4Address
 from time import time
 from urllib.parse import urlparse
 
@@ -81,27 +81,25 @@ def create_node(network: Cryptocurrency) -> Node:
     if 'node' in config:
         _logger.info('Parsing user node config')
 
-        node_config = config['nodes']['node']
+        node_config = config['node_config']
         params['source'] = Source.USER
         params['name'] = node_config.get('name', '')
 
         try:
-            host = node_config['host']
+            protocol, username, password, host, port = parse_url(node_config['host'])
         except KeyError:
             return fail(CannotCreateNodeException('Missing key `host` from node config'))
 
-        try:
-            port = node_config['port']
-        except KeyError:
-            return fail(CannotCreateNodeException('Missing key `port` from node config'))
+        if port is None:
+            return fail(CannotCreateNodeException('Missing port from `host` in node config'))
 
-        protocol = node_config.get('protocol', 'http')
-        params['username'] = node_config.get('username', '')
-        params['password'] = node_config.get('password', '')
+        params['protocol'] = protocol if protocol else 'http'
+        params['username'] = username if username else ''
+        params['password'] = password if username else ''
 
-        params['latency'] = determine_latency(host, port)
+        _, params['latency'] = determine_latency(node_config['host'])
 
-        params['host_config'] = HostConfig(host, port, protocol)
+        params['host_config'] = HostConfig(host, port, params['protocol'])
     else:
         _logger.info('Finding best host from pool of default hosts')
 
@@ -115,7 +113,7 @@ def create_node(network: Cryptocurrency) -> Node:
         except KeyError:
             return fail(CannotCreateNodeException(f'Missing default nodes for {network.value}'))
 
-        # host format: protocol://username:password@domain
+        # host format: protocol://username:password@domain:port
         selected_host, latency = select_best_host(network_hosts)
         protocol, username, password, host, port = parse_url(selected_host)
 
@@ -164,60 +162,52 @@ def select_best_host(hosts) -> tuple:
     """
     Returns the host with the lowest latency of all hosts.
 
+    Makes use of ThreadPoolExecutor to test in multi-threaded approach.
+
     :param hosts: list of host names including ports
     :return: tuple of host and latency
     """
-    results = dict()
+    with ThreadPoolExecutor() as executor:
+        latencies = executor.map(determine_latency, hosts)
 
-    for host in hosts:
-        _, _, _, address, port = parse_url(host)
-        _logger.info('Determining latency for %s at port %d', address, port)
-        latency = determine_latency(address, port)
-        results[host] = latency
-
-    best_host = [(k, v) for k, v in sorted(results.items(), key=lambda el: el[1])][0]
+    best_host = sorted(list(latencies), key=lambda el: el[1])[0]
     return best_host
 
 
-def determine_latency(address: str, port: int) -> float:
+def determine_latency(host: str) -> tuple:
     """
     Returns latency to server with address passed as parameter.
-    Attempts to connect to `port` at `host` while timing the roundtrip.
+    Attempts to connect to `host` while timing the roundtrip.
 
-    :param address
-    :param port
-    :return: latency in ms as float
+    :param host: format protocol://username:password@domain
+    :return: tuple of host and latency in ms as float
     """
-    try:
-        addr = ip_address(address)
-    except ValueError:
-        return float('inf')
-
-    if isinstance(addr, IPv4Address):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    else:
-        sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-
     cfg = get_anydex_configuration()
     timeout = cfg['nodes']['timeout']
-    sock.settimeout(timeout)
 
     retry: int = cfg['nodes']['retry']
     durations = []
 
+    _, _, _, address, port = parse_url(host)
+
     for _ in range(retry):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # does not support IPv6 addresses
+        sock.settimeout(timeout)
+
         start_time = time()
         try:
+            _logger.info('Determining latency for %s at port %d', address, port)
             sock.connect((address, port))
             sock.shutdown(socket.SHUT_RD)
         except socket.timeout:
             _logger.warning('Ping attempt to host %s timed out after %f seconds', address, timeout)
-            return float('inf')
-        except OSError:
-            return float('inf')
+            return host, float('inf')
+        except OSError as err:
+            _logger.error('Could not connect to host: %s', err)
+            return host, float('inf')
         durations.append(time() - start_time)
 
-    return round(avg(durations) * 1000, 2)
+    return host, round(avg(durations) * 1000, 2)
 
 
 def avg(elements: list):
@@ -229,5 +219,6 @@ def parse_url(url: str) -> tuple:
     protocol = parsed.scheme
     username = parsed.username
     password = parsed.password
-    host, port = parsed.netloc.split(':')
+    host = parsed.hostname
+    port = parsed.port
     return protocol, username, password, host, port

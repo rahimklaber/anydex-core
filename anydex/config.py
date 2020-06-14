@@ -75,12 +75,13 @@ default = {
             'initialize': {},
             'on_start': []
         }
-    ],
-    'nodes': {
-        'node': {},
-        'timeout': 10.0,
-        'retry': 3
-    }
+    ]
+    # 'node_config': {
+    # host format: protocol://username:password@domain:port
+    #     'host': '',
+    #     'timeout': 10.0,
+    #     'retry': 3
+    # }
 }
 
 
