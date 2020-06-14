@@ -189,6 +189,8 @@ def determine_latency(host: str) -> tuple:
 
     _, _, _, address, port = _parse_url(host)
     port = port if port else 80
+    if address is None:
+        return host, float('inf')
 
     for _ in range(retry):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # does not support IPv6 addresses
