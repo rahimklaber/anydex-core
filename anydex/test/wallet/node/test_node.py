@@ -4,6 +4,27 @@ import unittest
 import anydex.wallet.node.node as node
 from anydex.wallet.cryptocurrency import Cryptocurrency
 
+HOSTS = {
+    "monero": [
+        "http://opennode.xmr-tw.org:18089",
+        "http://node.moneroworld.com:18089",
+        "http://node.xmrbackb.one:18081",
+        "http://uwillrunanodesoon.moneroworld.com:18089",
+        "http://node.xmr.to:18081",
+        "http://nodes.hashvault.pro:18081",
+        "http://node.supportxmr.com:18081"
+    ],
+    "ethereum": [
+        "https://api.myetherapi.com/eth",
+        "https://main-rpc.linkpool.io/"
+    ],
+    "bitcoin": [],
+    "iota": [],
+    "ripple": [],
+    "litecoin": [],
+    "zcash": []
+}
+
 
 class TestNode(unittest.TestCase):
     """
@@ -82,11 +103,14 @@ class TestNode(unittest.TestCase):
         Node instance should belong to the Monero cryptocurrency.
         Verify process for many provides node hosts.
         """
+        temp_fn = node.read_default_hosts
+        node.read_default_hosts = lambda: HOSTS
         test_node = node.create_node(Cryptocurrency.MONERO)
         self.assertEqual('', test_node.name)
         self.assertIsNotNone(test_node.host)
         self.assertIn(test_node.host, self.monero_hosts)
         self.assertEqual(Cryptocurrency.MONERO, test_node.network)
+        node.read_default_hosts = temp_fn
 
     def test_create_node_default_hosts_few(self):
         """
@@ -94,10 +118,13 @@ class TestNode(unittest.TestCase):
         Node instance should belong to the Ethereum cryptocurrency.
         Verify process for just a few node hosts.
         """
+        temp_fn = node.read_default_hosts
+        node.read_default_hosts = lambda: HOSTS
         test_node = node.create_node(Cryptocurrency.ETHEREUM)
         self.assertEqual('', test_node.name)
         self.assertIn(test_node.host, self.ethereum_hosts)
         self.assertEqual(Cryptocurrency.ETHEREUM, test_node.network)
+        node.read_default_hosts = temp_fn
 
     def test_create_node_non_existent_network(self):
         """
