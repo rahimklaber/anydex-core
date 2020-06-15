@@ -9,8 +9,8 @@
     "node.supportxmr.com:18081"
   ],
   "ethereum": [
-    "https://api.myetherapi.com/eth",
-    "https://main-rpc.linkpool.io/"
+    "https://api.myetherapi.com/eth:8545",
+    "https://main-rpc.linkpool.io:8545"
   ],
   "bitcoin": [],
   "iota": [],

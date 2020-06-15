@@ -41,7 +41,7 @@ class TestEthereumWallet(AbstractServer):
         Test the creation of the wallet
         """
         self.wallet.create_wallet()
-        addr = self.wallet._session.query(Key.address).first()[0]
+        addr = self.wallet.database.session.query(Key.address).first()[0]
         self.assertEqual(addr, self.wallet.account.address)
         self.assertIsNotNone(self.wallet.account)
         self.assertTrue(self.wallet.created)
@@ -88,29 +88,6 @@ class TestEthereumWallet(AbstractServer):
         }
         self.assertEqual(balance, await self.wallet.get_balance())
 
-    def test_get_outgoing_amount(self):
-        """
-        Test for the get_outgoing_amount function.
-        """
-        self.wallet.create_wallet()
-        self.wallet._session.add(
-            Transaction(is_pending=True, value=100, from_=self.wallet.account.address,
-                        hash=self.wallet.generate_txid()))
-        self.wallet._session.add(
-            Transaction(is_pending=True, value=200, from_=self.wallet.account.address,
-                        hash=self.wallet.generate_txid()))
-        self.assertEqual(300, self.wallet.get_outgoing_amount())
-
-    def test_get_incoming_amount(self):
-        """
-        Test for the get_incoming_amount function
-        """
-        self.wallet.create_wallet()
-        self.wallet._session.add(
-            Transaction(is_pending=True, value=100, to=self.wallet.account.address, hash=self.wallet.generate_txid()))
-        self.wallet._session.add(
-            Transaction(is_pending=True, value=200, to=self.wallet.account.address, hash=self.wallet.generate_txid()))
-        self.assertEqual(300, self.wallet.get_incoming_amount())
 
     def test_get_address_not_created(self):
         """
@@ -167,32 +144,7 @@ class TestEthereumWallet(AbstractServer):
         }
         self.assertEqual([tx_dict], transactions)
 
-    def test_get_transaction_count(self):
-        """
-        Test get transaction count
-        """
-        self.wallet.create_wallet()
-        tx = Transaction(
-            hash="0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060",
-            date_time=datetime(2015, 8, 7, 3, 30, 33),
-            from_=self.wallet.get_address().result(),
-            to="0x5df9b87991262f6ba471f09758cde1c0fc1de734",
-            gas=5,
-            gas_price=5,
-            nonce=5,
-            is_pending=True,
-            value=31337,
-            block_number=46147
-        )
-        self.wallet._session.add(tx)
-        self.assertEqual(6, self.wallet.get_transaction_count())
 
-    def test_get_transaction_count_zero_tx(self):
-        """
-        Test get transaction count when the wallet has sent 0 transactions
-        """
-        self.wallet.create_wallet()
-        self.assertEqual(0, self.wallet.get_transaction_count())
 
 
 class TestTestnetEthereumWallet(TestEthereumWallet):
