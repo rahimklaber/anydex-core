@@ -11,6 +11,9 @@ class WalletsEndpoint(BaseMarketEndpoint):
     """
     This class represents the root endpoint of the wallets resource.
     """
+    TRANSFER_NETWORKS = ['BTC', 'TBTC', 'LTC', 'XLT', 'DASH', 'TDASH',
+                          'ETH', 'TETH, IOTA', 'TIOTA', 'XMR', 'TXMR',
+                          'XLM', 'TXLM']
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_wallets),
@@ -64,7 +67,7 @@ class WalletsEndpoint(BaseMarketEndpoint):
                 'name': wallet.get_name(),
                 'precision': wallet.precision(),
                 'min_unit': wallet.min_unit(),
-                'balance': balance.result()
+                'balance': balance
             }
 
         await gather(*[add_wallet(wid, w) for wid, w in self.get_market_community().wallets.items()])
@@ -126,7 +129,6 @@ class WalletsEndpoint(BaseMarketEndpoint):
         """
         identifier = request.match_info['wallet_id']
         balance = await self.get_market_community().wallets[identifier].get_balance()
-        balance = balance.result()
         return Response({"balance": balance})
 
     async def get_wallet_transactions(self, request):
@@ -174,8 +176,7 @@ class WalletsEndpoint(BaseMarketEndpoint):
             .. sourcecode:: none
 
                 curl -X POST http://localhost:8085/wallets/BTC/transfer
-                --data "amount=1&destination=ZLGVEQ9JUZZWCZXLWVNTHBDX9G9KZTJP9VEERIIFHY9SIQKYBVAHIMLHXPQVE9IXFDDXNHQINXJDRPFDXNYVAPLZAW"
-
+                    --data "amount=0.3&destination=mpC1DDgSP4PKc5HxJzQ5w9q6CGLBEQuLsN"
             **Example response**:
 
             .. sourcecode:: javascript
@@ -187,9 +188,8 @@ class WalletsEndpoint(BaseMarketEndpoint):
         parameters = await request.post()
 
         identifier = request.match_info['wallet_id']
-        if identifier != "BTC" and identifier != "TIOTA":
-            return Response({"error": "currently, currency transfers using the API "
-                                      "is only supported for Bitcoin"}, status=HTTP_BAD_REQUEST)
+        if identifier not in self.TRANSFER_NETWORKS:
+            return Response({"error": "unsupported currency"}, status=HTTP_BAD_REQUEST)
 
         wallet = self.get_market_community().wallets[identifier]
 
@@ -202,6 +202,5 @@ class WalletsEndpoint(BaseMarketEndpoint):
         try:
             txid = await wallet.transfer(parameters['amount'], parameters['destination'])
         except Exception as e:
-            print(e.__traceback__.__str__())
             return Response({"txid": "", "error": str(e)}, status=HTTP_INTERNAL_SERVER_ERROR)
         return Response({"txid": txid})
