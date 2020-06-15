@@ -1,8 +1,8 @@
-from typing import TypedDict
+# from typing import TypedDict
 
 from ipv8.util import fail, succeed
 
-from anydex.wallet.ethereum.eth_wallet import EthereumWallet
+from anydex.wallet.ethereum.eth_wallet import EthereumWallet, EthereumTestnetWallet
 from anydex.wallet.wallet import Wallet, InsufficientFunds
 from web3 import Web3
 import pathlib
@@ -12,14 +12,14 @@ from anydex.wallet.ethereum.eth_db import Transaction
 from anydex.wallet.ethereum.token.token_provider import TokenProvider
 
 
-class TokenDict(TypedDict):
-    """
-    Definition of a token dict from which a new token wallet can be created
-    """
-    identifier: str
-    name: str
-    precision: int
-    contract_address: str
+# class TokenDict(TypedDict):
+#     """
+#     Definition of a token dict from which a new token wallet can be created
+#     """
+#     identifier: str
+#     name: str
+#     precision: int
+#     contract_address: str
 
 
 class Erc20TokenWallet(Wallet):
@@ -37,20 +37,20 @@ class Erc20TokenWallet(Wallet):
     @staticmethod
     def abi_from_json(path_to_file=None):
         if not path_to_file:
-            path_to_file = pathlib.Path.joinpath(pathlib.Path(__file__).parent.absolute(), 'erc20_abi.json')
-        with open() as abi_file:
+            path_to_file = pathlib.Path.joinpath(pathlib.Path(__file__).parent.absolute(), 'abi.json')
+        with open(path_to_file) as abi_file:
             abi_json = json.loads(abi_file.read())
         return abi_json
 
     @classmethod
-    def from_dict(cls, token: TokenDict):
+    def from_dict(cls, token):
         """
         Create a new wallet from the given dictionary
         :param token: a dictionary that contains the info defined in the TokenDict class
         :return: a new instance of this class
         """
         abi = cls.abi_from_json()
-        return cls(token['contract_address'], token['identifier'], token['name'], token['decimals'], abi, None)
+        return cls(token['contract_address'], token['identifier'], token['name'], token['precision'], abi, None)
 
     def get_identifier(self):
         return self.identifier
@@ -68,7 +68,23 @@ class Erc20TokenWallet(Wallet):
         return succeed(None)
 
     def get_balance(self):
-        pass
+        if not self.created:
+            return succeed({
+                'available': 0,
+                'pending': 0,
+                'currency': self.identifier(),
+                'precision': self.precision()
+            })
+        address = self.get_address()
+        # self._update_database(self.get_transactions())
+        # pending_outgoing = self.get_outgoing_amount()
+        balance = {
+            'available': self.provider.get_balance(address),  # - pending_outgoing,
+            'pending': 0,  # self.get_incoming_amount(),
+            'currency': self.get_identifier(),
+            'precision': self.precision()
+        }
+        return succeed(balance)
 
     async def transfer(self, amount, address):
 
