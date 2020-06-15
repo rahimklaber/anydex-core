@@ -28,8 +28,7 @@ setup(
         "monero",
         "responses",
         "stellar-sdk",
-        'pyota==3.0.0b2',
-        'pyota[ccurl]'
+        'pyota==3.0.0b2'
     ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
