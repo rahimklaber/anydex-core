@@ -75,7 +75,8 @@ class TestStellarWallet(AbstractServer):
         addr = self.wallet.database.session.query(Secret.address).first()[0]
         self.assertIsNotNone(self.wallet.keypair)
         self.assertTrue(self.wallet.created)
-        self.assertEqual(addr, self.wallet.get_address())
+        result = self.wallet.get_address()
+        self.assertEqual(addr, result.result())
 
     def test_init_wallet_created(self):
         """
@@ -130,7 +131,7 @@ class TestStellarWallet(AbstractServer):
         self.wallet.database.session.add(
             Transaction(sequence_number=10000, succeeded=True, source_account=f'sequence {self.wallet.testnet}'))
         self.wallet.database.session.commit()
-        self.wallet.get_address = lambda: f'sequence {self.wallet.testnet}'
+        self.wallet.get_address = lambda: succeed(f'sequence {self.wallet.testnet}')
         sequence_nr = self.wallet.get_sequence_number()
         self.assertEqual(10000, sequence_nr)
 
@@ -145,8 +146,8 @@ class TestStellarWallet(AbstractServer):
         """
         Test for get_address when the wallet has not been created
         """
-
-        self.assertEqual('', self.wallet.get_address())
+        result = self.wallet.get_address().result()
+        self.assertEqual('', result)
 
     def test_get_address_created(self):
         """
@@ -156,7 +157,8 @@ class TestStellarWallet(AbstractServer):
         address = 'GCEYPGQX75YWCWL77NOWWHHMGS2R5DP2FAOWLT65NSORFXZHQIDDCOO7'
         self.create_wallet()
         self.wallet.keypair = Keypair.from_secret(secret)
-        self.assertEqual(address, self.wallet.get_address())
+        result = self.wallet.get_address().result()
+        self.assertEqual(address, result)
 
     def test_precision(self):
         self.assertEqual(7, self.wallet.precision())
@@ -174,7 +176,7 @@ class TestStellarWallet(AbstractServer):
         Test for get_transactions when wallet has been created
         """
         self.wallet.database.insert_transaction(self.tx)
-        self.wallet.get_address = lambda: 'GBOQNX4VWQMVN6C7NB5UL2CEV6AGVTM6LWQIXDRU6OBRMUNBTOMNSOAW'
+        self.wallet.get_address = lambda: succeed('GBOQNX4VWQMVN6C7NB5UL2CEV6AGVTM6LWQIXDRU6OBRMUNBTOMNSOAW')
         self.wallet.provider = MockObject()
         self.wallet.provider.get_ledger_height = lambda: 26529414
         self.wallet.provider.get_transactions = lambda *_: []
@@ -206,7 +208,7 @@ class TestStellarWallet(AbstractServer):
         self.wallet.created = True
         self.wallet.created_on_network = True
         self.wallet.database.insert_transaction(self.tx)
-        self.wallet.get_address = lambda: 'GDQWI6FKB72DPOJE4CGYCFQZKRPQQIOYXRMZ5KEVGXMG6UUTGJMBCASH'
+        self.wallet.get_address = lambda: succeed('GDQWI6FKB72DPOJE4CGYCFQZKRPQQIOYXRMZ5KEVGXMG6UUTGJMBCASH')
         self.wallet.provider = MockObject()
         self.wallet.provider.get_ledger_height = lambda: 26529414
         self.wallet.provider.get_transactions = lambda *_: []
@@ -220,7 +222,7 @@ class TestStellarWallet(AbstractServer):
         Test for monitor_transactions when the transaction is not found
         """
         self.wallet.created = True
-        self.wallet.get_address = lambda: 'GBOQNX4VWQMVN6C7NB5UL2CEV6AGVTM6LWQIXDRU6OBRMUNBTOMNSOAW'
+        self.wallet.get_address = lambda: succeed('GBOQNX4VWQMVN6C7NB5UL2CEV6AGVTM6LWQIXDRU6OBRMUNBTOMNSOAW')
         self.wallet.provider = MockObject()
         self.wallet.provider.get_ledger_height = lambda: 26529414
         self.wallet.provider.get_transactions = lambda *_: []

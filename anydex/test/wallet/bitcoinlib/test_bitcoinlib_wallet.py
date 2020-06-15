@@ -60,7 +60,7 @@ class TestBitcoinWallet(AbstractServer):
         """
         Test the address of a wallet
         """
-        self.assertEqual(self.wallet.get_address(), '')
+        self.assertEqual(self.wallet.get_address().result(), '')
 
     def test_wallet_unit(self):
         """
@@ -91,7 +91,7 @@ class TestBitcoinWallet(AbstractServer):
 
         await self.wallet.create_wallet()
         self.assertIsNotNone(self.wallet.wallet)
-        self.assertTrue(self.wallet.get_address())
+        self.assertTrue(self.wallet.get_address().result())
 
         self.wallet.wallet.utxos_update = lambda **_: None  # We don't want to do an actual HTTP request here
         self.wallet.wallet.balance = lambda **_: 3

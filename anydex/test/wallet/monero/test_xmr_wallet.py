@@ -276,7 +276,7 @@ class TestMoneroWallet(AbstractServer):
         Get Monero wallet address without wallet initialized.
         """
         w = self.new_wallet()
-        addr = w.get_address()
+        addr = w.get_address().result()
         self.assertEqual('', addr)
         w.cancel_all_pending_tasks()
 
@@ -289,7 +289,7 @@ class TestMoneroWallet(AbstractServer):
         mock_wallet.refresh = lambda: None
         mock_wallet.address = lambda: TEST_ADDRESS
         w.wallet = mock_wallet
-        addr = w.get_address()
+        addr = w.get_address().result()
         self.assertEqual(TEST_ADDRESS, addr)
         w.cancel_all_pending_tasks()
 

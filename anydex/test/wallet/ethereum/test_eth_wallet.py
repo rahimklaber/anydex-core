@@ -116,14 +116,14 @@ class TestEthereumWallet(AbstractServer):
         """
         Test for getting the address of the wallet when it's not yet created
         """
-        self.assertEqual('', self.wallet.get_address())
+        self.assertEqual('', self.wallet.get_address().result())
 
     def test_get_address(self):
         """
         Test for getting the address of the wallet when it's created
         """
         self.wallet.create_wallet()
-        self.assertEqual(self.wallet.account.address, self.wallet.get_address())
+        self.assertEqual(self.wallet.account.address, self.wallet.get_address().result())
 
     def test_precision(self):
         """
@@ -139,7 +139,7 @@ class TestEthereumWallet(AbstractServer):
         tx = Transaction(
             hash="0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060",
             date_time=datetime(2015, 8, 7, 3, 30, 33),
-            from_=self.wallet.get_address(),
+            from_=self.wallet.get_address().result(),
             to="0x5df9b87991262f6ba471f09758cde1c0fc1de734",
             gas=5,
             gas_price=5,
@@ -157,7 +157,7 @@ class TestEthereumWallet(AbstractServer):
         tx_dict = {
             'id': tx.hash,
             'outgoing': True,
-            'from': self.wallet.get_address(),
+            'from': self.wallet.get_address().result(),
             'to': "0x5df9b87991262f6ba471f09758cde1c0fc1de734",
             'amount': 31337,
             'fee_amount': 25,
@@ -175,7 +175,7 @@ class TestEthereumWallet(AbstractServer):
         tx = Transaction(
             hash="0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060",
             date_time=datetime(2015, 8, 7, 3, 30, 33),
-            from_=self.wallet.get_address(),
+            from_=self.wallet.get_address().result(),
             to="0x5df9b87991262f6ba471f09758cde1c0fc1de734",
             gas=5,
             gas_price=5,
