@@ -39,13 +39,14 @@ class Node:
     """
     Concrete class to create nodes from.
     A node is an abstraction for a node component in a cryptocurrency network.
+    `testnet` field will be used to determine whether to look for nodes in default hosts file.
 
     Each cryptocurrency should allow for a user-provided node implementation, as well as
     a DefaultNode-class implementation.
     """
 
     def __init__(self, name: str, host_config: HostConfig, source: Source, network: Cryptocurrency,
-                 latency: float, username='', password=''):
+                 latency: float, username='', password='', testnet=False):
         self.name = name
         self.host = host_config.host
         self.port = host_config.port
@@ -55,6 +56,7 @@ class Node:
         self.protocol = host_config.protocol
         self.username = username
         self.password = password
+        self.testnet = testnet
 
     def __repr__(self):
         return f'{self.name}\n' \
@@ -65,13 +67,14 @@ class Node:
                f'protocol: {self.protocol}'
 
 
-def create_node(network: Cryptocurrency) -> Node:
+def create_node(network: Cryptocurrency, testnet=False) -> Node:
     """
     Constructs a Node from user-provided parameters if key is present in `config.py`-dictionary.
     Else: constructs Node picked from set of default nodes provided by AnyDex.
 
     Return CannotCreateNodeException if required parameters miss from user Node-config: host, port
 
+    :param testnet: testnet node or not
     :param network: instance of Cryptocurrency enum
     :return: Node
     """
@@ -109,7 +112,11 @@ def create_node(network: Cryptocurrency) -> Node:
         default_hosts = read_default_hosts()
 
         try:
-            network_hosts = default_hosts[network.value]
+            if testnet:
+                network_hosts = default_hosts[network.value]['testnet']
+                params['testnet'] = True
+            else:
+                network_hosts = default_hosts[network.value]['non_testnet']
         except KeyError:
             return fail(CannotCreateNodeException(f'Missing default nodes for {network.value}'))
 
@@ -160,7 +167,6 @@ def read_default_hosts():
 def select_best_host(hosts) -> tuple:
     """
     Returns the host with the lowest latency of all hosts.
-
     Makes use of ThreadPoolExecutor to test in multi-threaded approach.
 
     :param hosts: list of host names including ports

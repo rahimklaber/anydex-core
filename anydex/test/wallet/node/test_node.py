@@ -1,28 +1,52 @@
-import json
 import unittest
 
 import anydex.wallet.node.node as node
 from anydex.wallet.cryptocurrency import Cryptocurrency
 
 HOSTS = {
-    "monero": [
-        "http://opennode.xmr-tw.org:18089",
-        "http://node.moneroworld.com:18089",
-        "http://node.xmrbackb.one:18081",
-        "http://uwillrunanodesoon.moneroworld.com:18089",
-        "http://node.xmr.to:18081",
-        "http://nodes.hashvault.pro:18081",
-        "http://node.supportxmr.com:18081"
-    ],
-    "ethereum": [
-        "https://api.myetherapi.com/eth",
-        "https://main-rpc.linkpool.io/"
-    ],
-    "bitcoin": [],
-    "iota": [],
-    "ripple": [],
-    "litecoin": [],
-    "zcash": []
+    "monero": {
+        "non_testnet": [
+            "http://opennode.xmr-tw.org:18089",
+            "http://node.moneroworld.com:18089",
+            "http://node.xmrbackb.one:18081",
+            "http://uwillrunanodesoon.moneroworld.com:18089",
+            "http://node.xmr.to:18081",
+            "http://nodes.hashvault.pro:18081",
+            "http://node.supportxmr.com:18081"
+        ],
+        "testnet": [
+
+        ]
+    },
+    "ethereum": {
+        "non_testnet": [
+            "https://api.myetherapi.com/eth",
+            "https://main-rpc.linkpool.io/"
+        ],
+        "testnet": [
+
+        ]
+    },
+    "bitcoin": {
+        "non_testnet": [],
+        "testnet": []
+    },
+    "iota": {
+        "non_testnet": [],
+        "testnet": []
+    },
+    "litecoin": {
+        "non_testnet": [],
+        "testnet": []
+    },
+    "zcash": {
+        "non_testnet": [],
+        "testnet": []
+    },
+    "stellar": {
+        "non_testnet": [],
+        "testnet": []
+    }
 }
 
 
@@ -38,12 +62,12 @@ class TestNode(unittest.TestCase):
         self.hosts = HOSTS
 
         self.ethereum_hosts = []
-        for ethereum_host in self.hosts['ethereum']:
+        for ethereum_host in self.hosts['ethereum']['non_testnet']:
             _, _, _, host, _ = node._parse_url(ethereum_host)
             self.ethereum_hosts.append(host)
 
         self.monero_hosts = []
-        for ethereum_host in self.hosts['monero']:
+        for ethereum_host in self.hosts['monero']['non_testnet']:
             _, _, _, host, _ = node._parse_url(ethereum_host)
             self.monero_hosts.append(host)
 
@@ -129,5 +153,8 @@ class TestNode(unittest.TestCase):
         """
         Verify that `create_node` fails in case of faulty `network`.
         """
+        temp_fn = node.read_default_hosts
+        node.read_default_hosts = lambda: HOSTS
         with self.assertRaises(AttributeError):
             node.create_node('test_network')
+        node.read_default_hosts = temp_fn

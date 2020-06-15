@@ -37,6 +37,7 @@ To use a remote node to communicate with the Monero blockchain instead, run just
 You are now ready to start interacting with your Monero wallet using AnyDex!
 
 ## Notes
+- Implementation does not yet allow for multiple accounts
 - Monero wallet class includes an additional `transfer_multiple` which may result in lower fees  
 - Lack of database means `monitor_transaction` has no implementation
 - AnyDex uses the `monero` Python module, _not_ `monero-python`
