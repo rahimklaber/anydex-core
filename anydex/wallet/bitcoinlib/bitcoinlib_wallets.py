@@ -74,9 +74,9 @@ class BitcoinlibWallet(Wallet):
         # common['service_caching_enabled'] = 'True'
 
         config['logs'] = {}
-        # logs = config['logs']
-        # logs['enable_bitcoinlib_logging'] = 'True'
-        # logs['loglevel'] = 'WARNING'
+        logs = config['logs']
+        logs['enable_bitcoinlib_logging'] = 'False'
+        logs['loglevel'] = 'INFO'
 
         return config
 
@@ -136,16 +136,16 @@ class BitcoinlibWallet(Wallet):
         balance = await self.get_balance()
 
         if balance['available'] >= int(amount):
-            self._logger.info("Creating %s payment with amount %f to address %s",
-                              self.network, amount, address)
+            self._logger.info("Creating %s payment with amount %d to address %s",
+                              self.network, int(amount), address)
             tx = self.wallet.send_to(address, int(amount))
             return str(tx.hash)
         raise InsufficientFunds("Insufficient funds")
 
     def get_address(self):
         if not self.created:
-            return ''
-        return self.wallet.keys(name='tribler_payments', is_active=False)[0].address
+            return succeed('')
+        return succeed(self.wallet.keys(name='tribler_payments', is_active=False)[-1].address)
 
     def get_transactions(self):
         if not self.created:

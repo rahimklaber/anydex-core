@@ -147,9 +147,9 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
         If wallet exists or connection is alive, return address.
         """
         if self._wallet_connection_alive():
-            return self.wallet.address()
+            return succeed(self.wallet.address())
         else:
-            return ''
+            return succeed('')
 
     async def get_transactions(self):
         """

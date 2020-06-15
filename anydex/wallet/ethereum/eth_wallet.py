@@ -70,7 +70,7 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
         pending_outgoing = self.get_outgoing_amount()
 
         return succeed({
-            'available': self.provider.get_balance(self.get_address()) - pending_outgoing,
+            'available': self.provider.get_balance(self.get_address().result()) - pending_outgoing,
             'pending': self.get_incoming_amount(),
             'currency': self.get_identifier(),
             'precision': self.precision()
@@ -111,7 +111,7 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
         self._logger.info('Creating Ethereum payment with amount %f to address %s', amount, address)
 
         transaction = {
-            'from': self.get_address(),
+            'from': self.get_address().result(),
             'to': address,
             'value': int(amount),
             'nonce': self.get_transaction_count(),
@@ -142,8 +142,8 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
 
     def get_address(self):
         if not self.account:
-            return ''
-        return self.account.address
+            return succeed('')
+        return succeed(self.account.address)
 
     def get_transactions(self):
         """
@@ -154,14 +154,14 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
         if not self.account:
             return succeed([])
 
-        transactions = self.provider.get_transactions(self.get_address())
+        transactions = self.provider.get_transactions(self.get_address().result())
 
         self._update_database(transactions)
         # in the future we might use the provider to only retrieve transactions past a certain date/block
 
         transactions_db = self._session.query(Transaction).filter(
-            or_(func.lower(Transaction.from_) == self.get_address().lower(),
-                func.lower(Transaction.to) == self.get_address().lower()
+            or_(func.lower(Transaction.from_) == self.get_address().result().lower(),
+                func.lower(Transaction.to) == self.get_address().result().lower()
                 )).all()
 
         transactions_to_return = []
@@ -170,7 +170,7 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
             confirmations = latest_block_height - tx.block_number + 1 if tx.block_number else 0
             transactions_to_return.append({
                 'id': tx.hash,
-                'outgoing': tx.from_.lower() == self.get_address().lower(),
+                'outgoing': tx.from_.lower() == self.get_address().result().lower(),
                 'from': tx.from_,
                 'to': tx.to,
                 'amount': tx.value,
@@ -209,7 +209,7 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
         """
         Get the amount of transactions sent by this wallet
         """
-        row = self._session.query(Transaction.nonce).filter(Transaction.from_ == self.get_address()).order_by(
+        row = self._session.query(Transaction.nonce).filter(Transaction.from_ == self.get_address().result()).order_by(
             Transaction.nonce.desc()).first()
         if row:
             return row[0] + 1  # nonce + 1

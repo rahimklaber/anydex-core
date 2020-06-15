@@ -35,10 +35,10 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
             self.keypair = Keypair.from_secret(existing_secret)
             self.created = True
             sequence_nr = 0
-            if self.provider.check_account_created(self.get_address()):
+            if self.provider.check_account_created(self.get_address().result()):
                 self.created_on_network = True
                 sequence_nr = self.get_sequence_number()
-            self.account = Account(self.get_address(), sequence_nr)
+            self.account = Account(self.get_address().result(), sequence_nr)
 
     def create_wallet(self):
         if self.created:
@@ -47,7 +47,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         self._logger.info('Creating Stellar wallet with name %s', self.wallet_name)
         self.keypair = Keypair.random()
         self.created = True
-        self.account = Account(self.get_address(), 0)
+        self.account = Account(self.get_address().result(), 0)
         self.created_on_network = False
         self.database.add_secret(self.wallet_name, self.keypair.secret, self.keypair.public_key)
 
@@ -59,7 +59,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         """
         if self.created_on_network:
             return
-        if self.provider.check_account_created(self.get_address()):
+        if self.provider.check_account_created(self.get_address().result()):
             self.created_on_network = True
 
     def get_balance(self):
@@ -72,9 +72,9 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
                 'precision': self.precision()
             })
 
-        available = int(float(self.provider.get_balance(address=self.get_address()))
+        available = int(float(self.provider.get_balance(address=self.get_address().result()))
                         * self.stroop_in_lumen())  # balance is not in smallest denomination
-        pending_outgoing = self.database.get_outgoing_amount(self.get_address())
+        pending_outgoing = self.database.get_outgoing_amount(self.get_address().result())
 
         return succeed({
             'available': available - pending_outgoing,
@@ -90,9 +90,9 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
 
         :return: sequence number of this wallet.
         """
-        sequence_nr_db = self.database.get_sequence_number(self.get_address())
+        sequence_nr_db = self.database.get_sequence_number(self.get_address().result())
         return sequence_nr_db if sequence_nr_db else self.provider.get_account_sequence(
-            self.get_address())
+            self.get_address().result())
 
     async def transfer(self, amount, address, memo_id: int = None, asset='XLM'):
         """
@@ -148,8 +148,8 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
 
     def get_address(self):
         if not self.created:
-            return ''
-        return self.keypair.public_key
+            return succeed('')
+        return succeed(self.keypair.public_key)
 
     def get_transactions(self):
         """
@@ -163,7 +163,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         if not self.created_on_network:
             return succeed([])
 
-        transactions = self.provider.get_transactions(self.get_address())
+        transactions = self.provider.get_transactions(self.get_address().result())
 
         self.database.update_db(transactions)
 
@@ -171,12 +171,12 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
 
         latest_ledger_height = self.provider.get_ledger_height()
         payments_to_return = []
-        payments = self.database.get_payments_and_transactions(self.get_address())
+        payments = self.database.get_payments_and_transactions(self.get_address().result())
         for payment in payments:
             confirmations = latest_ledger_height - payment[1].ledger_nr + 1 if payment[1].ledger_nr else 0
             payments_to_return.append({
                 'id': payment[1].hash,  # use tx hash for now
-                'outgoing': payment[0].from_ == self.get_address(),
+                'outgoing': payment[0].from_ == self.get_address().result(),
                 'from': payment[0].from_,
                 'to': payment[0].to,
                 'amount': payment[0].amount,
