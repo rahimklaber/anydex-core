@@ -27,7 +27,8 @@ setup(
         "sqlalchemy",
         "monero",
         "responses",
-        "stellar-sdk"
+        "stellar-sdk",
+        "pyota"
     ],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
