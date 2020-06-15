@@ -3,16 +3,13 @@ from enum import Enum
 
 class Cryptocurrency(Enum):
     """
-    Enum representing curerntly implemented cryptocurrencies.
+    Enum representing currently implemented cryptocurrencies.
     """
-
-    BITCOIN = 'bitcoin'
-    DASH = 'dash'
     BANDWIDTH_TOKEN = 'bandwidth_token'
-    ETHEREUM = 'ethereum'
-    RIPPLE = 'ripple'
+    BITCOIN = 'bitcoin'
     LITECOIN = 'litecoin'
+    DASH = 'dash'
+    ETHEREUM = 'ethereum'
     IOTA = 'iota'
     MONERO = 'monero'
-    ZCASH = 'zcash'
     STELLAR = 'stellar'

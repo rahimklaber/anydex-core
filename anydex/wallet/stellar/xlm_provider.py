@@ -86,7 +86,7 @@ class HorizonProvider(StellarProvider):
             if fun == self.server.load_account:
                 raise e
             raise RequestException('Check the request params, the resource could not be found')
-        except stellar_sdk.exceptions.BadRequestError:
+        except stellar_sdk.exceptions.BadRequestError as e:
             raise RequestException('Your request had an error')
         except stellar_sdk.exceptions.BadResponseError:
             raise RequestException('The server response had an error')
