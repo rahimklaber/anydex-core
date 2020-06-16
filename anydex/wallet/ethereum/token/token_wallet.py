@@ -101,20 +101,21 @@ class Erc20TokenWallet(EthereumTestnetWallet):
         tx = self.contract.functions.transfer(address, amount).buildTransaction(
             {'gas': self.provider.estimate_gas(), 'gasPrice': self.provider.get_gas_price(),
              'chainId': self.chain_id})
-        tx.update({'nonce': self.database.get_transaction_count()})
+        tx.update({'nonce': self.database.get_transaction_count(self.get_address().result())})
         s_tx = self.account.sign_transaction(tx)
 
         # add transaction to database
         self.database.add(
             Transaction(
-                from_=self.get_address(),
+                from_=self.get_address().result(),
                 to=address,
                 value=amount,
                 gas=tx['gas'],
                 nonce=tx['nonce'],
                 gas_price=tx['gasPrice'],
                 hash=s_tx['hash'].hex(),
-                is_pending=True
+                is_pending=True,
+                token_identifier=self.get_identifier()
             )
         )
 

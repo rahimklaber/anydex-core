@@ -255,8 +255,10 @@ class EthereumBlockchairProvider(EthereumProvider):
         """
         normalized_txs = []
         for tx in txs:
+            if tx['input'] != '0x':  # We only care about ether transactions here
+                continue
             normalized_txs.append(self._normalize_transaction(tx))
-        return normalized_txs
+        return list(set(normalized_txs))
 
     def _normalize_transaction(self, tx) -> Transaction:
         """
@@ -470,7 +472,7 @@ class EtherscanProvider(EthereumProvider):
         normalized_txs = []
         for tx in txs:
             normalized_txs.append(self._normalize_transaction(tx))
-        return normalized_txs
+        return list(set(normalized_txs)) # duplicates
 
     def _normalize_transaction(self, tx) -> Transaction:
         """
@@ -598,7 +600,8 @@ class AutoTestnetEthereumProvider(AutoEthereumProvider):
 
         # blockchair = EthereumBlockchairProvider()
         # blockcypher = EthereumBlockcypherProvider(network="testnet")
-        self.web3 = Web3Provider('https://ropsten-rpc.linkpool.io/')  # Todo fix config so we don't have to hardcode this.
+        self.web3 = Web3Provider(
+            'https://ropsten-rpc.linkpool.io/')  # Todo fix config so we don't have to hardcode this.
         self.etherscan = EtherscanProvider('testnet')
         self.providers = {
             'get_transaction_count': [self.web3, self.etherscan],

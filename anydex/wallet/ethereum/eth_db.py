@@ -47,6 +47,9 @@ class Transaction(Base):
             raise NotImplementedError(f'cannot compare equality between{self} and {other}')
         return self.hash == other.hash
 
+    def __hash__(self):
+        return hash(self.hash)
+
 
 def initialize_db(db_path):
     engine = create_engine(f'sqlite:///{db_path}', echo=False)
@@ -111,7 +114,7 @@ class EthereumDb:
         """
         Get the amount of transactions sent by this wallet
         """
-        row = self.session.query(Transaction.nonce).filter(Transaction.from_ == address).order_by(
+        row = self.session.query(Transaction.nonce).filter(func.lower(Transaction.from_) == address.lower()).order_by(
             Transaction.nonce.desc()).first()
         if row:
             return row[0] + 1  # nonce + 1

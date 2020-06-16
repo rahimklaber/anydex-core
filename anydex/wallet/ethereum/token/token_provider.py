@@ -95,7 +95,7 @@ class TokenProvider(EthereumProvider):
 
         :param tx: signed transcation (using `w3.eth.account.signTransaction()`)
         """
-        tx_hash = w3.eth.sendRawTransaction(tx)
+        tx_hash = self._eth_provider.submit_transaction(tx)
         return tx_hash
 
     def get_balance(self, address):
