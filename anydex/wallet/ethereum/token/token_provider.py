@@ -1,37 +1,30 @@
-import json
-from datetime import datetime
-
-from web3 import Web3
-
-from anydex.wallet.ethereum.eth_db import Transaction
-from anydex.wallet.ethereum.eth_provider import AutoEthereumProvider, EtherscanProvider, AutoTestnetEthereumProvider, \
-    EthereumProvider
-from anydex.wallet.provider import Provider
+from anydex.wallet.ethereum.eth_provider import EtherscanProvider, AutoTestnetEthereumProvider, \
+    EthereumProvider, AutoEthereumProvider
 
 
 class TokenProvider(EthereumProvider):
 
-    def __init__(self, contract_address):
+    def __init__(self, contract_address, abi, testnet=False):
         """
         Instantiate TokenProvider attributs.
 
         :param contract_address: main token contract address
         """
-        abi = self.get_abi()  # read in default ERC20 Application Binary Interface
-        self._eth_provider = AutoTestnetEthereumProvider()
+        self.abi = abi  # read in default ERC20 Application Binary Interface
+        self._eth_provider = AutoTestnetEthereumProvider() if testnet else AutoEthereumProvider()
         self.w3 = self._eth_provider.web3.w3
-        self.contract = self.w3.eth.contract(contract_address, abi=abi)
-        self._etherscan_provider = TokenEtherscanProvider(self.contract)
+        self.contract = self.w3.eth.contract(contract_address, abi=self.abi)
+        self._etherscan_provider = TokenEtherscanProvider(self.contract, testnet)
 
-    @staticmethod
-    def get_abi():
-        """
-        Read locally stored ABI in as string
-        :return: str formatted ABI
-        """
-        with open('abi.json') as file:
-            abi = json.loads(file.read())
-        return abi
+    # @staticmethod
+    # def get_abi():
+    #     """
+    #     Read locally stored ABI in as string
+    #     :return: str formatted ABI
+    #     """
+    #     with open('abi.json') as file:
+    #         abi = json.loads(file.read())
+    #     return abi
 
     def get_transaction_count(self, address):
         """
@@ -156,13 +149,14 @@ class TokenEtherscanProvider(EtherscanProvider):
     Included is an additional decoding step.
     """
 
-    def __init__(self, contract):
+    def __init__(self, contract, testnet=False):
         """
         Pass additional contract parameter to allow for input decoding.
 
         :param contract: passed from __init__ in TokenProvider
         """
-        super().__init__('testnet')
+        network = 'testnet' if testnet else 'ethereum'
+        super().__init__(network)
         self.contract = contract
 
     def get_transactions(self, address, start_block=None, end_block=None):
