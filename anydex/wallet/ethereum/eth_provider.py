@@ -518,21 +518,21 @@ class AutoEthereumProvider(EthereumProvider):
         try:
             node = create_node(Cryptocurrency.ETHEREUM)
             address = f'{node.host}:{node.port}' if node.port else node.host
-            web3 = Web3Provider(address)
+            self.web3 = Web3Provider(address)
         except (ConnectionException, CannotCreateNodeException):
-            web3 = None
+            self.web3 = None
 
-        blockchair = EthereumBlockchairProvider()
-        blockcypher = EthereumBlockcypherProvider()
-        etherscan = EtherscanProvider()
+        self.blockchair = EthereumBlockchairProvider()
+        self.blockcypher = EthereumBlockcypherProvider()
+        self.etherscan = EtherscanProvider()
         self.providers = {
-            'get_transaction_count': [web3, etherscan, blockcypher, blockchair],
-            'get_gas_price': [web3, etherscan, blockcypher, blockchair],
-            'get_transactions': [blockchair, etherscan],
-            'get_transactions_received': [blockchair],
-            'get_latest_blocknr': [web3, blockcypher, etherscan, blockchair],
-            'submit_transaction': [web3, etherscan, blockchair],
-            'get_balance': [web3, etherscan, blockcypher, blockchair]
+            'get_transaction_count': [self.web3, self.etherscan, self.blockcypher, self.blockchair],
+            'get_gas_price': [self.web3, self.etherscan, self.blockcypher, self.blockchair],
+            'get_transactions': [self.blockchair, self.etherscan],
+            'get_transactions_received': [self.blockchair],
+            'get_latest_blocknr': [self.web3, self.blockcypher, self.etherscan, self.blockchair],
+            'submit_transaction': [self.web3, self.etherscan, self.blockchair],
+            'get_balance': [self.web3, self.etherscan, self.blockcypher, self.blockchair]
         }
 
     def _make_request(self, fun, *args, **kwargs):
@@ -598,14 +598,14 @@ class AutoTestnetEthereumProvider(AutoEthereumProvider):
 
         # blockchair = EthereumBlockchairProvider()
         # blockcypher = EthereumBlockcypherProvider(network="testnet")
-        web3 = Web3Provider('https://ropsten-rpc.linkpool.io/')  # Todo fix config so we don't have to hardcode this.
-        etherscan = EtherscanProvider('testnet')
+        self.web3 = Web3Provider('https://ropsten-rpc.linkpool.io/')  # Todo fix config so we don't have to hardcode this.
+        self.etherscan = EtherscanProvider('testnet')
         self.providers = {
-            'get_transaction_count': [web3, etherscan],
-            'get_gas_price': [web3, etherscan],
-            'get_transactions': [etherscan],
+            'get_transaction_count': [self.web3, self.etherscan],
+            'get_gas_price': [self.web3, self.etherscan],
+            'get_transactions': [self.etherscan],
             'get_transactions_received': [],
-            'get_latest_blocknr': [web3, etherscan],
-            'submit_transaction': [web3, etherscan],
-            'get_balance': [web3, etherscan]
+            'get_latest_blocknr': [self.web3, self.etherscan],
+            'submit_transaction': [self.web3, self.etherscan],
+            'get_balance': [self.web3, self.etherscan]
         }

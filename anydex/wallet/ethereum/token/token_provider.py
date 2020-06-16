@@ -1,14 +1,15 @@
 import json
 from datetime import datetime
 
-from web3.auto import w3
+from web3 import Web3
 
 from anydex.wallet.ethereum.eth_db import Transaction
-from anydex.wallet.ethereum.eth_provider import AutoEthereumProvider, EtherscanProvider
+from anydex.wallet.ethereum.eth_provider import AutoEthereumProvider, EtherscanProvider, AutoTestnetEthereumProvider, \
+    EthereumProvider
 from anydex.wallet.provider import Provider
 
 
-class TokenProvider(Provider):
+class TokenProvider(EthereumProvider):
 
     def __init__(self, contract_address):
         """
@@ -17,8 +18,9 @@ class TokenProvider(Provider):
         :param contract_address: main token contract address
         """
         abi = self.get_abi()  # read in default ERC20 Application Binary Interface
-        self.contract = w3.eth.contract(contract_address, abi=abi)
-        self._eth_provider = AutoEthereumProvider()
+        self._eth_provider = AutoTestnetEthereumProvider()
+        self.w3 = self._eth_provider.web3.w3
+        self.contract = self.w3.eth.contract(contract_address, abi=abi)
         self._etherscan_provider = TokenEtherscanProvider(self.contract)
 
     @staticmethod
@@ -29,7 +31,7 @@ class TokenProvider(Provider):
         """
         with open('abi.json') as file:
             abi = json.loads(file.read())
-        return str(abi)
+        return abi
 
     def get_transaction_count(self, address):
         """
@@ -93,7 +95,7 @@ class TokenProvider(Provider):
 
         :param tx: signed transcation (using `w3.eth.account.signTransaction()`)
         """
-        tx_hash = w3.eth.sendRawTransaction(tx.rawTransaction)
+        tx_hash = w3.eth.sendRawTransaction(tx)
         return tx_hash
 
     def get_balance(self, address):
@@ -104,7 +106,7 @@ class TokenProvider(Provider):
         :param address: str representation of an address
         :return: balance
         """
-        return self.contract.functions.balanceOf(address).call() // (10 ** self.get_precision())
+        return self.contract.functions.balanceOf(address).call()
 
     def get_contract_address(self):
         """
@@ -125,7 +127,7 @@ class TokenProvider(Provider):
         Get raw total supply of token constract.
         :return: integer representation of total supply
         """
-        return self.contract.functions.totalSupply().call() // (10 ** self.get_precision())
+        return self.contract.functions.totalSupply().call()
 
     def get_contract_name(self):
         """
@@ -160,30 +162,22 @@ class TokenEtherscanProvider(EtherscanProvider):
 
         :param contract: passed from __init__ in TokenProvider
         """
-        super().__init__()
+        super().__init__('testnet')
         self.contract = contract
 
-    def _normalize_transaction(self, tx) -> Transaction:
-        """
-        Turns the transaction from Etherscan into the wallet transaction format.
-        Rather than a value field, decode input field to get `to` address and `value`.
-
-        :param tx: tx from Etherscan
-        :return: Transaction object
-        """
-        # decode transaction input field to retrieve value and destination address
-        _, metadata = self.contract.decode_function_input(tx['input'])
-        to, value = metadata['_to'], metadata['_value']
-
-        return Transaction(
-            block_number=tx['blockNumber'],
-            hash=tx['hash'],
-            date_time=datetime.utcfromtimestamp(int(tx['timeStamp'])),
-            to=to,
-            from_=tx['from'],
-            value=value,
-            gas_price=tx['gasPrice'],
-            gas=tx['gasUsed'],
-            nonce=tx['nonce'],
-            is_pending=False  # Etherscan transactions are always confirmed
-        )
+    def get_transactions(self, address, start_block=None, end_block=None):
+        # does not include pending transactions
+        data = {
+            'module': 'account',
+            'action': 'tokentx',
+            'contractaddress': self.contract.address,
+            'address': address,
+            'sort': 'desc'
+        }
+        if start_block and end_block:
+            data['startblock'] = start_block
+            data['endblock'] = end_block
+        response = self._send_request(data=data)
+        result = response.json()['result']
+        # normalize transactions
+        return self._normalize_transactions(result)
