@@ -12,16 +12,6 @@ from anydex.wallet.ethereum.eth_db import Transaction
 from anydex.wallet.ethereum.token.token_provider import TokenProvider
 
 
-# class TokenDict(TypedDict):
-#     """
-#     Definition of a token dict from which a new token wallet can be created
-#     """
-#     identifier: str
-#     name: str
-#     precision: int
-#     contract_address: str
-
-
 class Erc20TokenWallet(EthereumTestnetWallet):
 
     def __init__(self, contract_address, identifier, name, decimals, abi, provider: TokenProvider, db_folder):
@@ -29,8 +19,6 @@ class Erc20TokenWallet(EthereumTestnetWallet):
         self.name = name
         self.decimals = decimals
         self.contract_address = contract_address
-        # self.eth_wallet = EthereumWallet(r'C:\Users\Rahim\Desktop\anydex-core\eth.db')
-        # self.created = self.eth_wallet.created
         self.contract = Web3().eth.contract(Web3.toChecksumAddress(contract_address), abi=abi)
         self.provider = provider if provider else TokenProvider(contract_address)
         super().__init__(db_folder, self.provider)
@@ -48,6 +36,13 @@ class Erc20TokenWallet(EthereumTestnetWallet):
         """
         Create a new wallet from the given dictionary
 
+        The dict should have these keys:
+             identifier: str
+             name: str
+             precision: int
+             contract_address: str
+
+
         :param db_folder: folder enclosing the database file
         :param token: a dictionary that contains the info defined in the TokenDict class
         :return: a new instance of this class
@@ -61,34 +56,6 @@ class Erc20TokenWallet(EthereumTestnetWallet):
 
     def get_name(self):
         return self.name
-
-    # def create_wallet(self):
-    #     if self.created:
-    #         return fail(RuntimeError(f'Ethereum Token wallet for {self.get_name()} already exists'))
-    #
-    #     self._logger.info('Creating Ethereum Token wallet for %s', self.get_name())
-    #     self.created = True
-    #
-    #     return succeed(None)
-
-    # def get_balance(self):
-    #     if not self.created:
-    #         return succeed({
-    #             'available': 0,
-    #             'pending': 0,
-    #             'currency': self.identifier(),
-    #             'precision': self.precision()
-    #         })
-    #     address = self.get_address()
-    #     # self._update_database(self.get_transactions())
-    #     # pending_outgoing = self.get_outgoing_amount()
-    #     balance = {
-    #         'available': self.provider.get_balance(address),  # - pending_outgoing,
-    #         'pending': 0,  # self.get_incoming_amount(),
-    #         'currency': self.get_identifier(),
-    #         'precision': self.precision()
-    #     }
-    #     return succeed(balance)
 
     async def transfer(self, amount, address):
 
