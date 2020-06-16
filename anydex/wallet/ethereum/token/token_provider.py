@@ -46,7 +46,7 @@ class TokenProvider(EthereumProvider):
         Estimate the amount of gas needed for this transaction.
         :return: the estimated gas
         """
-        return self._eth_provider.estimate_gas()
+        return 50000  # should be enough for token transfers
 
     def get_gas_price(self):
         """
