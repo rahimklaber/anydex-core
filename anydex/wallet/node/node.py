@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import socket
 from concurrent.futures import ThreadPoolExecutor
 from enum import Enum, auto
@@ -155,7 +156,9 @@ def read_default_hosts():
     """
     nodes = dict()
 
-    with open('hosts.json') as file:
+    __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
+    with open(os.path.join(__location__, 'hosts.json')) as file:
         try:
             nodes = json.loads(file.read())
         except json.JSONDecodeError as err:
