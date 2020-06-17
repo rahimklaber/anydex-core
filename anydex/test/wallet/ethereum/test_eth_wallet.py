@@ -1,12 +1,15 @@
+import asyncio
 import time
 from datetime import datetime
 
+from ipv8.util import succeed
 from sqlalchemy.orm import session as db_session
 
 from anydex.test.base import AbstractServer
-from anydex.test.util import MockObject
+from anydex.test.util import MockObject, timeout
 from anydex.wallet.ethereum.eth_db import Key, Transaction
 from anydex.wallet.ethereum.eth_wallet import EthereumWallet, EthereumTestnetWallet
+from anydex.wallet.wallet import InsufficientFunds
 
 
 class TestEthereumWallet(AbstractServer):
@@ -22,7 +25,7 @@ class TestEthereumWallet(AbstractServer):
         await super().tearDown()
 
     def new_wallet(self):
-        return EthereumWallet(self.session_base_dir)
+        return EthereumWallet(self.session_base_dir, True)  # trick wallet to not use default provider
 
     def test_get_identifier(self):
         """
@@ -88,7 +91,6 @@ class TestEthereumWallet(AbstractServer):
         }
         self.assertEqual(balance, await self.wallet.get_balance())
 
-
     def test_get_address_not_created(self):
         """
         Test for getting the address of the wallet when it's not yet created
@@ -144,7 +146,49 @@ class TestEthereumWallet(AbstractServer):
         }
         self.assertEqual([tx_dict], transactions)
 
+    async def test_transfer_no_balance(self):
+        """
+        Test for transfer with no balance
+        """
+        self.wallet.get_balance = lambda: succeed({'available': 0,
+                                                   'pending': 0,
+                                                   'currency': self.wallet.get_identifier(),
+                                                   'precision': self.wallet.precision()})
+        with self.assertRaises(InsufficientFunds):
+            await self.wallet.transfer(10, 'xxx')
 
+    @timeout(6)
+    async def test_monitor_future_found(self):
+        """
+         Test for monitor_transactions when the transaction is found
+        """
+        tx_dict = {
+            'id': 'xxx',
+            'outgoing': True,
+            'from': self.wallet.get_address().result(),
+            'to': "0x5df9b87991262f6ba471f09758cde1c0fc1de734",
+            'amount': 31337,
+            'fee_amount': 25,
+            'currency': self.identifier,
+            'timestamp': time.mktime(datetime(2015, 8, 7, 3, 30, 33).timetuple()),
+            'description': f'Confirmations: {1}'
+        }
+        self.wallet.get_transactions = lambda: succeed([tx_dict])
+        self.assertIsNone(
+            await self.wallet.monitor_transaction('xxx'))
+
+    @timeout(10)
+    async def test_monitor_future_not_found(self):
+        """
+         Test for monitor_transactions when the transaction is not found
+        """
+
+        self.wallet.get_transactions = lambda: succeed([])
+        future = self.wallet.monitor_transaction(
+            'xxx')
+        # the monitor transaction runs every 5 sec
+        await asyncio.sleep(6)
+        self.assertFalse(future.done())
 
 
 class TestTestnetEthereumWallet(TestEthereumWallet):
@@ -156,4 +200,4 @@ class TestTestnetEthereumWallet(TestEthereumWallet):
         self.name = 'testnet ethereum'
 
     def new_wallet(self):
-        return EthereumTestnetWallet(self.session_base_dir)
+        return EthereumTestnetWallet(self.session_base_dir, True)  # trick wallet to not use default provider

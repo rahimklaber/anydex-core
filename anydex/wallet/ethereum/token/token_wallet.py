@@ -45,7 +45,6 @@ class AbstractTokenWallet(AbstractEthereumWallet):
         """
         Create a list of new wallets from the given dicts.
 
-        :param testnet: If the wallets should be a testnet wallet or not
         :param db_folder: folder enclosing the database file
         :param tokens: a list of dictionaries that contains the token info
         :return: list of created wallets
@@ -69,7 +68,6 @@ class AbstractTokenWallet(AbstractEthereumWallet):
              contract_address: str
 
 
-        :param testnet: If the wallet should be a testnet wallet or not
         :param db_folder: folder enclosing the database file
         :param token: a dictionary that contains the token info
         :return: a new instance of this class
@@ -92,7 +90,7 @@ class AbstractTokenWallet(AbstractEthereumWallet):
 
         self._logger.info('Creating Ethereum Token (%s) payment with amount %f to address %s', self.get_name(), amount,
                           address)
-        tx = self.contract.functions.transfer(address, amount).buildTransaction(
+        tx = self.contract.functions.transfer(Web3.toChecksumAddress(address), amount).buildTransaction(
             {'gas': self.provider.estimate_gas(), 'gasPrice': self.provider.get_gas_price(),
              'chainId': self.chain_id})
         tx.update({'nonce': self.database.get_transaction_count(self.get_address().result())})
