@@ -214,16 +214,13 @@ class EthereumBlockchairProvider(EthereumProvider):
 
     def get_transactions_received(self, address, start_block=None, end_block=None):
         response = self.send_request('/transactions', data={'q': f'recipient({address})'})
-        response_mempool = self.send_request('/mempool/transactions', data={'q': f'recipient({address})'})
-        txs = response.json()['data'] + response_mempool.json()['data']
+        txs = response.json()['data']
         return self._normalize_transactions(txs)
 
     def get_transactions(self, address, start_block=None, end_block=None):
         sent = self.send_request('/transactions', data={'q': f'sender({address})'})
         sent_data = sent.json()['data']
-        sent_mempool = self.send_request('/mempool/transactions', data={'q': f'sender({address})'})
-        sent_mempool_data = sent_mempool.json()['data']
-        txs = sent_data + sent_mempool_data
+        txs = sent_data
         return self._normalize_transactions(txs) + self.get_transactions_received(address)
 
     def _check_response(self, response):
@@ -255,7 +252,7 @@ class EthereumBlockchairProvider(EthereumProvider):
         """
         normalized_txs = []
         for tx in txs:
-            if tx['input'] != '0x':  # We only care about ether transactions here
+            if tx['input_hex'] not in ['0x', '']:  # We only care about ether transactions here
                 continue
             normalized_txs.append(self._normalize_transaction(tx))
         return list(set(normalized_txs))  # https://stackoverflow.com/questions/7961363/removing-duplicates-in-lists
@@ -601,7 +598,7 @@ class AutoTestnetEthereumProvider(AutoEthereumProvider):
         # blockchair = EthereumBlockchairProvider()
         # blockcypher = EthereumBlockcypherProvider(network="testnet")
         self.web3 = Web3Provider(
-            'https://ropsten-rpc.linkpool.io/')  # Todo fix config so we don't have to hardcode this.
+            'https://ropsten.infura.io/v3/40ebfba8446947279257f92b7cc4bb77')  # Todo fix config so we don't have to hardcode this.
         self.etherscan = EtherscanProvider('testnet')
         self.providers = {
             'get_transaction_count': [self.web3, self.etherscan],
