@@ -20,6 +20,8 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
     The class operates on the Monero wallet connected to the `monero-wallet-rpc` server.
     A Tribler specific account is created in the wallet, storing its address in database.
     Anytime AnyDex is started up, the address is retrieved to select the appropriate account.
+
+    NOTE: no support for account management or multiple accounts as of yet.
     """
 
     def __init__(self, testnet, host: str, port: int):
@@ -150,6 +152,32 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
             return succeed(self.wallet.address())
         else:
             return succeed('')
+
+    def get_integrated_address(self, payment_id) -> monero.address.IntegratedAddress:
+        """
+        Get integrated address from `get_address` and `payment_id` parameter.
+        :param payment_id: payment_id to include into address
+                    PaymentID must be either an int or hexadecimal string, or bytes
+        :return: integrated address
+        """
+        address = self.wallet.address()
+        return address.with_payment_id(payment_id)
+
+    def generate_subaddress(self) -> monero.address.SubAddress:
+        """
+        Generate a new subaddress in main wallet account.
+        NOTE: no support for account management or multiple accounts yet.
+        :return: subaddress in main wallet account: str
+        """
+        address, _ = self.wallet.new_address()
+        return address
+
+    def get_addresses(self) -> list:
+        """
+        Return list of all addresses contained in this main wallet account.
+        :return: list of `monero.address.Address`.
+        """
+        return self.wallet.addresses()
 
     async def get_transactions(self):
         """
