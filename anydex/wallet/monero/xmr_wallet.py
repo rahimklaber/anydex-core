@@ -272,11 +272,22 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
 
     def monitor_transaction(self, txid):
         """
-        Blockchain is used to retrieve all transactions related to wallet.
-        No need for database and `monitor_transaction` method to store historical transactions.
-
         :param txid: transaction id
         """
+        monitor_future = Future()
+
+        async def monitor():
+            transactions = await self.get_transactions()
+            for transaction in transactions:
+                if transaction['id'] == txid:
+                    self._logger.debug("Found transaction with id %s", txid)
+                    monitor_future.set_result(None)
+                    monitor_task.cancel()
+
+        self._logger.debug("Start polling for transaction %s", txid)
+        monitor_task = self.register_task(f"{self.network}_poll_{txid}", monitor, interval=5)
+
+        return monitor_future
 
 
 class MoneroWallet(AbstractMoneroWallet):
