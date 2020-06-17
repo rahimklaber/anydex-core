@@ -214,7 +214,7 @@ class TestStellarWallet(AbstractServer):
         self.wallet.provider.get_transactions = lambda *_: []
 
         self.assertIsNone(await self.wallet.monitor_transaction(
-            '96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98', 1))
+            '96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98', interval=1))
 
     @timeout(5)
     async def test_monitor_transactions_not_found(self):
@@ -228,7 +228,7 @@ class TestStellarWallet(AbstractServer):
         self.wallet.provider.get_transactions = lambda *_: []
 
         future = self.wallet.monitor_transaction(
-            '96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98', 1)
+            '96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98', interval=1)
         # the monitor transaction runs every 5 secs so this should be enough
         time.sleep(2)
         self.assertFalse(future.done())

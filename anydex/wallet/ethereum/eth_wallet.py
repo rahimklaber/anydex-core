@@ -1,7 +1,6 @@
 import os
 import time
 from abc import ABCMeta
-from asyncio import Future
 
 from ipv8.util import fail, succeed
 from sqlalchemy import func, or_
@@ -216,27 +215,10 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
         return 0
 
     def min_unit(self):
-        # TODO determine minimal transfer unit
         return 1
 
     def precision(self):
         return 18
-
-    def monitor_transaction(self, txid):
-        monitor_future = Future()
-
-        async def monitor():
-            transactions = await self.get_transactions()
-            for transaction in transactions:
-                if transaction.hash == txid:
-                    self._logger.debug('Found transaction with id %s', txid)
-                    monitor_future.set_result(None)
-                    monitor_task.cancel()
-
-        self._logger.debug('Start polling for transaction %s', txid)
-        monitor_task = self.register_task(f'{self.network}_poll_{txid}', monitor, interval=5)
-
-        return monitor_future
 
 
 class EthereumWallet(AbstractEthereumWallet):

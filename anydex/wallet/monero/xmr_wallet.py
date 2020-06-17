@@ -270,25 +270,6 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
     def precision(self):
         return 12
 
-    def monitor_transaction(self, txid):
-        """
-        :param txid: transaction id
-        """
-        monitor_future = Future()
-
-        async def monitor():
-            transactions = await self.get_transactions()
-            for transaction in transactions:
-                if transaction['id'] == txid:
-                    self._logger.debug("Found transaction with id %s", txid)
-                    monitor_future.set_result(None)
-                    monitor_task.cancel()
-
-        self._logger.debug("Start polling for transaction %s", txid)
-        monitor_task = self.register_task(f"{self.network}_poll_{txid}", monitor, interval=5)
-
-        return monitor_future
-
 
 class MoneroWallet(AbstractMoneroWallet):
     def __init__(self, host: str = '127.0.0.1', port: int = 18081):
