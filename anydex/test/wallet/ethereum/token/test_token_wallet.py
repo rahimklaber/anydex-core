@@ -68,8 +68,22 @@ class TestTokenWallet(TestEthereumWallet):
         self.assertEqual('Testnet ChainLink Token', wallet.get_name())
         self.assertEqual(18, wallet.precision())
 
+    def test_from_json_default(self):
+        """
+        Test for from_json with the default json file (tokens.json)
+        """
+        wallet = self.wallet.from_json(self.session_base_dir)[0]
+        self.assertEqual('LINK', wallet.get_identifier())
+
 
 class TestTestnetTokenWallet(TestTokenWallet):
     def new_wallet(self):
         return TokenTestnetWallet('0x20fE562d797A42Dcb3399062AE9546cd06f63280', 'TW', 'token wallet', 18, True,
                                   self.session_base_dir)  # trick wallet to not use default provider
+
+    def test_from_json_default(self):
+        """
+        Test for from_json with the default json file (tokens_testnet.json)
+        """
+        wallet = self.wallet.from_json(self.session_base_dir)[0]
+        self.assertEqual('TLINK', wallet.get_identifier())

@@ -30,8 +30,8 @@ class AbstractTokenWallet(AbstractEthereumWallet):
     def abi_from_json(path_to_file=None):
         """
         Read the abi from the json file
-        :param path_to_file: path to abi json file
 
+        :param path_to_file: path to abi json file
         :return: abi
         """
         if not path_to_file:
@@ -39,6 +39,21 @@ class AbstractTokenWallet(AbstractEthereumWallet):
         with open(path_to_file) as abi_file:
             abi_json = json.loads(abi_file.read())
         return abi_json
+
+    @classmethod
+    def from_json(cls, db_folder, path_to_file=None):
+        """
+        Create Token wallets from a json file.
+
+        :param db_folder: path to the datase folder
+        :param path_to_file: path to the json file uses default if none
+        """
+        if not path_to_file:
+            file_name = 'tokens_testnet.json' if cls == TokenTestnetWallet else 'tokens.json'
+            path_to_file = pathlib.Path.joinpath(pathlib.Path(__file__).parent.absolute(), file_name)
+        with open(path_to_file) as tokens_file:
+            tokens_dict = json.loads(tokens_file.read())
+        return cls.from_dicts(tokens_dict, db_folder)
 
     @classmethod
     def from_dicts(cls, tokens, db_folder):
@@ -53,7 +68,7 @@ class AbstractTokenWallet(AbstractEthereumWallet):
         if type(tokens) == dict:  # if it's only one dict and not a list
             return [cls.from_dict(tokens, db_folder)]
         for token in tokens:
-            wallets.append(cls.from_dict(token, db_folder,))
+            wallets.append(cls.from_dict(token, db_folder, ))
         return wallets
 
     @classmethod
@@ -129,8 +144,6 @@ class TokenWallet(AbstractTokenWallet):
         super().__init__(contract_address, identifier, name, decimals, provider, db_folder, False)
 
 
-
-
 class TokenTestnetWallet(AbstractTokenWallet):
     """
     Erc-20 token wallet on the test net
@@ -138,5 +151,3 @@ class TokenTestnetWallet(AbstractTokenWallet):
 
     def __init__(self, contract_address, identifier, name, decimals, provider: TokenProvider, db_folder):
         super().__init__(contract_address, identifier, name, decimals, provider, db_folder, True)
-
-
