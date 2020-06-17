@@ -7,7 +7,7 @@ from sqlalchemy import func, or_
 from web3 import Web3
 
 from anydex.wallet.cryptocurrency import Cryptocurrency
-from anydex.wallet.ethereum.eth_db import initialize_db, Key, Transaction
+from anydex.wallet.ethereum.eth_database import initialize_db, Key, Transaction
 from anydex.wallet.ethereum.eth_provider import AutoEthereumProvider, AutoTestnetEthereumProvider
 from anydex.wallet.wallet import Wallet, InsufficientFunds
 

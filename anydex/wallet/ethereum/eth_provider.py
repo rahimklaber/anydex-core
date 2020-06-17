@@ -5,7 +5,7 @@ from time import sleep
 import requests
 from web3 import Web3
 
-from anydex.wallet.ethereum.eth_db import Transaction
+from anydex.wallet.ethereum.eth_database import Transaction
 from anydex.wallet.node.node import create_node, CannotCreateNodeException
 from anydex.wallet.provider import NotSupportedOperationException
 from anydex.wallet.provider import Provider

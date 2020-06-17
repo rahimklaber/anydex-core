@@ -7,7 +7,7 @@ from ipv8.util import fail, succeed
 from stellar_sdk import Keypair, TransactionBuilder, Account, Network
 
 from anydex.wallet.cryptocurrency import Cryptocurrency
-from anydex.wallet.stellar.xlm_db import Transaction, StellarDb
+from anydex.wallet.stellar.xlm_database import Transaction, StellarDb
 from anydex.wallet.stellar.xlm_provider import StellarProvider
 from anydex.wallet.wallet import Wallet, InsufficientFunds
 

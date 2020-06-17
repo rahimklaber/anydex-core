@@ -7,7 +7,7 @@ from stellar_sdk.exceptions import NotFoundError
 
 from anydex.wallet.provider import ConnectionException, RequestException
 from anydex.wallet.provider import Provider
-from anydex.wallet.stellar.xlm_db import Transaction
+from anydex.wallet.stellar.xlm_database import Transaction
 
 
 class StellarProvider(Provider, metaclass=abc.ABCMeta):
