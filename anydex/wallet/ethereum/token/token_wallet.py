@@ -4,22 +4,27 @@ import pathlib
 from web3 import Web3
 
 from anydex.wallet.ethereum.eth_db import Transaction
-from anydex.wallet.ethereum.eth_wallet import EthereumTestnetWallet
+from anydex.wallet.ethereum.eth_wallet import AbstractEthereumWallet
 from anydex.wallet.ethereum.token.token_provider import TokenProvider
 from anydex.wallet.wallet import InsufficientFunds
 
 
-class Erc20TokenWallet(EthereumTestnetWallet):
+class AbstractTokenWallet(AbstractEthereumWallet):
+    """
+    Abstract Wallet for Ethereun Erc-20 Tokens.
+    """
 
-    def __init__(self, contract_address, identifier, name, decimals, provider: TokenProvider, db_folder):
+    def __init__(self, contract_address, identifier, name, decimals, provider: TokenProvider, db_folder, testnet
+                 ):
         abi = self.abi_from_json()
         self.identifier = identifier
         self.name = name
         self.decimals = decimals
         self.contract_address = contract_address
         self.contract = Web3().eth.contract(Web3.toChecksumAddress(contract_address), abi=abi)
-        self.provider = provider if provider else TokenProvider(contract_address, abi)
-        super().__init__(db_folder, self.provider)
+        self.provider = provider if provider else TokenProvider(contract_address, abi, testnet)
+        chain_id = 3 if testnet else 1
+        super().__init__(db_folder, testnet, chain_id, self.provider)
 
     @staticmethod
     def abi_from_json(path_to_file=None):
@@ -40,6 +45,7 @@ class Erc20TokenWallet(EthereumTestnetWallet):
         """
         Create a list of new wallets from the given dicts.
 
+        :param testnet: If the wallets should be a testnet wallet or not
         :param db_folder: folder enclosing the database file
         :param tokens: a list of dictionaries that contains the token info
         :return: list of created wallets
@@ -48,7 +54,7 @@ class Erc20TokenWallet(EthereumTestnetWallet):
         if type(tokens) == dict:  # if it's only one dict and not a list
             return [cls.from_dict(tokens, db_folder)]
         for token in tokens:
-            wallets.append(cls.from_dict(token, db_folder))
+            wallets.append(cls.from_dict(token, db_folder,))
         return wallets
 
     @classmethod
@@ -63,6 +69,7 @@ class Erc20TokenWallet(EthereumTestnetWallet):
              contract_address: str
 
 
+        :param testnet: If the wallet should be a testnet wallet or not
         :param db_folder: folder enclosing the database file
         :param token: a dictionary that contains the token info
         :return: a new instance of this class
@@ -113,3 +120,25 @@ class Erc20TokenWallet(EthereumTestnetWallet):
 
     def precision(self):
         return self.decimals
+
+
+class TokenWallet(AbstractTokenWallet):
+    """
+    Erc-20 token wallet on the main net.
+    """
+
+    def __init__(self, contract_address, identifier, name, decimals, provider: TokenProvider, db_folder):
+        super().__init__(contract_address, identifier, name, decimals, provider, db_folder, False)
+
+
+
+
+class TokenTestnetWallet(AbstractTokenWallet):
+    """
+    Erc-20 token wallet on the test net
+    """
+
+    def __init__(self, contract_address, identifier, name, decimals, provider: TokenProvider, db_folder):
+        super().__init__(contract_address, identifier, name, decimals, provider, db_folder, True)
+
+

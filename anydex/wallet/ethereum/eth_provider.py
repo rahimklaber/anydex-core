@@ -5,12 +5,12 @@ from time import sleep
 import requests
 from web3 import Web3
 
+from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.ethereum.eth_db import Transaction
 from anydex.wallet.node.node import create_node, CannotCreateNodeException
 from anydex.wallet.provider import NotSupportedOperationException
 from anydex.wallet.provider import Provider
 from anydex.wallet.provider import RequestLimit, Blocked, RateExceeded, RequestException, ConnectionException
-from anydex.wallet.cryptocurrency import Cryptocurrency
 
 
 class EthereumProvider(Provider, metaclass=abc.ABCMeta):
@@ -258,7 +258,7 @@ class EthereumBlockchairProvider(EthereumProvider):
             if tx['input'] != '0x':  # We only care about ether transactions here
                 continue
             normalized_txs.append(self._normalize_transaction(tx))
-        return list(set(normalized_txs))
+        return list(set(normalized_txs))  # https://stackoverflow.com/questions/7961363/removing-duplicates-in-lists
 
     def _normalize_transaction(self, tx) -> Transaction:
         """
@@ -472,7 +472,7 @@ class EtherscanProvider(EthereumProvider):
         normalized_txs = []
         for tx in txs:
             normalized_txs.append(self._normalize_transaction(tx))
-        return list(set(normalized_txs)) # duplicates
+        return list(set(normalized_txs))  # duplicates
 
     def _normalize_transaction(self, tx) -> Transaction:
         """

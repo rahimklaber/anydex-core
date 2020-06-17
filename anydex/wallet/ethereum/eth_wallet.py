@@ -4,11 +4,10 @@ from abc import ABCMeta
 from asyncio import Future
 
 from ipv8.util import fail, succeed
-from sqlalchemy import func, or_
 from web3 import Web3
 
 from anydex.wallet.cryptocurrency import Cryptocurrency
-from anydex.wallet.ethereum.eth_db import initialize_db, Key, Transaction, EthereumDb
+from anydex.wallet.ethereum.eth_db import Transaction, EthereumDb
 from anydex.wallet.ethereum.eth_provider import AutoEthereumProvider, AutoTestnetEthereumProvider
 from anydex.wallet.wallet import Wallet, InsufficientFunds
 
@@ -115,7 +114,8 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
                 nonce=transaction['nonce'],
                 gas_price=transaction['gasPrice'],
                 hash=signed['hash'].hex(),
-                is_pending=True
+                is_pending=True,
+                token_identifier=self.get_identifier()
             )
         )
         return signed['hash'].hex()
