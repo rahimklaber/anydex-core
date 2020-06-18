@@ -6,7 +6,6 @@ from ipv8.util import fail, succeed
 from sqlalchemy import func, or_
 from web3 import Web3
 
-from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.ethereum.eth_database import initialize_db, Key, Transaction
 from anydex.wallet.ethereum.eth_provider import AutoEthereumProvider, AutoTestnetEthereumProvider
 from anydex.wallet.wallet import Wallet, InsufficientFunds
@@ -229,7 +228,7 @@ class EthereumWallet(AbstractEthereumWallet):
         return 'ETH'
 
     def get_name(self):
-        return Cryptocurrency.ETHEREUM.value
+        return 'ethereum'
 
 
 class EthereumTestnetWallet(AbstractEthereumWallet):
@@ -240,4 +239,4 @@ class EthereumTestnetWallet(AbstractEthereumWallet):
         return 'TETH'
 
     def get_name(self):
-        return f'testnet {Cryptocurrency.ETHEREUM.value}'
+        return 'testnet ethereum'

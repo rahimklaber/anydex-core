@@ -10,7 +10,6 @@ import monero.wallet
 from monero.backends.jsonrpc import JSONRPCWallet
 from monero.transaction import OutgoingPayment, Payment
 
-from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 
@@ -279,7 +278,7 @@ class MoneroWallet(AbstractMoneroWallet):
         return 'XMR'
 
     def get_name(self):
-        return Cryptocurrency.MONERO.value
+        return 'monero'
 
 
 class MoneroTestnetWallet(AbstractMoneroWallet):
@@ -290,7 +289,7 @@ class MoneroTestnetWallet(AbstractMoneroWallet):
         return 'TXMR'
 
     def get_name(self):
-        return f'testnet {Cryptocurrency.MONERO.value}'
+        return 'testnet monero'
 
 
 class NotSupportedOperationException(Exception):

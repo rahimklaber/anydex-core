@@ -6,7 +6,6 @@ from decimal import Decimal
 from ipv8.util import fail, succeed
 from stellar_sdk import Keypair, TransactionBuilder, Account, Network
 
-from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.stellar.xlm_database import Transaction, StellarDb
 from anydex.wallet.stellar.xlm_provider import StellarProvider, HorizonProvider
 from anydex.wallet.wallet import Wallet, InsufficientFunds
@@ -229,7 +228,7 @@ class StellarWallet(AbstractStellarWallet):
         return 'XLM'
 
     def get_name(self):
-        return Cryptocurrency.STELLAR.value
+        return 'stellar'
 
 
 class StellarTestnetWallet(AbstractStellarWallet):
@@ -240,4 +239,4 @@ class StellarTestnetWallet(AbstractStellarWallet):
         return 'TXLM'
 
     def get_name(self):
-        return f'testnet {Cryptocurrency.STELLAR.value}'
+        return 'testnet stellar'
