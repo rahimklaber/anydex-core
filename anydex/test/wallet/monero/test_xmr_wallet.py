@@ -296,12 +296,12 @@ class TestMoneroWallet(AbstractServer):
         self.assertEqual(TEST_ADDRESS, addr)
         w.cancel_all_pending_tasks()
 
-    def test_get_transactions_no_wallet(self):
+    async def test_get_transactions_no_wallet(self):
         """
         Attempt retrieval of transactions from Monero wallet in case wallet does not exist.
         """
         w = self.new_wallet()
-        self.assertAsyncRaises(WalletConnectionError, w.get_transactions())
+        self.assertAsyncRaises(WalletConnectionError, await w.get_transactions())
         w.cancel_all_pending_tasks()
 
     async def test_get_transactions_wallet(self):
