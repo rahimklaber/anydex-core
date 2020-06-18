@@ -82,7 +82,7 @@ class TestDummyWallet(AbstractServer):
         """
         Test the address of a dummy wallet
         """
-        self.assertIsInstance(self.dummy_wallet.get_address(), str)
+        self.assertIsInstance(self.dummy_wallet.get_address().result(), str)
 
     @timeout(10)
     async def test_get_transaction(self):

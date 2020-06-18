@@ -19,6 +19,8 @@ from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from anydex.wallet.ethereum.eth_wallet import EthereumTestnetWallet
 from anydex.wallet.iota.iota_wallet import IotaWallet, IotaTestnetWallet
 from wallet.bitcoinlib.bitcoinlib_wallets import BitcoinTestnetWallet
+from wallet.monero.xmr_wallet import MoneroTestnetWallet
+from wallet.stellar.xlm_wallet import StellarTestnetWallet
 
 
 class AnyDexService(object):
@@ -95,13 +97,21 @@ class AnyDexService(object):
         btc_testnet_wallet.create_wallet()
         self.wallets[btc_testnet_wallet.get_identifier()] = btc_testnet_wallet
 
-        # eth_testnet_wallet = EthereumTestnetWallet(os.path.join(options.statedir, 'sqlite'), None)
-        # eth_testnet_wallet.create_wallet()
-        # self.wallets[eth_testnet_wallet.get_identifier()] = eth_testnet_wallet
-        #
-        # iota_testnet_wallet = IotaTestnetWallet(os.path.join(options.statedir, 'sqlite'))
-        # iota_testnet_wallet.create_wallet()
-        # self.wallets[iota_testnet_wallet.get_identifier()] = iota_testnet_wallet
+        eth_testnet_wallet = EthereumTestnetWallet(os.path.join(options.statedir, 'sqlite'))
+        eth_testnet_wallet.create_wallet()
+        self.wallets[eth_testnet_wallet.get_identifier()] = eth_testnet_wallet
+
+        iota_testnet_wallet = IotaTestnetWallet(os.path.join(options.statedir, 'sqlite'))
+        iota_testnet_wallet.create_wallet()
+        self.wallets[iota_testnet_wallet.get_identifier()] = iota_testnet_wallet
+
+        xmr_testnet_wallet = MoneroTestnetWallet(os.path.join(options.statedir, 'sqlite'))
+        xmr_testnet_wallet.create_wallet()
+        self.wallets[xmr_testnet_wallet.get_identifier()] = xmr_testnet_wallet
+
+        xlm_testnet_wallet = StellarTestnetWallet(os.path.join(options.statedir, 'sqlite'))
+        xlm_testnet_wallet.create_wallet()
+        self.wallets[xlm_testnet_wallet.get_identifier()] = xlm_testnet_wallet
 
         # Load market community
         self.market = MarketTestnetCommunity(self.trustchain.my_peer, self.ipv8.endpoint, self.ipv8.network,

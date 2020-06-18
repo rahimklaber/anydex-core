@@ -8,7 +8,7 @@ from stellar_sdk import Keypair, TransactionBuilder, Account, Network
 
 from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.stellar.xlm_database import Transaction, StellarDb
-from anydex.wallet.stellar.xlm_provider import StellarProvider
+from anydex.wallet.stellar.xlm_provider import StellarProvider, HorizonProvider
 from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 
@@ -27,7 +27,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         self.testnet = testnet
         self.unlocked = True
 
-        self.provider = provider
+        self.provider = HorizonProvider() if provider is None else provider
         self.database = StellarDb(os.path.join(db_path, 'stellar.db'))
         self.created_on_network = False  # Stellar accounts need to be explicitly created
 
