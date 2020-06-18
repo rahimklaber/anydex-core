@@ -1,6 +1,6 @@
 from anydex.test.base import AbstractServer
 from anydex.test.util import timeout
-from anydex.wallet.dummy_wallet import BaseDummyWallet, DummyWallet1, DummyWallet2
+from anydex.wallet.dummy.dummy_wallet import BaseDummyWallet, DummyWallet1, DummyWallet2
 from anydex.wallet.wallet import InsufficientFunds
 
 

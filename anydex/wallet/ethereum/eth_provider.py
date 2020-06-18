@@ -516,7 +516,7 @@ class AutoEthereumProvider(EthereumProvider):
 
     def __init__(self):
         try:
-            node = create_node(Cryptocurrency.ETHEREUM)
+            node = create_node(Cryptocurrency.ETHEREUM.value)
             address = f'{node.host}:{node.port}' if node.port else node.host
             web3 = Web3Provider(address)
         except (ConnectionException, CannotCreateNodeException):

@@ -13,7 +13,7 @@ from ipv8_service import IPv8
 from anydex.config import get_anydex_configuration
 from anydex.core.community import MarketTestnetCommunity
 from anydex.restapi.rest_manager import RESTManager
-from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
+from anydex.wallet.dummy.dummy_wallet import DummyWallet1, DummyWallet2
 from anydex.wallet.ethereum.eth_wallet import EthereumTestnetWallet
 from anydex.wallet.iota.iota_wallet import IotaTestnetWallet
 from anydex.wallet.bitcoinlib.bitcoinlib_wallets import BitcoinTestnetWallet
