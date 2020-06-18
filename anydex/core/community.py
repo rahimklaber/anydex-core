@@ -588,11 +588,11 @@ class MarketCommunity(Community, BlockListener):
         Return a tuple of incoming and outgoing payment address of an order.
         """
         if order.is_ask():
-            return (WalletAddress(self.wallets[order.assets.second.asset_id].get_address()),
-                    WalletAddress(self.wallets[order.assets.first.asset_id].get_address()))
+            return (WalletAddress(self.wallets[order.assets.second.asset_id].get_address().result()),
+                    WalletAddress(self.wallets[order.assets.first.asset_id].get_address().result()))
         else:
-            return (WalletAddress(self.wallets[order.assets.first.asset_id].get_address()),
-                    WalletAddress(self.wallets[order.assets.second.asset_id].get_address()))
+            return (WalletAddress(self.wallets[order.assets.first.asset_id].get_address().result()),
+                    WalletAddress(self.wallets[order.assets.second.asset_id].get_address().result()))
 
     def match_order_ids(self, order_ids):
         """
@@ -1733,7 +1733,7 @@ class MarketCommunity(Community, BlockListener):
             return
 
         payment = Payment(TraderId(self.mid), transaction.transaction_id, transfer_amount,
-                          wallet.get_address(), str(transaction.partner_incoming_address), PaymentId(txid),
+                          wallet.get_address().result(), str(transaction.partner_incoming_address), PaymentId(txid),
                           Timestamp.now())
 
         # Add it to the transaction
