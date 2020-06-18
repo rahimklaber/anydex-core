@@ -83,7 +83,7 @@ class BaseDummyWallet(Wallet):
             return self.register_anonymous_task('monitor_transaction', on_transaction_done, delay=self.MONITOR_DELAY)
 
     def get_address(self):
-        return self.address
+        return succeed(self.address)
 
     def get_transactions(self):
         return succeed(self.transaction_history)

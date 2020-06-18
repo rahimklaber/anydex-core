@@ -18,6 +18,7 @@ from anydex.restapi.rest_manager import RESTManager
 from anydex.wallet.dummy_wallet import DummyWallet1, DummyWallet2
 from anydex.wallet.ethereum.eth_wallet import EthereumTestnetWallet
 from anydex.wallet.iota.iota_wallet import IotaWallet, IotaTestnetWallet
+from wallet.bitcoinlib.bitcoinlib_wallets import BitcoinTestnetWallet
 
 
 class AnyDexService(object):
@@ -84,19 +85,23 @@ class AnyDexService(object):
                 self.dht = overlay
 
         # Initialize wallets
-        # dummy_wallet1 = DummyWallet1()
-        # self.wallets[dummy_wallet1.get_identifier()] = dummy_wallet1
-        #
-        # dummy_wallet2 = DummyWallet2()
-        # self.wallets[dummy_wallet2.get_identifier()] = dummy_wallet2
-        #
-        # eth_wallet = EthereumTestnetWallet(os.path.join(options.statedir, 'sqlite'), None)
-        # eth_wallet.create_wallet()
-        # self.wallets[eth_wallet.get_identifier()] = eth_wallet
+        dummy_wallet1 = DummyWallet1()
+        self.wallets[dummy_wallet1.get_identifier()] = dummy_wallet1
 
-        iota_wallet = IotaTestnetWallet(os.path.join(options.statedir, 'sqlite'), None)
-        iota_wallet.create_wallet()
-        self.wallets['TIOTA'] = iota_wallet
+        dummy_wallet2 = DummyWallet2()
+        self.wallets[dummy_wallet2.get_identifier()] = dummy_wallet2
+
+        btc_testnet_wallet = BitcoinTestnetWallet(os.path.join(options.statedir, 'sqlite'))
+        btc_testnet_wallet.create_wallet()
+        self.wallets[btc_testnet_wallet.get_identifier()] = btc_testnet_wallet
+
+        # eth_testnet_wallet = EthereumTestnetWallet(os.path.join(options.statedir, 'sqlite'), None)
+        # eth_testnet_wallet.create_wallet()
+        # self.wallets[eth_testnet_wallet.get_identifier()] = eth_testnet_wallet
+        #
+        # iota_testnet_wallet = IotaTestnetWallet(os.path.join(options.statedir, 'sqlite'))
+        # iota_testnet_wallet.create_wallet()
+        # self.wallets[iota_testnet_wallet.get_identifier()] = iota_testnet_wallet
 
         # Load market community
         self.market = MarketTestnetCommunity(self.trustchain.my_peer, self.ipv8.endpoint, self.ipv8.network,

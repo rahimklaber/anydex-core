@@ -19,15 +19,16 @@ class UnsupportedNetwork(Exception):
         super(UnsupportedNetwork, self).__init__(f'Network {network} is not supported.')
 
 
+SUPPORTED_NETWORKS = ['bitcoin', 'litecoin', 'dash', 'testnet', 'litecoin_testnet', 'dash_testnet']
+
+
 class BitcoinlibWallet(Wallet):
     """
     Superclass used for the implementation of bitcoinlib wallets.
     """
 
-    SUPPORTED_NETWORKS = ['bitcoin', 'litecoin', 'dash', 'testnet', 'litecoin_testnet', 'dash_testnet']
-
     def __init__(self, wallet_dir, testnet, network, currency):
-        if network not in self.SUPPORTED_NETWORKS:
+        if network not in SUPPORTED_NETWORKS:
             raise UnsupportedNetwork(network)
 
         super(BitcoinlibWallet, self).__init__()
