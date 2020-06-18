@@ -118,7 +118,7 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
                 return fail(InsufficientFunds('Insufficient funds found in Monero wallet'))
 
             self._logger.info('Transfer %f to %s', amount, address)
-            transaction = self.wallet.transfer(address, Decimal(str(amount)), **kwargs, relay=False)
+            transaction = await self.wallet.transfer(address, Decimal(str(amount)), **kwargs, relay=False)
             return succeed(transaction.hash)
         return succeed(None)
 
@@ -139,7 +139,7 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
             return fail(InsufficientFunds('Insufficient funds found in Monero wallet for all transfers'))
 
         if self._wallet_connection_alive():
-            results = self.wallet.transfer_multiple(transfers, **kwargs)
+            results = await self.wallet.transfer_multiple(transfers, **kwargs)
             hashes = [result[0].hash for result in results]
             return succeed(hashes)
         return fail(WalletConnectionError('No connection to wallet for making transfers'))
