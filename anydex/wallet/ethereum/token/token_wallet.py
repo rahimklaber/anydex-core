@@ -86,7 +86,6 @@ class AbstractTokenWallet(AbstractEthereumWallet):
         :param token: a dictionary that contains the token info
         :return: a new instance of this class
         """
-        abi = cls.abi_from_json()
         return cls(token['contract_address'], token['identifier'], token['name'], token['precision'], None, db_folder)
 
     def get_identifier(self):
