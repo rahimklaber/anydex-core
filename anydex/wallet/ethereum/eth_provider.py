@@ -587,17 +587,13 @@ class AutoTestnetEthereumProvider(AutoEthereumProvider):
     """
 
     def __init__(self):
-        # try:
-        #     node = create_node(Cryptocurrency.ETHEREUM)
-        #     address = f"{node.host}:{node.port}" if node.port else node.host
-        #     web3 = Web3Provider(address)
-        # except (ConnectionException, CannotCreateNodeException):
-        #     web3 = None
+        try:
+            node = create_node('ethereum',True)
+            address = f'{node.host}:{node.port}' if node.port else node.host
+            self.web3 = Web3Provider(address)
+        except (ConnectionException, CannotCreateNodeException):
+            self.web3 = None
 
-        # blockchair = EthereumBlockchairProvider()
-        # blockcypher = EthereumBlockcypherProvider(network="testnet")
-        self.web3 = Web3Provider(
-            'https://ropsten.infura.io/v3/40ebfba8446947279257f92b7cc4bb77')  # Todo fix config so we don't have to hardcode this.
         self.etherscan = EtherscanProvider('testnet')
         self.providers = {
             'get_transaction_count': [self.web3, self.etherscan],

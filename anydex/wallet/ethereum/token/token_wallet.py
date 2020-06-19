@@ -3,7 +3,7 @@ import pathlib
 
 from web3 import Web3
 
-from anydex.wallet.ethereum.eth_db import Transaction
+from anydex.wallet.ethereum.eth_database import Transaction
 from anydex.wallet.ethereum.eth_wallet import AbstractEthereumWallet
 from anydex.wallet.ethereum.token.token_provider import TokenProvider
 from anydex.wallet.wallet import InsufficientFunds
