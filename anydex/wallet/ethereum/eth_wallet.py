@@ -50,7 +50,7 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
         if not self.account:
             self.account = Web3().eth.account.create()
             self.created = True
-            self.database.add_key(self.wallet_name, self.account.privateKey, self.account.address)
+            self.database.add_key(self.wallet_name, self.account.key, self.account.address)
 
         return succeed(None)
 
