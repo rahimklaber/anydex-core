@@ -160,7 +160,7 @@ class TestEthereumWallet(AbstractServer):
     @timeout(6)
     async def test_monitor_future_found(self):
         """
-         Test for monitor_transactions when the transaction is found
+        Test for monitor_transactions when the transaction is found
         """
         tx_dict = {
             'id': 'xxx',
@@ -174,18 +174,15 @@ class TestEthereumWallet(AbstractServer):
             'description': f'Confirmations: {1}'
         }
         self.wallet.get_transactions = lambda: succeed([tx_dict])
-        self.assertIsNone(
-            await self.wallet.monitor_transaction('xxx'))
+        self.assertIsNone(await self.wallet.monitor_transaction('xxx'))
 
     @timeout(10)
     async def test_monitor_future_not_found(self):
         """
-         Test for monitor_transactions when the transaction is not found
+        Test for monitor_transactions when the transaction is not found
         """
-
         self.wallet.get_transactions = lambda: succeed([])
-        future = self.wallet.monitor_transaction(
-            'xxx')
+        future = self.wallet.monitor_transaction('xxx')
         # the monitor transaction runs every 5 sec
         await asyncio.sleep(6)
         self.assertFalse(future.done())

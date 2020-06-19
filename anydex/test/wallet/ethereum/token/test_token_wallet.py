@@ -21,7 +21,7 @@ class TestTokenWallet(TestEthereumWallet):
         return TokenWallet('0x20fE562d797A42Dcb3399062AE9546cd06f63280', 'TW', 'token wallet', 18, True,
                            self.session_base_dir)  # trick wallet to not use default provider
 
-    def test_abi_from_json_defualt(self):
+    def test_abi_from_json_default(self):
         """
         Test for abi_from_json with the default path
         """
@@ -40,7 +40,6 @@ class TestTokenWallet(TestEthereumWallet):
         """
         Test for from_dicts with a dict as parameter
         """
-
         wallets = TokenWallet.from_dicts(token, self.session_base_dir)
         self.assertEqual(1, len(wallets))
         wallet = wallets[0]
@@ -52,7 +51,6 @@ class TestTokenWallet(TestEthereumWallet):
         """
         Test for from_dicts with a list as parameter
         """
-
         wallets = TokenWallet.from_dicts(token, self.session_base_dir)
         self.assertEqual(1, len(wallets))
         wallet = wallets[0]

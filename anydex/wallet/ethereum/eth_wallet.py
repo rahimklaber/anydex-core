@@ -165,30 +165,6 @@ class AbstractEthereumWallet(Wallet, metaclass=ABCMeta):
     def precision(self):
         return 18
 
-    def monitor_transaction(self, txid):
-        monitor_future = Future()
-
-        async def monitor():
-            transactions = await self.get_transactions()
-            for transaction in transactions:
-                if transaction['id'] == txid:
-                    self._logger.debug('Found transaction with id %s', txid)
-                    monitor_future.set_result(None)
-                    monitor_task.cancel()
-
-        self._logger.debug('Start polling for transaction %s', txid)
-        monitor_task = self.register_task(f'{self.network}_poll_{txid}', monitor, interval=5)
-
-        return monitor_future
-
-
-class EthereumWallet(AbstractEthereumWallet):
-    def __init__(self, db_path, provider=None):
-        super(EthereumWallet, self).__init__(db_path, False, 1, provider)
-
-    def get_identifier(self):
-        return 'ETH'
-
 
 class EthereumWallet(AbstractEthereumWallet):
     def __init__(self, db_path, provider=None):
