@@ -48,7 +48,7 @@ class TestTokenWallet(TestEthereumWallet):
         self.assertEqual('Testnet ChainLink Token', wallet.get_name())
         self.assertEqual(18, wallet.precision())
 
-    def test_from_dicts_dict(self):
+    def test_from_dicts_dicts(self):
         """
         Test for from_dicts with a list as parameter
         """
@@ -61,9 +61,7 @@ class TestTokenWallet(TestEthereumWallet):
         self.assertEqual(18, wallet.precision())
 
     def test_from_dict(self):
-        wallets = TokenWallet.from_dict(token, self.session_base_dir)
-        self.assertEqual(1, len(wallets))
-        wallet = wallets[0]
+        wallet = TokenWallet.from_dict(token, self.session_base_dir)
         self.assertEqual('TLINK', wallet.get_identifier())
         self.assertEqual('Testnet ChainLink Token', wallet.get_name())
         self.assertEqual(18, wallet.precision())

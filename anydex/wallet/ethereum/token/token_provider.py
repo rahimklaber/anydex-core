@@ -13,7 +13,7 @@ class TokenProvider(EthereumProvider):
         self.abi = abi  # read in default ERC20 Application Binary Interface
         self._eth_provider = AutoTestnetEthereumProvider() if testnet else AutoEthereumProvider()
         self.w3 = self._eth_provider.web3.w3
-        self.contract = self.w3.eth.contract(contract_address, abi=self.abi)
+        self.contract = self.w3.eth.contract(self.w3.toChecksumAddress(contract_address), abi=self.abi)
         self._etherscan_provider = TokenEtherscanProvider(self.contract, testnet)
 
     # @staticmethod
