@@ -95,10 +95,3 @@ class TestNode(unittest.TestCase):
         self.assertEqual('', test_node.name)
         self.assertIn(test_node.host, self.ethereum_hosts)
         self.assertEqual('ethereum', test_node.network)
-
-    def test_create_node_non_existent_network(self):
-        """
-        Verify that `create_node` fails in case of faulty `network`.
-        """
-        with self.assertRaises(AttributeError):
-            node.create_node('test_network')
