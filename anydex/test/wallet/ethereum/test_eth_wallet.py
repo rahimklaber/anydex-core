@@ -7,7 +7,7 @@ from sqlalchemy.orm import session as db_session
 
 from anydex.test.base import AbstractServer
 from anydex.test.util import MockObject, timeout
-from anydex.wallet.ethereum.eth_db import Key, Transaction
+from anydex.wallet.ethereum.eth_database import Key, Transaction
 from anydex.wallet.ethereum.eth_wallet import EthereumWallet, EthereumTestnetWallet
 from anydex.wallet.wallet import InsufficientFunds
 
