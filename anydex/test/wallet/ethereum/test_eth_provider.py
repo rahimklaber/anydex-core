@@ -11,7 +11,7 @@ from anydex.wallet.provider import *
 
 
 class TestEthereumBlockChairProvider(TestCase):
-    sample_transactions_repsonse = {
+    sample_transactions_response = {
         'data': [
             {
                 'block_id': 46147,
@@ -203,7 +203,7 @@ class TestEthereumBlockChairProvider(TestCase):
                ]
         responses.add(responses.GET,
                       f'{self.bcp.base_url}/transactions',
-                      json=self.sample_transactions_repsonse)
+                      json=self.sample_transactions_response)
         self.assertEqual(txs,
                          self.bcp.get_transactions('0xa1e4380a3b1f749673e270229993ee55f35663b4'))
 

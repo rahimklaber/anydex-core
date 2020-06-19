@@ -6,7 +6,7 @@ class TokenProvider(EthereumProvider):
 
     def __init__(self, contract_address, abi, testnet=False):
         """
-        Instantiate TokenProvider attributs.
+        Instantiate TokenProvider attributes.
 
         :param contract_address: main token contract address
         """
@@ -107,7 +107,7 @@ class TokenProvider(EthereumProvider):
 
     def get_raw_total_supply(self):
         """
-        Get raw total supply of token constract.
+        Get raw total supply of token contract.
         :return: integer representation of total supply
         """
         return self.contract.functions.totalSupply().call()
@@ -132,7 +132,7 @@ class TokenProvider(EthereumProvider):
 class TokenEtherscanProvider(EtherscanProvider):
     """
     EtherscanProvider returns transaction metadata with a value parameter.
-    This value parameter by default refers to the amount of Ether being transfered.
+    This value parameter by default refers to the amount of Ether being transferred.
 
     Additional decoding needs to take place to instead retrieve the token transfer amount.
     This class overrides the `_normalize_transaction` method called in `get_transactions` method.

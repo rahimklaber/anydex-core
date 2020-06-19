@@ -11,11 +11,10 @@ from anydex.wallet.wallet import InsufficientFunds
 
 class AbstractTokenWallet(AbstractEthereumWallet):
     """
-    Abstract Wallet for Ethereun Erc-20 Tokens.
+    Abstract Wallet for Ethereum Erc-20 Tokens.
     """
 
-    def __init__(self, contract_address, identifier, name, decimals, provider: TokenProvider, db_folder, testnet
-                 ):
+    def __init__(self, contract_address, identifier, name, decimals, provider: TokenProvider, db_folder, testnet):
         abi = self.abi_from_json()
         self.identifier = identifier
         self.name = name
@@ -45,7 +44,7 @@ class AbstractTokenWallet(AbstractEthereumWallet):
         """
         Create Token wallets from a json file.
 
-        :param db_folder: path to the datase folder
+        :param db_folder: path to the database folder
         :param path_to_file: path to the json file uses default if none
         """
         if not path_to_file:
@@ -88,8 +87,7 @@ class AbstractTokenWallet(AbstractEthereumWallet):
         :return: a new instance of this class
         """
         abi = cls.abi_from_json()
-        return cls(token['contract_address'], token['identifier'], token['name'], token['precision'], None,
-                   db_folder)
+        return cls(token['contract_address'], token['identifier'], token['name'], token['precision'], None, db_folder)
 
     def get_identifier(self):
         return self.identifier
@@ -98,7 +96,6 @@ class AbstractTokenWallet(AbstractEthereumWallet):
         return self.name
 
     async def transfer(self, amount, address):
-
         balance = await self.get_balance()
         if balance['available'] < int(amount):
             raise InsufficientFunds('Insufficient funds')
@@ -146,7 +143,7 @@ class TokenWallet(AbstractTokenWallet):
 
 class TokenTestnetWallet(AbstractTokenWallet):
     """
-    Erc-20 token wallet on the test net
+    Erc-20 token wallet on the test net.
     """
 
     def __init__(self, contract_address, identifier, name, decimals, provider: TokenProvider, db_folder):

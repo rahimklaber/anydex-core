@@ -87,8 +87,8 @@ class EthereumDb:
     def update_database(self, transactions, token):
         """
         Update transactions in the database.
-        Pending transactions that have been confirmed will be updated to have a block number and will no longer be
-        pending.
+        Pending transactions that have been confirmed will be updated
+        to have a block number and will no longer be pending.
         Other transactions that are not in the database will be added.
 
         :param token: token identifier, should be ETH for Ethereum
@@ -144,7 +144,7 @@ class EthereumDb:
     def add(self, obj):
         """
         Wrapper around add method.
-        This method also calls `session.commmit`
+        This method also calls `session.commit`
 
         :param obj: a database object
         """
