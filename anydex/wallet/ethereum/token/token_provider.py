@@ -16,16 +16,6 @@ class TokenProvider(EthereumProvider):
         self.contract = self.w3.eth.contract(self.w3.toChecksumAddress(contract_address), abi=self.abi)
         self._etherscan_provider = TokenEtherscanProvider(self.contract, testnet)
 
-    # @staticmethod
-    # def get_abi():
-    #     """
-    #     Read locally stored ABI in as string
-    #     :return: str formatted ABI
-    #     """
-    #     with open('abi.json') as file:
-    #         abi = json.loads(file.read())
-    #     return abi
-
     def get_transaction_count(self, address):
         """
         Retrieve the number of transactions created by this address.
