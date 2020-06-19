@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy.orm import session as db_session
 
 from anydex.test.base import AbstractServer
-from anydex.wallet.ethereum.eth_db import EthereumDb, Transaction
+from anydex.wallet.ethereum.eth_wallet import EthereumDb, Transaction
 
 
 class TestEthereumDb(AbstractServer):
