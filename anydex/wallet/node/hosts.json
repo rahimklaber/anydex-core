@@ -18,8 +18,7 @@
       "https://main-rpc.linkpool.io/"
     ],
     "testnet": [
-      "https://ropsten-rpc.linkpool.io/",
-      "https://api.myetherapi.com/rop"
+      "https://ropsten-rpc.linkpool.io/"
     ]
   },
   "bitcoin": {

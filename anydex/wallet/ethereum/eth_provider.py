@@ -515,7 +515,7 @@ class AutoEthereumProvider(EthereumProvider):
     def __init__(self):
         try:
             node = create_node('ethereum')
-            address = f'{node.host}:{node.port}' if node.port else node.host
+            address = f'{node.protocol}://{node.host}:{node.port}' if node.port else f'{node.protocol}://{node.host}'
             self.web3 = Web3Provider(address)
         except (ConnectionException, CannotCreateNodeException):
             self.web3 = None
@@ -588,8 +588,8 @@ class AutoTestnetEthereumProvider(AutoEthereumProvider):
 
     def __init__(self):
         try:
-            node = create_node('ethereum',True)
-            address = f'{node.host}:{node.port}' if node.port else node.host
+            node = create_node('ethereum', True)
+            address = f'{node.protocol}://{node.host}:{node.port}' if node.port else f'{node.protocol}://{node.host}'
             self.web3 = Web3Provider(address)
         except (ConnectionException, CannotCreateNodeException):
             self.web3 = None
