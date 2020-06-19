@@ -190,6 +190,14 @@ class EthereumWallet(AbstractEthereumWallet):
     def get_identifier(self):
         return 'ETH'
 
+
+class EthereumWallet(AbstractEthereumWallet):
+    def __init__(self, db_path, provider=None):
+        super(EthereumWallet, self).__init__(db_path, False, 1, provider)
+
+    def get_identifier(self):
+        return 'ETH'
+
     def get_name(self):
         return Cryptocurrency.ETHEREUM.value
 

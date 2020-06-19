@@ -1,15 +1,13 @@
 import abc
 import os
 import time
-from asyncio import Future
 from decimal import Decimal
 
 from ipv8.util import fail, succeed
 from stellar_sdk import Keypair, TransactionBuilder, Account, Network
 
-from anydex.wallet.cryptocurrency import Cryptocurrency
-from anydex.wallet.stellar.xlm_db import Transaction, StellarDb
-from anydex.wallet.stellar.xlm_provider import StellarProvider
+from anydex.wallet.stellar.xlm_database import Transaction, StellarDb
+from anydex.wallet.stellar.xlm_provider import StellarProvider, HorizonProvider
 from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 
@@ -17,6 +15,8 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
     """
     This class is responsible for handling your Stellar wallet.
     """
+
+    STROOP_IN_LUMEN = 1e7
 
     def __init__(self, db_path: str, testnet: bool, provider: StellarProvider):
         super(AbstractStellarWallet, self).__init__()
@@ -26,7 +26,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         self.testnet = testnet
         self.unlocked = True
 
-        self.provider = provider
+        self.provider = HorizonProvider() if provider is None else provider
         self.database = StellarDb(os.path.join(db_path, 'stellar.db'))
         self.created_on_network = False  # Stellar accounts need to be explicitly created
 
@@ -73,7 +73,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
             })
 
         available = int(float(self.provider.get_balance(address=self.get_address().result()))
-                        * self.stroop_in_lumen())  # balance is not in smallest denomination
+                        * self.STROOP_IN_LUMEN)  # balance is not in smallest denomination
         pending_outgoing = self.database.get_outgoing_amount(self.get_address().result())
 
         return succeed({
@@ -122,7 +122,7 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
             base_fee=self.provider.get_base_fee(),
             network_passphrase=network,
         )
-        amount_in_xlm = Decimal(amount / self.stroop_in_lumen())  # amount in xlm instead of stroop (0.0000001 xlm)
+        amount_in_xlm = Decimal(amount / self.STROOP_IN_LUMEN)  # amount in xlm instead of stroop (0.0000001 xlm)
         if self.provider.check_account_created(address):
             tx_builder.append_payment_op(address, amount_in_xlm, asset)
         else:
@@ -189,32 +189,10 @@ class AbstractStellarWallet(Wallet, metaclass=abc.ABCMeta):
         return succeed(payments_to_return)
 
     def min_unit(self):
-        return self.stroop_in_lumen()  # if the minimum unit is too low we get float precision problems
+        return self.STROOP_IN_LUMEN  # if the minimum unit is too low we get float precision problems
 
     def precision(self):
         return 7
-
-    def monitor_transaction(self, txid, interval=5):
-        monitor_future = Future()
-
-        async def monitor():
-            transactions = await self.get_transactions()
-            for transaction in transactions:
-                if transaction['id'] == txid:
-                    self._logger.debug("Found transaction with id %s", txid)
-                    monitor_future.set_result(None)
-                    monitor_task.cancel()
-
-        self._logger.debug("Start polling for transaction %s", txid)
-        monitor_task = self.register_task(f"{self.network}_poll_{txid}", monitor, interval=interval)
-
-        return monitor_future
-
-    def stroop_in_lumen(self):
-        """
-        Get the amount of stroop in one lumen
-        """
-        return 1e7
 
     def merge_account(self, address):
         """
@@ -250,7 +228,7 @@ class StellarWallet(AbstractStellarWallet):
         return 'XLM'
 
     def get_name(self):
-        return Cryptocurrency.STELLAR.value
+        return 'stellar'
 
 
 class StellarTestnetWallet(AbstractStellarWallet):
@@ -261,4 +239,4 @@ class StellarTestnetWallet(AbstractStellarWallet):
         return 'TXLM'
 
     def get_name(self):
-        return f'testnet {Cryptocurrency.STELLAR.value}'
+        return 'testnet stellar'

@@ -3,6 +3,7 @@ from decimal import Decimal
 from time import mktime
 
 import monero.backends.jsonrpc
+from ipv8.util import succeed
 from monero.transaction import Payment, OutgoingPayment, IncomingPayment, Transaction
 from requests.exceptions import ConnectionError
 
@@ -21,7 +22,9 @@ TEST_PID = 'test_paymentid'
 
 def succeed_backend():
     mock_backend = MockObject()
-    mock_backend.accounts = lambda *_: []
+    mock_backend.accounts = lambda *_: [monero.account.Account(mock_backend, 0)]
+    mock_backend.addresses = lambda **_: [TEST_ADDRESS]
+    mock_backend.new_address = lambda **_: (TEST_ADDRESS, 1)
     monero.backends.jsonrpc.JSONRPCWallet.__new__ = lambda *_, **__: mock_backend
 
 
@@ -183,7 +186,7 @@ class TestMoneroWallet(AbstractServer):
         mock_transaction = MockObject()
         mock_transaction.hash = TEST_HASH
 
-        mock_wallet.transfer = lambda *_, **__: mock_transaction
+        mock_wallet.transfer = lambda *_, **__: succeed(mock_transaction)
 
         w.wallet = mock_wallet
 
@@ -208,10 +211,10 @@ class TestMoneroWallet(AbstractServer):
 
         w.wallet = mock_wallet
 
-        self.assertAsyncRaises(InsufficientFunds, w.transfer(47.8, 'test_address',
-                                                             payment_id='test_id',
-                                                             priority=1,
-                                                             unlock_time=0))
+        self.assertAsyncRaises(InsufficientFunds, await w.transfer(47.8, 'test_address',
+                                                                   payment_id='test_id',
+                                                                   priority=1,
+                                                                   unlock_time=0))
         w.cancel_all_pending_tasks()
 
     async def test_transfer_multiple_no_wallet(self):
@@ -225,7 +228,7 @@ class TestMoneroWallet(AbstractServer):
             (TEST_ADDRESS, Decimal('7.8'))
         ]
 
-        self.assertAsyncRaises(WalletConnectionError, w.transfer_multiple(transfers, priority=3))
+        self.assertAsyncRaises(WalletConnectionError, await w.transfer_multiple(transfers, priority=3))
         w.cancel_all_pending_tasks()
 
     async def test_transfer_multiple_wallet(self):
@@ -243,8 +246,8 @@ class TestMoneroWallet(AbstractServer):
         mock_wallet.refresh = lambda: None
         mock_wallet.balance = lambda **_: 57.3
         mock_wallet.transfer_multiple = \
-            lambda *_, **__: [(Transaction(hash=TEST_HASH), Decimal('20.2')),
-                              (Transaction(hash=TEST_HASH), Decimal('7.8'))]
+            lambda *_, **__: succeed([(Transaction(hash=TEST_HASH), Decimal('20.2')),
+                                      (Transaction(hash=TEST_HASH), Decimal('7.8'))])
 
         w.wallet = mock_wallet
 
@@ -293,12 +296,12 @@ class TestMoneroWallet(AbstractServer):
         self.assertEqual(TEST_ADDRESS, addr)
         w.cancel_all_pending_tasks()
 
-    def test_get_transactions_no_wallet(self):
+    async def test_get_transactions_no_wallet(self):
         """
         Attempt retrieval of transactions from Monero wallet in case wallet does not exist.
         """
         w = self.new_wallet()
-        self.assertAsyncRaises(WalletConnectionError, w.get_transactions())
+        self.assertAsyncRaises(WalletConnectionError, await w.get_transactions())
         w.cancel_all_pending_tasks()
 
     async def test_get_transactions_wallet(self):
@@ -547,6 +550,30 @@ class TestMoneroWallet(AbstractServer):
         p = Payment()
         self.assertEqual(4, await w.get_confirmations(p))
         w.cancel_all_pending_tasks()
+
+    def test_new_address(self):
+        """
+        Test creation of new address in main wallet account.
+        """
+        w = self.new_wallet()
+        succeed_backend()
+        w.create_wallet()
+
+        self.assertListEqual([TEST_ADDRESS], w.get_addresses())
+        self.assertEqual(TEST_ADDRESS, w.generate_subaddress())
+
+    def test_get_addresses(self):
+        """
+        Test retrieval of addresses in main wallet account.
+        """
+        w = self.new_wallet()
+
+        succeed_backend()
+        w.create_wallet()
+        addresses = w.get_addresses()
+
+        self.assertEqual(1, len(addresses))
+        self.assertListEqual([TEST_ADDRESS], addresses)
 
 
 class TestTestnetMoneroWallet(TestMoneroWallet):

@@ -1,7 +1,6 @@
 import os
 import time
 
-from asyncio import Future
 from binascii import hexlify
 from configparser import ConfigParser
 
@@ -20,15 +19,16 @@ class UnsupportedNetwork(Exception):
         super(UnsupportedNetwork, self).__init__(f'Network {network} is not supported.')
 
 
+SUPPORTED_NETWORKS = ['bitcoin', 'litecoin', 'dash', 'testnet', 'litecoin_testnet', 'dash_testnet']
+
+
 class BitcoinlibWallet(Wallet):
     """
     Superclass used for the implementation of bitcoinlib wallets.
     """
 
-    SUPPORTED_NETWORKS = ['bitcoin', 'litecoin', 'dash', 'testnet', 'litecoin_testnet', 'dash_testnet']
-
     def __init__(self, wallet_dir, testnet, network, currency):
-        if network not in self.SUPPORTED_NETWORKS:
+        if network not in SUPPORTED_NETWORKS:
             raise UnsupportedNetwork(network)
 
         super(BitcoinlibWallet, self).__init__()
@@ -212,25 +212,6 @@ class BitcoinlibWallet(Wallet):
 
     def precision(self):
         return 8       # The precision for LTC, BTC and DASH is the same.
-
-    def monitor_transaction(self, txid):
-        """
-        Monitor a given transaction ID. Returns a Deferred that fires when the transaction is present.
-        """
-        monitor_future = Future()
-
-        async def monitor():
-            transactions = await self.get_transactions()
-            for transaction in transactions:
-                if transaction['id'] == txid:
-                    self._logger.debug("Found transaction with id %s", txid)
-                    monitor_future.set_result(None)
-                    monitor_task.cancel()
-
-        self._logger.debug("Start polling for transaction %s", txid)
-        monitor_task = self.register_task(f"{self.network}_poll_{txid}", monitor, interval=5)
-
-        return monitor_future
 
     def is_testnet(self):
         return self.testnet

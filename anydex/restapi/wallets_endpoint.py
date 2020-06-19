@@ -12,8 +12,7 @@ class WalletsEndpoint(BaseMarketEndpoint):
     This class represents the root endpoint of the wallets resource.
     """
     TRANSFER_NETWORKS = ['BTC', 'TBTC', 'LTC', 'XLT', 'DASH', 'TDASH',
-                          'ETH', 'TETH, IOTA', 'TIOTA', 'XMR', 'TXMR',
-                          'XLM', 'TXLM']
+                         'ETH', 'TETH', 'IOTA', 'TIOTA', 'XMR', 'TXMR', 'XLM', 'TXLM']
 
     def setup_routes(self):
         self.app.add_routes([web.get('', self.get_wallets),

@@ -1,7 +1,6 @@
 import os
 import re
 from abc import ABCMeta
-from asyncio import Future
 
 from iota.crypto.types import Seed
 from iota.transaction import ProposedTransaction
@@ -9,7 +8,6 @@ from iota.types import Address
 from ipv8.util import succeed, fail
 from sqlalchemy import exists
 
-from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.iota.iota_database import initialize_db, \
     DatabaseSeed, DatabaseTransaction, DatabaseBundle, DatabaseAddress
 from anydex.wallet.iota.iota_provider import PyOTAIotaProvider
@@ -290,26 +288,8 @@ class AbstractIotaWallet(Wallet, metaclass=ABCMeta):
     def precision(self):
         return 0  # 6 if MIOTAs
 
-    def monitor_transaction(self, txid):
-        """
-        Monitor a given transaction ID
-        :param txid: hash of a transaction that should be monitored
-        :return: Deferred that fires when the transaction is present
-        """
-        monitor_future = Future()
-
-        async def monitor():
-            transactions = await self.get_transactions()
-            for transaction in transactions:
-                if transaction['hash'].__eq__(txid):
-                    self._logger.debug('Found transaction with id %s', txid)
-                    monitor_future.set_result(None)
-                    monitor_task.cancel()
-
-        self._logger.debug('Start polling for transaction %s', txid)
-        monitor_task = self.register_task(f'{self.network}_poll_{txid}', monitor, interval=5)
-
-        return monitor_future
+    def monitor_transaction(self, txid, interval=5, **kwargs):
+        return super().monitor_transaction(txid, interval=interval, field='hash')
 
     def is_testnet(self):
         return self.testnet
@@ -323,7 +303,7 @@ class IotaWallet(AbstractIotaWallet):
         return 'IOTA'
 
     def get_name(self):
-        return Cryptocurrency.IOTA.value
+        return 'iota'
 
 
 class IotaTestnetWallet(AbstractIotaWallet):
@@ -334,4 +314,4 @@ class IotaTestnetWallet(AbstractIotaWallet):
         return 'TIOTA'
 
     def get_name(self):
-        return f'testnet {Cryptocurrency.IOTA.value}'
+        return f'testnet iota'

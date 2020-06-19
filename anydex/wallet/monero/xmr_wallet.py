@@ -10,7 +10,6 @@ import monero.wallet
 from monero.backends.jsonrpc import JSONRPCWallet
 from monero.transaction import OutgoingPayment, Payment
 
-from anydex.wallet.cryptocurrency import Cryptocurrency
 from anydex.wallet.wallet import Wallet, InsufficientFunds
 
 
@@ -20,6 +19,8 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
     The class operates on the Monero wallet connected to the `monero-wallet-rpc` server.
     A Tribler specific account is created in the wallet, storing its address in database.
     Anytime AnyDex is started up, the address is retrieved to select the appropriate account.
+
+    NOTE: no support for account management or multiple accounts as of yet.
     """
 
     def __init__(self, testnet, host: str, port: int):
@@ -116,7 +117,7 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
                 return fail(InsufficientFunds('Insufficient funds found in Monero wallet'))
 
             self._logger.info('Transfer %f to %s', amount, address)
-            transaction = self.wallet.transfer(address, Decimal(str(amount)), **kwargs, relay=False)
+            transaction = await self.wallet.transfer(address, Decimal(str(amount)), **kwargs, relay=False)
             return succeed(transaction.hash)
         return succeed(None)
 
@@ -137,7 +138,7 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
             return fail(InsufficientFunds('Insufficient funds found in Monero wallet for all transfers'))
 
         if self._wallet_connection_alive():
-            results = self.wallet.transfer_multiple(transfers, **kwargs)
+            results = await self.wallet.transfer_multiple(transfers, **kwargs)
             hashes = [result[0].hash for result in results]
             return succeed(hashes)
         return fail(WalletConnectionError('No connection to wallet for making transfers'))
@@ -150,6 +151,32 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
             return succeed(self.wallet.address())
         else:
             return succeed('')
+
+    def get_integrated_address(self, payment_id) -> monero.address.IntegratedAddress:
+        """
+        Get integrated address from `get_address` and `payment_id` parameter.
+        :param payment_id: payment_id to include into address
+                    PaymentID must be either an int or hexadecimal string, or bytes
+        :return: integrated address
+        """
+        address = self.wallet.address()
+        return address.with_payment_id(payment_id)
+
+    def generate_subaddress(self) -> monero.address.SubAddress:
+        """
+        Generate a new subaddress in main wallet account.
+        NOTE: no support for account management or multiple accounts yet.
+        :return: subaddress in main wallet account: str
+        """
+        address, _ = self.wallet.new_address()
+        return address
+
+    def get_addresses(self) -> list:
+        """
+        Return list of all addresses contained in this main wallet account.
+        :return: list of `monero.address.Address`.
+        """
+        return self.wallet.addresses()
 
     async def get_transactions(self):
         """
@@ -242,14 +269,6 @@ class AbstractMoneroWallet(Wallet, metaclass=ABCMeta):
     def precision(self):
         return 12
 
-    def monitor_transaction(self, txid):
-        """
-        Blockchain is used to retrieve all transactions related to wallet.
-        No need for database and `monitor_transaction` method to store historical transactions.
-
-        :param txid: transaction id
-        """
-
 
 class MoneroWallet(AbstractMoneroWallet):
     def __init__(self, host: str = '127.0.0.1', port: int = 18081):
@@ -259,7 +278,7 @@ class MoneroWallet(AbstractMoneroWallet):
         return 'XMR'
 
     def get_name(self):
-        return Cryptocurrency.MONERO.value
+        return 'monero'
 
 
 class MoneroTestnetWallet(AbstractMoneroWallet):
@@ -270,7 +289,7 @@ class MoneroTestnetWallet(AbstractMoneroWallet):
         return 'TXMR'
 
     def get_name(self):
-        return f'testnet {Cryptocurrency.MONERO.value}'
+        return 'testnet monero'
 
 
 class NotSupportedOperationException(Exception):

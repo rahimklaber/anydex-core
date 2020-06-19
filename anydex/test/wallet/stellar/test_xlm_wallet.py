@@ -7,7 +7,7 @@ from stellar_sdk import Keypair
 
 from anydex.test.base import AbstractServer
 from anydex.test.util import MockObject, timeout
-from anydex.wallet.stellar.xlm_db import Secret, Transaction
+from anydex.wallet.stellar.xlm_database import Secret, Transaction
 from anydex.wallet.stellar.xlm_wallet import StellarWallet, StellarTestnetWallet
 from anydex.wallet.wallet import InsufficientFunds
 
@@ -214,7 +214,7 @@ class TestStellarWallet(AbstractServer):
         self.wallet.provider.get_transactions = lambda *_: []
 
         self.assertIsNone(await self.wallet.monitor_transaction(
-            '96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98', 1))
+            '96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98', interval=1))
 
     @timeout(5)
     async def test_monitor_transactions_not_found(self):
@@ -228,7 +228,7 @@ class TestStellarWallet(AbstractServer):
         self.wallet.provider.get_transactions = lambda *_: []
 
         future = self.wallet.monitor_transaction(
-            '96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98', 1)
+            '96ad71731b1b46fceb0f1c32adbcc16a93cefad1e6eb167efe8a8c8e4e0cbb98', interval=1)
         # the monitor transaction runs every 5 secs so this should be enough
         time.sleep(2)
         self.assertFalse(future.done())
