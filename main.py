@@ -89,9 +89,8 @@ class AnyDexService(object):
         dummy_wallet1 = DummyWallet1()
         self.wallets[dummy_wallet1.get_identifier()] = dummy_wallet1
 
-        iota_wallet = IotaTestnetWallet(os.path.join(options.statedir, 'sqlite'), None)
-        iota_wallet.create_wallet()
-        self.wallets['TIOTA'] = iota_wallet
+        dummy_wallet2 = DummyWallet2()
+        self.wallets[dummy_wallet2.get_identifier()] = dummy_wallet2
 
         # Initialize bitcoin wallets
         btc_wallet = BitcoinWallet(os.path.join(options.statedir, 'sqlite'))
