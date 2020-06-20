@@ -162,28 +162,6 @@ class EthereumBlockchairProvider(EthereumProvider):
         response = self.send_request(f"/dashboards/address/{address}")
         return int(response.json()["data"][address.lower()]["address"]["balance"])
 
-    def get_transaction_count(self, address):
-        # Todo: return also unconfirmed txs
-        response = self.send_request(f"/dashboards/address/{address}")
-        return response.json()["data"][address.lower()]["address"]["transaction_count"]
-
-    # def estimate_gas(self, tx):
-    #     # Todo estimate the gas better or just set to the max for smiple transactions (21000)
-    #     response = self.send_request("/stats")
-    #     return response.json()["data"]["median_simple_transaction_fee_24h"]
-
-    def get_gas_price(self):
-        response = self.send_request("/stats")
-        return response.json()["data"]["mempool_median_gas_price"]
-
-    def submit_transaction(self, raw_tx):
-        response = self.send_request("/push/transactions", data={"data": raw_tx}, method="post")
-        return response.json()["data"]["transaction_hash"]
-
-    def get_transactions(self, address):
-        response = self.send_request(f'/dashboards/address/{address}')
-        return int(response.json()['data'][address.lower()]['address']['balance'])
-
     def get_latest_blocknr(self):
         response = self.send_request('/stats')
         return response.json()['data']['best_block_height']
@@ -193,7 +171,7 @@ class EthereumBlockchairProvider(EthereumProvider):
         return response.json()['data'][address.lower()]['address']['transaction_count']
 
     # def estimate_gas(self, tx):
-    #     # Todo estimate the gas better or just set to the max for smiple transactions (21000)
+    #     # Todo estimate the gas better or just set to the max for simple transactions (21000)
     #     response = self.send_request('/stats')
     #     return response.json()['data']['median_simple_transaction_fee_24h']
 
