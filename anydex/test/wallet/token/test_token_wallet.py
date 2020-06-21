@@ -2,7 +2,7 @@ import pathlib
 
 from anydex.test.wallet.ethereum.test_eth_wallet import TestEthereumWallet
 from anydex.wallet.ethereum.token.token_wallet import TokenWallet, TokenTestnetWallet
-from test.wallet.token.abi import abi as python_abi
+from anydex.test.wallet.token.abi import abi as python_abi
 
 token = {'identifier': 'TLINK',
          'name': 'Testnet ChainLink Token',
